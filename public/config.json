@@ -1,0 +1,63 @@
+{
+  "compositionName": "Weekend_Main",
+  "layers": [
+    { "id": 1, "name": "Layer 1" },
+    { "id": 2, "name": "Layer 2" },
+    { "id": 3, "name": "Layer 3" }
+  ],
+  "columns": [
+    { "id": 1, "name": "Column 1" },
+    { "id": 2, "name": "Column 2" },
+    { "id": 3, "name": "Column 3" },
+    { "id": 4, "name": "Column 4" },
+    { "id": 5, "name": "Column 5" }
+  ],
+  "cells": [
+    { "layer": 1, "column": 1, "label": "Walk-In" },
+    { "layer": 1, "column": 3, "label": "Baptism Footage" },
+    { "layer": 2, "column": 2, "label": "NDI" },
+    { "layer": 2, "column": 3, "label": "NDI" }
+  ],
+  "quickCues": [
+    { "label": "Clear All", "action": "clear" },
+    { "label": "Cut (Prev→Prog)", "action": "cut" }
+  ],
+
+  "presets": [
+    {
+      "id": "walkin",
+      "label": "Walk-In",
+      "color": "#0ea5e9",
+      "hotkey": "1",
+      "macro": [
+        { "type": "trigger", "layer": 1, "column": 1 },
+        { "type": "trigger", "layer": 2, "column": 2 },
+        { "type": "cut" }
+      ]
+    },
+    {
+      "id": "sermon-bg",
+      "label": "Sermon Background",
+      "color": "#22c55e",
+      "hotkey": "2",
+      "macro": [
+        { "type": "trigger", "layer": 1, "column": 2 },
+        { "type": "sleep", "ms": 150 },
+        { "type": "trigger", "layer": 2, "column": 3 },
+        { "type": "cut" }
+      ]
+    },
+    {
+      "id": "bumper",
+      "label": "Bumper",
+      "color": "#eab308",
+      "hotkey": "b",
+      "macro": [
+        { "type": "clear" },
+        { "type": "sleep", "ms": 120 },
+        { "type": "triggerColumn", "column": 3 },
+        { "type": "cut" }
+      ]
+    }
+  ]
+}

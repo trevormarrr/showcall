@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ShowCall — Weekend Control</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <h1>ShowCall — Weekend Control</h1>
+      <div class="meta">
+        <span id="comp">Comp: —</span>
+        <span id="bpm">BPM: —</span>
+      </div>
+    </header>
+
+    <section class="status-bar">
+      <div class="tile">
+        <div class="title program">PROGRAM</div>
+        <div class="clip" id="progName">—</div>
+        <div class="sub" id="progLayer">Layer — • Col —</div>
+      </div>
+      <div class="tile">
+        <div class="title preview">PREVIEW</div>
+        <div class="clip" id="prevName">—</div>
+        <div class="sub" id="prevLayer">Layer — • Col —</div>
+      </div>
+    </section>
+
+    <section id="grid"></section>
+
+    <section class="actions">
+      <div id="quickCues" class="cues"></div>
+    </section>
+
+    <section>
+      <h2 style="margin:16px 0 8px; opacity:.9">Preset Deck</h2>
+      <div id="deck" class="deck"></div>
+      <div class="hint">Tip: Use your hotkeys (e.g., 1, 2, B) to fire presets.</div>
+    </section>
+    
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

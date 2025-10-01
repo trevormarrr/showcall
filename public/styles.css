@@ -1,0 +1,93 @@
+:root {
+    --bg: #0b0f14;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.14);
+    --text: #e7eef7;
+    --muted: rgba(231,238,247,0.7);
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --accent: #7dd3fc;
+  }
+  
+  * { box-sizing: border-box; }
+  body { margin:0; background:#0b0f14; color:var(--text); font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+  .page { max-width:1200px; margin:0 auto; padding:20px; }
+  
+  .top { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .top h1 { font-size:20px; margin:0; }
+  .meta { opacity:.8; display:flex; gap:16px; }
+  
+  .status-bar { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:12px 0 18px; }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; }
+  .title { font-size:12px; letter-spacing:1.2px; margin-bottom:4px; }
+  .title.program { color:var(--green); }
+  .title.preview { color:var(--blue); }
+  .clip { font-size:20px; font-weight:600; }
+  .sub  { font-size:12px; opacity:.8; }
+  
+  #grid {
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  
+  /* Grid layout: first column = layer labels; first row = column headers */
+  .grid {
+    display:grid;
+    grid-auto-rows: 48px;
+    background: #0f141c;
+  }
+  .grid .cell, .grid .hdr, .grid .layer-label {
+    border-right:1px solid #1e2631;
+    border-bottom:1px solid #1e2631;
+    display:flex; align-items:center; justify-content:center;
+    padding:6px 8px;
+  }
+  .grid .hdr { background:#111a25; font-weight:600; color:#c9e5ff; }
+  .grid .layer-label { background:#101723; justify-content:flex-start; padding-left:10px; color:#cbd5e1; }
+  .grid .cell { background:#12202c; cursor:pointer; }
+  .grid .cell:hover { background:#182b3a; }
+  .grid .cell.active-prog { outline:2px solid var(--green); outline-offset:-2px; }
+  .grid .cell.active-prev { outline:2px dashed var(--blue); outline-offset:-2px; }
+  .grid .cell.empty { background:#0f1a24; color:#6b7280; cursor:default; }
+  
+  .actions { margin-top:14px; }
+  .cues { display:flex; gap:10px; flex-wrap:wrap; }
+  .cues button {
+    background:var(--card); border:1px solid var(--border);
+    color:var(--text); padding:10px 12px; border-radius:10px; cursor:pointer;
+  }
+  .cues button:hover { background: rgba(255,255,255,0.12); }
+
+  .deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .deck .btn {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 16px 14px;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    font-weight: 600;
+    transition: transform .04s ease, background .12s ease;
+  }
+  .deck .btn:hover { background: rgba(255,255,255,0.12); }
+  .deck .btn:active { transform: translateY(1px); }
+  .deck .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    position: absolute; top: 12px; right: 12px; opacity: .95;
+  }
+  .deck .label { display:block; font-size: 16px; line-height: 1.2; }
+  .deck .hotkey {
+    display:inline-block; margin-top:4px; font-size: 11px; opacity:.7;
+    border:1px solid var(--border); padding:2px 6px; border-radius:8px;
+  }
+  .hint { opacity: .6; font-size: 12px; margin-top: 8px; }
+  
+  
