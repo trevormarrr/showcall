@@ -1,61 +1,73 @@
 {
   "compositionName": "Weekend_Main",
   "layers": [
-    { "id": 1, "name": "Layer 1" },
-    { "id": 2, "name": "Layer 2" },
-    { "id": 3, "name": "Layer 3" }
+    { "id": 1, "name": "Background" },
+    { "id": 2, "name": "Video Feed" },
+    { "id": 3, "name": "Graphics" }
   ],
   "columns": [
-    { "id": 1, "name": "Column 1" },
-    { "id": 2, "name": "Column 2" },
-    { "id": 3, "name": "Column 3" },
-    { "id": 4, "name": "Column 4" },
-    { "id": 5, "name": "Column 5" }
+    { "id": 1, "name": "Walk-In" },
+    { "id": 2, "name": "Sermon" },
+    { "id": 3, "name": "Baptism" },
+    { "id": 4, "name": "Closing" },
+    { "id": 5, "name": "Bumper" }
   ],
   "cells": [
-    { "layer": 1, "column": 1, "label": "Walk-In" },
-    { "layer": 1, "column": 3, "label": "Baptism Footage" },
-    { "layer": 2, "column": 2, "label": "NDI" },
-    { "layer": 2, "column": 3, "label": "NDI" }
+    { "layer": 1, "column": 1, "label": "Walk-In BG" },
+    { "layer": 1, "column": 2, "label": "Sermon BG" },
+    { "layer": 1, "column": 3, "label": "Baptism BG" },
+    { "layer": 2, "column": 1, "label": "NDI Feed" },
+    { "layer": 2, "column": 2, "label": "Camera 1" },
+    { "layer": 2, "column": 3, "label": "Baptism Cam" },
+    { "layer": 3, "column": 5, "label": "Logo Overlay" }
   ],
   "quickCues": [
     { "label": "Clear All", "action": "clear" },
     { "label": "Cut (Prev→Prog)", "action": "cut" }
   ],
-
   "presets": [
     {
       "id": "walkin",
-      "label": "Walk-In",
+      "label": "Walk-In Scene",
       "color": "#0ea5e9",
       "hotkey": "1",
       "macro": [
+        { "type": "clear" },
+        { "type": "sleep", "ms": 200 },
         { "type": "trigger", "layer": 1, "column": 1 },
+        { "type": "trigger", "layer": 2, "column": 1 },
+        { "type": "cut" }
+      ]
+    },
+    {
+      "id": "sermon",
+      "label": "Sermon Scene",
+      "color": "#22c55e",
+      "hotkey": "2",
+      "macro": [
+        { "type": "trigger", "layer": 1, "column": 2 },
         { "type": "trigger", "layer": 2, "column": 2 },
         { "type": "cut" }
       ]
     },
     {
-      "id": "sermon-bg",
-      "label": "Sermon Background",
-      "color": "#22c55e",
-      "hotkey": "2",
+      "id": "baptism",
+      "label": "Baptism Scene",
+      "color": "#8b5cf6",
+      "hotkey": "3",
       "macro": [
-        { "type": "trigger", "layer": 1, "column": 2 },
-        { "type": "sleep", "ms": 150 },
+        { "type": "trigger", "layer": 1, "column": 3 },
         { "type": "trigger", "layer": 2, "column": 3 },
         { "type": "cut" }
       ]
     },
     {
       "id": "bumper",
-      "label": "Bumper",
+      "label": "Bumper/Logo",
       "color": "#eab308",
       "hotkey": "b",
       "macro": [
-        { "type": "clear" },
-        { "type": "sleep", "ms": 120 },
-        { "type": "triggerColumn", "column": 3 },
+        { "type": "triggerColumn", "column": 5 },
         { "type": "cut" }
       ]
     }

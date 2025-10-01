@@ -1,16 +1,18 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>ShowCall — Weekend Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShowCall — Resolume Arena Controller</title>
+  <meta name="description" content="Professional Resolume Arena 7.19 controller for live events">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="page">
     <header class="top">
-      <h1>ShowCall — Weekend Control</h1>
+      <h1>ShowCall <span style="opacity: 0.5; font-weight: 400; font-size: 14px;">via OSC</span></h1>
       <div class="meta">
-        <span id="comp">Comp: —</span>
+        <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
       </div>
     </header>
@@ -28,18 +30,18 @@
       </div>
     </section>
 
-    <section id="grid"></section>
+    <section id="grid" role="grid" aria-label="Resolume clip grid"></section>
 
     <section class="actions">
-      <div id="quickCues" class="cues"></div>
+      <h3 style="margin: 16px 0 8px; opacity: 0.9; font-size: 14px; font-weight: 600;">Quick Actions</h3>
+      <div id="quickCues" class="cues" role="toolbar" aria-label="Quick action buttons"></div>
     </section>
 
     <section>
-      <h2 style="margin:16px 0 8px; opacity:.9">Preset Deck</h2>
-      <div id="deck" class="deck"></div>
-      <div class="hint">Tip: Use your hotkeys (e.g., 1, 2, B) to fire presets.</div>
+      <h2 style="margin: 24px 0 8px; opacity: 0.9; font-size: 18px; font-weight: 600;">Preset Deck</h2>
+      <div id="deck" class="deck" role="toolbar" aria-label="Preset buttons"></div>
+      <div class="hint">💡 Use keyboard shortcuts (1, 2, B, etc.) to trigger presets instantly</div>
     </section>
-    
   </div>
 
   <script src="/app.js"></script>
