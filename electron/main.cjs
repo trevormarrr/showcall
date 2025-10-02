@@ -51,7 +51,7 @@ function startServer() {
   let spawnEnv;
   
   if (isDev) {
-    // Development: use node directly
+    // Development: use current node/electron
     serverPath = path.join(__dirname, "..", "server.js");
     nodeExecutable = process.execPath;
     spawnEnv = { 
@@ -71,10 +71,17 @@ function startServer() {
       ELECTRON_RUN_AS_NODE: '1',
       RESOURCES_PATH: process.resourcesPath
     };
+    // Remove any dev-specific env vars that might interfere
+    delete spawnEnv.npm_config_cache;
+    delete spawnEnv.npm_config_prefix;
   }
   
-  console.log(`Starting server: ${nodeExecutable} ${serverPath}`);
-  console.log(`Resources path: ${spawnEnv.RESOURCES_PATH}`);
+  console.log(`Starting server (isDev: ${isDev})`);
+  console.log(`- Executable: ${nodeExecutable}`);
+  console.log(`- Server path: ${serverPath}`);
+  console.log(`- Resources path: ${spawnEnv.RESOURCES_PATH}`);
+  console.log(`- NODE_ENV: ${spawnEnv.NODE_ENV}`);
+  console.log(`- ELECTRON_RUN_AS_NODE: ${spawnEnv.ELECTRON_RUN_AS_NODE || 'undefined'}`);
   
   serverProcess = spawn(nodeExecutable, [serverPath], {
     env: spawnEnv,

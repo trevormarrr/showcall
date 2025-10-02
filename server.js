@@ -48,14 +48,26 @@ if (!process.env.RESOLUME_HOST) {
 
 // Resolve static public directory robustly across dev/packaged
 function resolvePublicDir() {
-  const candidates = [
-    // dev
-    path.join(__dirname, 'public'),
-    path.join(process.cwd(), 'public'),
-    // packaged: RESOURCES_PATH points to app bundle root
-    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'app.asar', 'public'),
-    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'public')
-  ].filter(Boolean);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('RESOURCES_PATH:', process.env.RESOURCES_PATH);
+  console.log('__dirname:', __dirname);
+  console.log('process.cwd():', process.cwd());
+  
+  let candidates;
+  
+  if (process.env.NODE_ENV === 'production' && process.env.RESOURCES_PATH) {
+    // Production: only check packaged locations
+    candidates = [
+      path.join(process.env.RESOURCES_PATH, 'app.asar', 'public'),
+      path.join(process.env.RESOURCES_PATH, 'public')
+    ];
+  } else {
+    // Development: check dev locations
+    candidates = [
+      path.join(__dirname, 'public'),
+      path.join(process.cwd(), 'public')
+    ];
+  }
   
   console.log('Checking public directory candidates:', candidates);
   
@@ -64,9 +76,15 @@ function resolvePublicDir() {
       if (fs.existsSync(p)) {
         console.log(`✅ Found public directory: ${p}`);
         return p;
+      } else {
+        console.log(`❌ Not found: ${p}`);
       }
-    } catch {}
+    } catch (e) {
+      console.log(`❌ Error checking ${p}:`, e.message);
+    }
   }
+  
+  console.error('❌ No public directory found!');
   return null;
 }
 
