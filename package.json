@@ -60,7 +60,12 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "type": "distribution",
+      "identity": "Developer ID Application",
+      "notarize": {
+        "teamId": "${APPLE_TEAM_ID}"
+      }
     },
     "win": {
       "target": [
