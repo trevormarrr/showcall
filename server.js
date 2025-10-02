@@ -29,6 +29,32 @@ try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
 
 // Try to load .env from a user-writable location if not already provided
 const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
+
+// Function to ensure user config exists
+async function ensureUserConfig() {
+  try {
+    await fs.promises.access(USER_ENV_PATH);
+    console.log(`✅ User config found: ${USER_ENV_PATH}`);
+  } catch {
+    console.log(`📝 Creating default user config: ${USER_ENV_PATH}`);
+    const defaultConfig = `# ShowCall Configuration
+# Resolume connection settings
+RESOLUME_HOST=10.1.110.72
+RESOLUME_REST_PORT=8080
+RESOLUME_OSC_PORT=7000
+
+# Server settings  
+PORT=3200
+NODE_ENV=production
+
+# Set to 1 to enable mock mode (for testing without Resolume)
+MOCK=0
+`;
+    await fs.promises.writeFile(USER_ENV_PATH, defaultConfig);
+    console.log("✅ Default config created");
+  }
+}
+
 if (!process.env.RESOLUME_HOST) {
   if (fs.existsSync(USER_ENV_PATH)) {
     console.log(`Loading user config from: ${USER_ENV_PATH}`);
@@ -779,34 +805,65 @@ app.use((req, res) => {
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 3200;
-const server = http.createServer(app);
+// Initialize the app
+async function initializeApp() {
+  try {
+    console.log("Starting ShowCall server...");
+    console.log("NODE_ENV:", process.env.NODE_ENV);
+    console.log("RESOURCES_PATH:", process.env.RESOURCES_PATH);
+    console.log("Current working directory:", process.cwd());
+    console.log("__dirname:", __dirname);
+    
+    // First ensure user config exists
+    console.log("Setting up user config...");
+    await ensureUserConfig();
+    console.log("User config setup complete");
 
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${PORT} is already in use`);
-  } else {
-    console.error("❌ Server error:", err);
+    // Start server
+    const PORT = process.env.PORT || 3200;
+    const server = http.createServer(app);
+
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        console.error(`❌ Port ${PORT} is already in use`);
+      } else {
+        console.error("❌ Server error:", err);
+      }
+      process.exit(1);
+    });
+
+    server.listen(PORT, () => {
+      console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid)");
+      console.log("=" .repeat(60));
+      console.log(`📡 Web UI:     http://localhost:${PORT}`);
+      console.log(`🎯 Resolume:   ${HOST}`);
+      console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
+      console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
+      console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
+      if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
+      console.log("=" .repeat(60));
+      console.log("\n💡 Resolume Setup Required:");
+      console.log("   1. Preferences > Web Server > ✓ Enable Web Server");
+      console.log("   2. Preferences > OSC > ✓ Enable OSC Input (Port 7000)");
+      console.log("\n🚀 OSC for Control | REST for Monitoring\n");
+      
+      // Initialize OSC after server is running
+      try {
+        console.log("Initializing OSC...");
+        initOSC();
+        console.log("OSC initialized successfully");
+      } catch (error) {
+        console.error("❌ Failed to initialize OSC:", error);
+        // Don't exit, OSC can be retried later
+      }
+    });
+    
+  } catch (error) {
+    console.error("Fatal error during server initialization:", error);
+    console.error("Stack trace:", error.stack);
+    process.exit(1);
   }
-  process.exit(1);
-});
+}
 
-server.listen(PORT, () => {
-  console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid)");
-  console.log("=" .repeat(60));
-  console.log(`📡 Web UI:     http://localhost:${PORT}`);
-  console.log(`🎯 Resolume:   ${HOST}`);
-  console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
-  console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
-  console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
-  if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
-  console.log("=" .repeat(60));
-  console.log("\n💡 Resolume Setup Required:");
-  console.log("   1. Preferences > Web Server > ✓ Enable Web Server");
-  console.log("   2. Preferences > OSC > ✓ Enable OSC Input (Port 7000)");
-  console.log("\n🚀 OSC for Control | REST for Monitoring\n");
-  
-  // Initialize OSC
-  initOSC();
-});
+// Start the application
+initializeApp();

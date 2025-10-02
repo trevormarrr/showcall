@@ -87,10 +87,21 @@ function startServer() {
     env: spawnEnv,
     stdio: ["inherit", "inherit", "inherit"]
   });
+  
   serverProcess.on("exit", (code, signal) => {
+    console.error(`Server process exited with code ${code}, signal ${signal}`);
     serverProcess = null;
     if (code !== 0 && app && !app.isQuitting) {
-      dialog.showErrorBox("Server crashed", `server.js exited (${signal || code}).`);
+      const errorMsg = `Server crashed: server.js exited (${signal || code})\n\nDebugging info:\n- isDev: ${isDev}\n- Server path: ${serverPath}\n- Resources path: ${spawnEnv.RESOURCES_PATH}\n- NODE_ENV: ${spawnEnv.NODE_ENV}`;
+      console.error(errorMsg);
+      dialog.showErrorBox("Server Crashed", errorMsg);
+    }
+  });
+  
+  serverProcess.on("error", (error) => {
+    console.error(`Server process error:`, error);
+    if (!app.isQuitting) {
+      dialog.showErrorBox("Server Failed to Start", `Failed to start server process: ${error.message}`);
     }
   });
 }
