@@ -48,11 +48,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.video",
@@ -62,11 +68,9 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "type": "distribution",
-      "identity": "Developer ID Application",
-      "notarize": {
-        "teamId": "${APPLE_TEAM_ID}"
-      }
+      "identity": "Developer ID Application"
     },
+    "afterSign": "scripts/notarize.js",
     "win": {
       "target": [
         "nsis",
@@ -114,6 +118,7 @@
     "wait-on": "^7.2.0"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   }
