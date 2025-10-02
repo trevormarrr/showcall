@@ -45,10 +45,18 @@ function isServerUp(url) {
 
 function startServer() {
   const env = { ...process.env, PORT: UI_PORT };
-  serverProcess = spawn(process.execPath, [path.join(__dirname, "..", "server.js")], {
+  
+  // In production (packaged), use the unpacked server.js
+  // In development, use the local server.js
+  let serverPath = path.join(__dirname, "..", "server.js");
+  if (app.isPackaged) {
+    serverPath = serverPath.replace("app.asar", "app.asar.unpacked");
+  }
+  
+  serverProcess = spawn(process.execPath, [serverPath], {
     env,
     stdio: "inherit",
-    cwd: path.join(__dirname, "..")
+    cwd: path.dirname(serverPath)
   });
   serverProcess.on("exit", (code, signal) => {
     serverProcess = null;

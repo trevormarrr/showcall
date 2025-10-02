@@ -37,9 +37,11 @@
       "public/**/*",
       "electron/**/*",
       ".env.example",
-      "package.json"
+      "package.json",
+      "node_modules/**/*"
     ],
     "asarUnpack": [
+      "server.js",
       "node_modules/**/*"
     ],
     "directories": {
