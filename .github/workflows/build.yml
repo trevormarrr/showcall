@@ -32,43 +32,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prepare Code Signing (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          # Create certificate file from base64
-          echo "${{ secrets.CSC_LINK }}" | base64 --decode > /tmp/certificate.p12
-          # Set environment variable to point to the file
-          echo "CSC_LINK=/tmp/certificate.p12" >> $GITHUB_ENV
-
       - name: Build app (macOS)
         if: matrix.os == 'macos-latest'
-        run: |
-          echo "🔍 Checking environment..."
-          echo "CSC_LINK exists: $(test -f "$CSC_LINK" && echo "YES" || echo "NO")"
-          echo "CSC_LINK size: $(ls -lh "$CSC_LINK" 2>/dev/null || echo "not found")"
-          echo "APPLE_ID set: $(test -n "$APPLE_ID" && echo "YES" || echo "NO")"
-          echo "APPLE_TEAM_ID set: $(test -n "$APPLE_TEAM_ID" && echo "YES" || echo "NO")"
-          echo "🏗️ Starting build..."
-          npm run dist
+        run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          DEBUG: electron-builder
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Build app (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Build app (Windows)
         if: matrix.os == 'windows-latest'
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload artifacts (macOS)
         if: matrix.os == 'macos-latest'

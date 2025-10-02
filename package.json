@@ -64,13 +64,8 @@
         }
       ],
       "category": "public.app-category.video",
-      "icon": "build/showcall_icon.icns",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "icon": "build/showcall_icon.icns"
     },
-    "afterSign": "scripts/notarize.cjs",
     "win": {
       "target": [
         "nsis",
