@@ -70,7 +70,7 @@
       "type": "distribution",
       "identity": "Developer ID Application"
     },
-    "afterSign": "scripts/notarize.js",
+    "afterSign": "scripts/notarize.cjs",
     "win": {
       "target": [
         "nsis",
