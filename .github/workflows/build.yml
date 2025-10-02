@@ -42,14 +42,21 @@ jobs:
 
       - name: Build app (macOS)
         if: matrix.os == 'macos-latest'
-        run: npm run dist
+        run: |
+          echo "🔍 Checking environment..."
+          echo "CSC_LINK exists: $(test -f "$CSC_LINK" && echo "YES" || echo "NO")"
+          echo "CSC_LINK size: $(ls -lh "$CSC_LINK" 2>/dev/null || echo "not found")"
+          echo "APPLE_ID set: $(test -n "$APPLE_ID" && echo "YES" || echo "NO")"
+          echo "APPLE_TEAM_ID set: $(test -n "$APPLE_TEAM_ID" && echo "YES" || echo "NO")"
+          echo "🏗️ Starting build..."
+          npm run dist -- --verbose
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          DEBUG: electron-builder
+          DEBUG: electron-builder,electron-builder:*
 
       - name: Build app (Linux)
         if: matrix.os == 'ubuntu-latest'
