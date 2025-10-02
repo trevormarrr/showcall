@@ -52,11 +52,20 @@ function resolvePublicDir() {
     // dev
     path.join(__dirname, 'public'),
     path.join(process.cwd(), 'public'),
-    // packaged context: RESOURCES_PATH provided by Electron main
+    // packaged: RESOURCES_PATH points to app bundle root
+    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'app.asar', 'public'),
     process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'public')
   ].filter(Boolean);
+  
+  console.log('Checking public directory candidates:', candidates);
+  
   for (const p of candidates) {
-    try { if (fs.existsSync(p)) return p; } catch {}
+    try { 
+      if (fs.existsSync(p)) {
+        console.log(`✅ Found public directory: ${p}`);
+        return p;
+      }
+    } catch {}
   }
   return null;
 }

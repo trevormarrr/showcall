@@ -44,38 +44,41 @@ function isServerUp(url) {
 }
 
 function startServer() {
-  const env = { 
-    ...process.env, 
-    PORT: UI_PORT,
-    NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV || 'development'),
-    // Provide app path so server can resolve packaged public/ assets
-    RESOURCES_PATH: app.getAppPath()
-  };
+  const isDev = !app.isPackaged;
   
-  // In production (packaged), use the unpacked server.js
-  // In development, use the local server.js
-  let serverPath = path.join(__dirname, "..", "server.js");
-  if (app.isPackaged) {
-    serverPath = serverPath.replace("app.asar", "app.asar.unpacked");
+  let serverPath;
+  let nodeExecutable;
+  let spawnEnv;
+  
+  if (isDev) {
+    // Development: use node directly
+    serverPath = path.join(__dirname, "..", "server.js");
+    nodeExecutable = process.execPath;
+    spawnEnv = { 
+      ...process.env, 
+      PORT: UI_PORT,
+      NODE_ENV: 'development',
+      RESOURCES_PATH: path.join(__dirname, "..")
+    };
+  } else {
+    // Production: use Electron as Node with ELECTRON_RUN_AS_NODE
+    serverPath = path.join(process.resourcesPath, "app.asar.unpacked", "server.js");
+    nodeExecutable = process.execPath;
+    spawnEnv = { 
+      ...process.env, 
+      PORT: UI_PORT,
+      NODE_ENV: 'production',
+      ELECTRON_RUN_AS_NODE: '1',
+      RESOURCES_PATH: process.resourcesPath
+    };
   }
   
-  // Use Node.js directly in packaged builds, Electron in dev
-  const executable = app.isPackaged ? process.execPath : process.execPath;
-  const args = app.isPackaged ? [serverPath] : [serverPath];
+  console.log(`Starting server: ${nodeExecutable} ${serverPath}`);
+  console.log(`Resources path: ${spawnEnv.RESOURCES_PATH}`);
   
-  // Set ELECTRON_RUN_AS_NODE for packaged builds
-  if (app.isPackaged) {
-    env.ELECTRON_RUN_AS_NODE = '1';
-  }
-  
-  console.log(`Starting server: ${executable} ${args.join(' ')}`);
-  console.log(`Server path: ${serverPath}`);
-  console.log(`Working directory: ${path.dirname(serverPath)}`);
-  
-  serverProcess = spawn(executable, args, {
-    env,
-    stdio: ["inherit", "inherit", "inherit"],
-    cwd: path.dirname(serverPath)
+  serverProcess = spawn(nodeExecutable, [serverPath], {
+    env: spawnEnv,
+    stdio: ["inherit", "inherit", "inherit"]
   });
   serverProcess.on("exit", (code, signal) => {
     serverProcess = null;
