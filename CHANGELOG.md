@@ -2,6 +2,32 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [1.2.0] - 2025-10-02
+
+### Added
+- Presets editor (UI → Presets) allowing editing of preset labels, hotkeys, colors, and macro steps. Saved to user profile as `presets.json`.
+- Settings modal (UI → Settings) to change Resolume IP/ports and ShowCall server port. Saving persists to user `.env` and restarts the server.
+- Update check button (Quick Actions) that queries GitHub Releases and opens the latest installer for your platform.
+- New server endpoints:
+	- `GET/POST /api/presets` for presets persistence.
+	- `GET/POST /api/settings` for configuration.
+	- `GET /api/update/check` for latest release/asset URLs.
+
+### Changed
+- Server converted to ESM module (`server.mjs`) and unpacked for production to ensure reliable startup inside packaged apps.
+- Improved UI grid and labels (Layers shown as “Layer N”), visual polish for deck and quick cues.
+
+### Fixed
+- Packaged app startup reliability across dist vs installed contexts (robust path resolution and spawn env).
+- Better error handling/logging for OSC/REST operations.
+
+### Notes
+- Ensure Resolume REST API and OSC input are enabled (default ports 8080 and 7000).
+- On first run, user settings are created under the platform user data directory (macOS: `~/Library/Application Support/ShowCall`).
+- Auto‑update currently opens the latest release asset in your browser; seamless in‑app updates may be added later.
+
+---
+
 ## [1.0.0] - 2025-10-01
 
 ### 🎉 Initial Release
