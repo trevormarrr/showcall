@@ -8,15 +8,17 @@ let resolumeConnected = false;
 async function init() {
   try {
     // Load config for presets only
-    CFG = await fetch("/config.json").then(r => r.json());
+  CFG = await fetch("/api/presets").then(r => r.json());
     gridEl = document.getElementById("grid");
     
     // Build UI elements
     buildQuickCues(CFG);
-    buildDeck(CFG);
-    addDebugControls();
+  buildDeck(CFG);
+  addDebugControls();
+  initSettings();
+  initPresets();
     
-    document.addEventListener("keydown", onHotkey);
+  document.addEventListener("keydown", onHotkey);
     
     // Check connection and load composition structure
     await checkConnection();
@@ -93,6 +95,31 @@ function addDebugControls() {
   testColumnBtn.onclick = () => testColumnTrigger(1);
   testColumnBtn.style.backgroundColor = "#f59e0b";
   quickCues.appendChild(testColumnBtn);
+
+  // Check updates button
+  const updateBtn = document.createElement("button");
+  updateBtn.className = "quick-cue-btn";
+  updateBtn.textContent = "⬇️ Check Updates";
+  updateBtn.onclick = async () => {
+    try {
+      showNotification('Checking for updates...', 'info');
+      const res = await fetch('/api/update/check');
+      const data = await res.json();
+      if (data.updateAvailable) {
+        const assetUrl = data.assets?.mac || data.assets?.win || data.assets?.linux || data.releaseUrl;
+        if (confirm(`Update ${data.latestVersion} available (current ${data.currentVersion}). Open download page?`)) {
+          window.open(assetUrl, '_blank');
+          showNotification('Opening download page...', 'info');
+        }
+      } else {
+        showNotification('You are up to date!', 'success');
+      }
+    } catch (e) {
+      showNotification('Update check failed', 'error');
+    }
+  };
+  updateBtn.style.backgroundColor = "#10b981";
+  quickCues.appendChild(updateBtn);
 }
 
 async function testConnection() {
@@ -803,7 +830,7 @@ async function saveSettings() {
 async function init() {
   try {
     // Load config for presets only
-    CFG = await fetch("/config.json").then(r => r.json());
+    CFG = await fetch("/api/presets").then(r => r.json());
     gridEl = document.getElementById("grid");
     
     // Build UI elements
@@ -811,6 +838,7 @@ async function init() {
     buildDeck(CFG);
     addDebugControls();
     initSettings(); // Initialize settings modal
+    initPresets(); // Initialize presets editor
     
     document.addEventListener("keydown", onHotkey);
     
@@ -829,3 +857,57 @@ async function init() {
   }
 }
 init();
+
+// Presets editor
+function initPresets() {
+  const btn = document.getElementById('presetsBtn');
+  const modal = document.getElementById('presetsModal');
+  if (!btn || !modal) return;
+  const close = modal.querySelector('.close');
+  const cancel = document.getElementById('cancelPresets');
+  const save = document.getElementById('savePresets');
+  presetsModal = modal;
+  presetsEditor = document.getElementById('presetsEditor');
+
+  const open = async () => {
+    try {
+      const json = await fetch('/api/presets').then(r => r.json());
+      presetsEditor.value = JSON.stringify(json, null, 2);
+      modal.style.display = 'flex';
+    } catch (e) {
+      showNotification('Failed to load presets', 'error');
+    }
+  };
+
+  const closeModal = () => modal.style.display = 'none';
+
+  btn.onclick = open;
+  close.onclick = closeModal;
+  cancel.onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+  save.onclick = async () => {
+    try {
+      const data = JSON.parse(presetsEditor.value);
+      const resp = await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!resp.ok) throw new Error('Failed to save');
+      showNotification('Presets saved', 'success');
+      closeModal();
+      // Refresh local CFG + UI
+      CFG = data;
+      buildQuickCues(CFG);
+      buildDeck(CFG);
+      // Re-register hotkeys map
+      deckByKey.clear();
+      (CFG.presets || []).forEach(p => {
+        if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+      });
+    } catch (e) {
+      showNotification('Invalid JSON or save failed', 'error');
+    }
+  };
+}

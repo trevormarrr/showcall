@@ -14,7 +14,8 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-        <button id="settingsBtn" class="settings-btn" title="Settings">⚙️</button>
+        <button id="settingsBtn" class="settings-btn" title="Settings">⚙️ Settings</button>
+        <button id="presetsBtn" class="settings-btn" title="Manage Presets">🎛️ Presets</button>
       </div>
     </header>
 
@@ -79,6 +80,30 @@
         </div>
         <div class="setting-note">
           <strong>Note:</strong> Settings will be saved and ShowCall will restart to apply changes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Presets Modal -->
+  <div id="presetsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Manage Presets</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label for="presetsEditor">Presets JSON</label>
+          <textarea id="presetsEditor" style="width:100%; height: 300px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 10px;"></textarea>
+          <small>Tip: Each preset supports: id, name, hotkey, color, macro (array of steps). Step types: trigger {layer,column}, triggerColumn {column}, cut, clear, sleep {ms}.</small>
+        </div>
+        <div class="setting-actions">
+          <button id="savePresets" class="btn-primary">Save Presets</button>
+          <button id="cancelPresets" class="btn-secondary">Cancel</button>
+        </div>
+        <div class="setting-note">
+          <strong>Note:</strong> Invalid JSON will be rejected. After saving, your deck and hotkeys will update immediately.
         </div>
       </div>
     </div>

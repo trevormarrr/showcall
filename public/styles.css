@@ -632,5 +632,10 @@
 .setting-note strong {
   color: var(--yellow);
 }
+
+/* Textarea base */
+textarea {
+  resize: vertical;
+}
   
   

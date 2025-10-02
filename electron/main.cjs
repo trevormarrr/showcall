@@ -1,5 +1,11 @@
 // electron/main.cjs
 const { app, BrowserWindow, dialog } = require("electron");
+let autoUpdater;
+try {
+  autoUpdater = require("electron-updater").autoUpdater;
+} catch (e) {
+  console.warn('electron-updater not available in dev:', e.message);
+}
 const path = require("path");
 const { spawn } = require("child_process");
 const http = require("http");
@@ -137,6 +143,15 @@ app.whenReady().then(async () => {
   try {
     await ensureServer();      // <— do not spawn if already running
     await createWindowOnce();
+    // Check for updates (non-blocking)
+    try {
+      if (autoUpdater) {
+        autoUpdater.autoDownload = false;
+        autoUpdater.checkForUpdatesAndNotify();
+      }
+    } catch (e) {
+      console.warn('Auto update check failed:', e.message);
+    }
   } catch (e) {
     console.error("Failed to load UI:", e);
     app.quit();

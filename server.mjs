@@ -9,7 +9,28 @@ import { fileURLToPath } from "url";
 import http from "http";
 import osc from "osc";
 
-// Function to ensure user config exists - defined early to avoid hoisting issues
+// Load .env from working directory first (dev convenience)
+dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: "1mb" }));
+
+// User-writable config directory
+const USER_DATA_DIR = process.env.SERVER_USER_DATA
+  || (process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
+      : process.platform === 'win32'
+        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
+        : path.join(os.homedir(), '.showcall'));
+try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
+
+const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
+const USER_PRESETS_PATH = path.join(USER_DATA_DIR, 'presets.json');
+
+// Function to ensure user config exists - defined early
 async function ensureUserConfig() {
   try {
     await fs.promises.access(USER_ENV_PATH);
@@ -22,7 +43,7 @@ RESOLUME_HOST=10.1.110.72
 RESOLUME_REST_PORT=8080
 RESOLUME_OSC_PORT=7000
 
-# Server settings  
+# Server settings
 PORT=3200
 NODE_ENV=production
 
@@ -34,27 +55,7 @@ MOCK=0
   }
 }
 
-// Load .env from working directory first
-dotenv.config();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// User-writable config directory
-const USER_DATA_DIR = process.env.SERVER_USER_DATA
-  || (process.platform === 'darwin'
-      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
-      : process.platform === 'win32'
-        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
-        : path.join(os.homedir(), '.showcall'));
-try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
-
 // Try to load .env from a user-writable location if not already provided
-const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
-
 if (!process.env.RESOLUME_HOST) {
   if (fs.existsSync(USER_ENV_PATH)) {
     console.log(`Loading user config from: ${USER_ENV_PATH}`);
@@ -62,9 +63,9 @@ if (!process.env.RESOLUME_HOST) {
   } else {
     // Seed a default .env file for users to edit
     console.log(`Creating default config at: ${USER_ENV_PATH}`);
-    const defaultEnv = `PORT=3200\nRESOLUME_HOST=localhost\nRESOLUME_REST_PORT=8080\nRESOLUME_OSC_PORT=7000\nMOCK=0\n`;
-    try { 
-      fs.writeFileSync(USER_ENV_PATH, defaultEnv, { flag: 'wx' }); 
+    const defaultEnv = `PORT=3200\nRESOLUME_HOST=10.1.110.72\nRESOLUME_REST_PORT=8080\nRESOLUME_OSC_PORT=7000\nMOCK=0\n`;
+    try {
+      fs.writeFileSync(USER_ENV_PATH, defaultEnv, { flag: 'wx' });
       dotenv.config({ path: USER_ENV_PATH, override: false });
     } catch (e) {
       console.warn('Could not create default .env:', e.message);
@@ -74,43 +75,24 @@ if (!process.env.RESOLUME_HOST) {
 
 // Resolve static public directory robustly across dev/packaged
 function resolvePublicDir() {
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('RESOURCES_PATH:', process.env.RESOURCES_PATH);
-  console.log('__dirname:', __dirname);
-  console.log('process.cwd():', process.cwd());
-  
   let candidates;
-  
   if (process.env.NODE_ENV === 'production' && process.env.RESOURCES_PATH) {
-    // Production: only check packaged locations
     candidates = [
       path.join(process.env.RESOURCES_PATH, 'app.asar', 'public'),
       path.join(process.env.RESOURCES_PATH, 'public')
     ];
   } else {
-    // Development: check dev locations
     candidates = [
       path.join(__dirname, 'public'),
       path.join(process.cwd(), 'public')
     ];
   }
-  
-  console.log('Checking public directory candidates:', candidates);
-  
   for (const p of candidates) {
-    try { 
-      if (fs.existsSync(p)) {
-        console.log(`✅ Found public directory: ${p}`);
-        return p;
-      } else {
-        console.log(`❌ Not found: ${p}`);
-      }
-    } catch (e) {
-      console.log(`❌ Error checking ${p}:`, e.message);
-    }
+    try {
+      if (fs.existsSync(p)) return p;
+    } catch {}
   }
-  
-  console.error('❌ No public directory found!');
+  console.error('✖ No public directory found!');
   return null;
 }
 
@@ -118,13 +100,6 @@ const PUBLIC_DIR = resolvePublicDir();
 if (PUBLIC_DIR) {
   app.use(express.static(PUBLIC_DIR));
   console.log(`✅ Serving UI from: ${PUBLIC_DIR}`);
-} else {
-  console.error('❌ Public directory not found; UI assets may not load.');
-  console.log('Checked paths:', [
-    path.join(__dirname, 'public'),
-    path.join(process.cwd(), 'public'),
-    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'public')
-  ].filter(Boolean));
 }
 
 // Resolume Arena Configuration
@@ -149,35 +124,25 @@ function initOSC() {
     console.log("🎭 MOCK mode - OSC disabled");
     return;
   }
-
   try {
     oscPort = new osc.UDPPort({
       localAddress: "0.0.0.0",
-      localPort: 57121, // Local port for our app
+      localPort: 57121,
       remoteAddress: HOST,
       remotePort: parseInt(OSC_PORT),
       metadata: true
     });
-
     oscPort.on("ready", () => {
       console.log(`✅ OSC ready - sending to ${HOST}:${OSC_PORT}`);
       isOSCConnected = true;
     });
-
     oscPort.on("error", (error) => {
-      console.error("❌ OSC Error:", error.message);
+      console.error("✖ OSC Error:", error.message);
       isOSCConnected = false;
     });
-
-    oscPort.on("message", (oscMsg) => {
-      // Log incoming OSC messages (if Resolume sends any back)
-      console.log("📨 OSC received:", oscMsg.address, oscMsg.args);
-    });
-
     oscPort.open();
-    
   } catch (error) {
-    console.error("❌ Failed to initialize OSC:", error.message);
+    console.error("✖ Failed to initialize OSC:", error.message);
     isOSCConnected = false;
   }
 }
@@ -188,65 +153,43 @@ function sendOSC(address, value = 1) {
     console.log(`🎭 MOCK OSC: ${address} ${value}`);
     return Promise.resolve({ ok: true });
   }
-
-  if (!oscPort) {
-    return Promise.reject(new Error("OSC not initialized"));
-  }
-
+  if (!oscPort) return Promise.reject(new Error("OSC not initialized"));
   return new Promise((resolve, reject) => {
     try {
-      const message = {
-        address: address,
-        args: [
-          {
-            type: "i", // integer
-            value: value
-          }
-        ]
-      };
-
+      const message = { address, args: [{ type: "i", value }] };
       console.log(`🎵 OSC → ${address} ${value}`);
       oscPort.send(message);
-      
-      // OSC is fire-and-forget, assume success
       resolve({ ok: true });
-      
     } catch (error) {
-      console.error(`❌ OSC send failed:`, error.message);
+      console.error(`✖ OSC send failed:`, error.message);
       reject(error);
     }
   });
 }
 
-// HTTP helpers using official Resolume REST API format
-async function resolumeRequest(method, path, data = null) {
-  const url = `${baseUrl()}${path}`;
+// HTTP helpers
+async function resolumeRequest(method, urlPath, data = null) {
+  const url = `${baseUrl()}${urlPath}`;
   const config = {
     method,
     url,
     timeout: 5000,
-    headers: {
-      'Accept': 'application/json'
-    }
+    headers: { 'Accept': 'application/json' }
   };
-  
-  // Resolume expects JSON body for PUT/POST requests
   if (data !== null && (method === 'PUT' || method === 'POST')) {
     config.headers['Content-Type'] = 'application/json';
     config.data = JSON.stringify(data);
   }
-  
   try {
     console.log(`🔗 ${method} ${url}`, data !== null ? JSON.stringify(data) : '');
     const response = await axios(config);
     isResolumeConnected = true;
     lastConnectionCheck = Date.now();
-    console.log(`✅ Response: ${response.status}`);
     return response.data;
   } catch (error) {
     isResolumeConnected = false;
     const errorMsg = error.response?.data?.error || error.response?.statusText || error.message;
-    console.error(`❌ Resolume ${method} ${path} failed:`, {
+    console.error(`✖ Resolume ${method} ${urlPath} failed:`, {
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
@@ -262,59 +205,40 @@ async function getCompositionStatus() {
     return {
       name: "Weekend_Main",
       layers: [
-        {
-          name: "Background",
-          clips: [
-            { name: "Walk-In BG", connected: { value: 0 } },
-            { name: "Sermon BG", connected: { value: 1 } },
-            { name: "Baptism BG", connected: { value: 0 } }
-          ]
-        },
-        {
-          name: "Video Feed", 
-          clips: [
-            { name: "NDI Feed", connected: { value: 0 } },
-            { name: "Camera 1", connected: { value: 1 } },
-            { name: "Baptism Cam", connected: { value: 0 } }
-          ]
-        }
+        { name: "Background", clips: [
+          { name: "Walk-In BG", connected: { value: 0 } },
+          { name: "Sermon BG", connected: { value: 1 } },
+          { name: "Baptism BG", connected: { value: 0 } }
+        ]},
+        { name: "Video Feed", clips: [
+          { name: "NDI Feed", connected: { value: 0 } },
+          { name: "Camera 1", connected: { value: 1 } },
+          { name: "Baptism Cam", connected: { value: 0 } }
+        ]}
       ],
       transport: { bpm: { value: 120 } }
     };
   }
-  
-  try {
-    return await resolumeRequest('GET', '/api/v1/composition');
-  } catch (error) {
-    throw new Error(`Failed to get composition: ${error.message}`);
-  }
+  return resolumeRequest('GET', '/api/v1/composition');
 }
 
-// Parse Resolume composition data using official API structure
+// Parse Resolume composition
 function parseCompositionStatus(data) {
   if (!data) return getDefaultStatus();
-  
   try {
     let programClip = null;
     let previewClip = null;
-    
-    // Resolume API returns layers array with clips array
-    // connected.value > 0 means the clip is active
     if (data.layers && Array.isArray(data.layers)) {
       data.layers.forEach((layer, layerIdx) => {
         if (layer.clips && Array.isArray(layer.clips)) {
           layer.clips.forEach((clip, clipIdx) => {
-            // Check if clip is connected (active)
             if (clip && clip.connected && clip.connected.value > 0) {
               const clipInfo = {
-                layer: layerIdx + 1, // Convert back to 1-based for UI
+                layer: layerIdx + 1,
                 column: clipIdx + 1,
                 clipName: clip.name?.value || `Clip ${clipIdx + 1}`,
                 layerName: layer.name?.value || `Layer ${layerIdx + 1}`
               };
-              
-              // In Resolume, check if clip is playing (program) or just selected (preview)
-              // Note: This depends on your Resolume settings (deck A vs B)
               if (clip.video && clip.video.opacity && clip.video.opacity.value > 0) {
                 programClip = clipInfo;
               } else {
@@ -325,13 +249,10 @@ function parseCompositionStatus(data) {
         }
       });
     }
-    
-    // Extract BPM from tempo controller
     let bpm = "—";
-    if (data.tempocontroller && data.tempocontroller.tempo && typeof data.tempocontroller.tempo.value === 'number') {
+    if (data.tempocontroller?.tempo && typeof data.tempocontroller.tempo.value === 'number') {
       bpm = Math.round(data.tempocontroller.tempo.value);
     }
-    
     return {
       program: programClip || { layer: "—", column: "—", clipName: "—", layerName: "—" },
       preview: previewClip || { layer: "—", column: "—", clipName: "—", layerName: "—" },
@@ -360,27 +281,21 @@ function getDefaultStatus() {
   };
 }
 
-// Get full composition structure with all clip names
+// Composition (structured) API
 app.get("/api/composition", async (req, res) => {
   try {
-    console.log("🔍 Fetching composition structure...");
-    
     const composition = await resolumeRequest('GET', '/api/v1/composition');
-    
-    // Helper to safely extract string value
     const getStringValue = (obj) => {
       if (!obj) return null;
       if (typeof obj === 'string') return obj;
       if (obj.value && typeof obj.value === 'string') return obj.value;
       return null;
     };
-    
-    // Build a clean structure with all clip info
     const structure = {
       connected: true,
       compositionName: getStringValue(composition.name) || "Unknown",
       layers: composition.layers?.map((layer, layerIdx) => ({
-        id: layerIdx + 1, // 1-based for UI
+        id: layerIdx + 1,
         name: getStringValue(layer.name) || `Layer ${layerIdx + 1}`,
         clips: layer.clips?.map((clip, clipIdx) => {
           const clipName = getStringValue(clip.name);
@@ -396,27 +311,16 @@ app.get("/api/composition", async (req, res) => {
       maxColumns: Math.max(...(composition.layers?.map(l => l.clips?.length || 0) || [0])),
       timestamp: Date.now()
     };
-    
-    console.log(`✅ Composition: ${structure.compositionName}, ${structure.layers.length} layers, ${structure.maxColumns} columns`);
     res.json(structure);
   } catch (error) {
-    console.error("❌ Failed to get composition:", error.message);
-    res.status(500).json({
-      connected: false,
-      error: error.message,
-      hint: "Make sure Resolume is running and REST API is enabled",
-      timestamp: Date.now()
-    });
+    res.status(500).json({ connected: false, error: error.message, timestamp: Date.now() });
   }
 });
 
-// Debug endpoint for detailed info
+// Debug endpoint
 app.get("/api/debug", async (req, res) => {
   try {
-    console.log("🔍 Debug: Testing Resolume connection...");
-    
     const composition = await resolumeRequest('GET', '/api/v1/composition');
-    
     const debugInfo = {
       connected: true,
       resolumeUrl: baseUrl(),
@@ -426,403 +330,255 @@ app.get("/api/debug", async (req, res) => {
         apiIndex: idx,
         uiIndex: idx + 1,
         name: layer.name?.value || layer.name || `Layer ${idx + 1}`,
-        clipCount: layer.clips?.length || 0,
-        clips: layer.clips?.slice(0, 10).map((clip, clipIdx) => ({
-          apiIndex: clipIdx,
-          uiIndex: clipIdx + 1,
-          name: clip.name?.value || clip.name || null,
-          connected: clip.connected?.value || 0,
-          isEmpty: !clip.name?.value && !clip.name
-        })) || []
+        clipCount: layer.clips?.length || 0
       })) || [],
       timestamp: Date.now()
     };
-    
-    console.log("✅ Resolume connected:", debugInfo.compositionName);
     res.json(debugInfo);
   } catch (error) {
-    console.error("❌ Debug failed:", error.message);
-    res.status(500).json({
-      connected: false,
-      error: error.message,
-      resolumeUrl: baseUrl(),
-      hint: "Make sure Resolume is running and REST API is enabled in Preferences > Web Server",
-      timestamp: Date.now()
-    });
+    res.status(500).json({ connected: false, error: error.message, resolumeUrl: baseUrl(), timestamp: Date.now() });
   }
 });
 
-// Trigger clip via OSC
+// Control APIs (OSC)
 async function triggerClip(layer, column) {
-  if (MOCK) {
-    console.log(`MOCK: Triggering L${layer}C${column}`);
-    return { ok: true, action: "trigger", layer, column };
-  }
-  
+  if (MOCK) return { ok: true, action: "trigger", layer, column };
   try {
-    console.log(`🎯 Triggering Layer ${layer} Column ${column} via OSC`);
-    
-    // OSC uses 1-based indexing (same as UI)
     const oscAddress = `/composition/layers/${layer}/clips/${column}/connect`;
     await sendOSC(oscAddress, 1);
-    
-    console.log(`✅ Sent OSC trigger for L${layer}C${column}`);
     return { ok: true, action: "trigger", layer, column, method: "osc" };
-    
   } catch (error) {
-    console.error(`❌ Failed to trigger L${layer}C${column}:`, error.message);
     return { ok: false, error: error.message, action: "trigger", layer, column };
   }
 }
 
-// Trigger column via OSC
 async function triggerColumn(column) {
-  if (MOCK) {
-    console.log(`MOCK: Triggering column ${column}`);
-    return { ok: true, action: "triggerColumn", column };
-  }
-  
+  if (MOCK) return { ok: true, action: "triggerColumn", column };
   try {
-    console.log(`🎯 Triggering Column ${column} via OSC`);
-    
-    // OSC supports column triggering directly (1-based indexing)
     const oscAddress = `/composition/columns/${column}/connect`;
     await sendOSC(oscAddress, 1);
-    
-    console.log(`✅ Sent OSC trigger for Column ${column}`);
     return { ok: true, action: "triggerColumn", column, method: "osc" };
-    
   } catch (error) {
-    console.error(`❌ Failed to trigger column ${column}:`, error.message);
     return { ok: false, error: error.message, action: "triggerColumn", column };
   }
 }
 
-// Cut/Resync via OSC
 async function cutToProgram() {
-  if (MOCK) {
-    console.log("MOCK: Cut to program");
-    return { ok: true, action: "cut" };
-  }
-  
+  if (MOCK) return { ok: true, action: "cut" };
   try {
-    console.log(`🎬 Cutting to program via OSC...`);
-    
-    // OSC: Trigger resync on tempo controller
     await sendOSC("/composition/tempocontroller/resync", 1);
-    
-    console.log("✅ Cut/Resync sent");
     return { ok: true, action: "cut", method: "osc" };
-    
   } catch (error) {
-    console.error("❌ Failed to cut:", error.message);
     return { ok: false, error: error.message, action: "cut" };
   }
 }
 
-// Clear all clips via OSC
 async function clearAll() {
-  if (MOCK) {
-    console.log("MOCK: Clear all");
-    return { ok: true, action: "clear" };
-  }
-  
+  if (MOCK) return { ok: true, action: "clear" };
   try {
-    console.log(`🧹 Clearing all clips via OSC...`);
-    
-    // OSC: Disconnect all clips
     await sendOSC("/composition/disconnectall", 1);
-    
-    console.log("✅ Clear all sent");
     return { ok: true, action: "clear", method: "osc" };
-    
   } catch (error) {
-    console.error("❌ Failed to clear all:", error.message);
     return { ok: false, error: error.message, action: "clear" };
   }
 }
 
-// Test endpoint using OSC
-app.post("/api/test-trigger", async (req, res) => {
-  const { layer = 1, column = 1 } = req.body;
-  
-  try {
-    console.log(`🔍 Testing L${layer}C${column} via OSC`);
-    
-    const result = await triggerClip(layer, column);
-    
-    res.json({ 
-      layer, 
-      column, 
-      success: result.ok,
-      method: 'OSC',
-      oscAddress: `/composition/layers/${layer}/clips/${column}/connect`,
-      ...result
-    });
-    
-  } catch (error) {
-    console.log(`❌ Test trigger failed: ${error.message}`);
-    res.json({ 
-      layer, 
-      column, 
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Test column trigger via OSC
-app.post("/api/test-column", async (req, res) => {
-  const { column = 1 } = req.body;
-  
-  try {
-    console.log(`🔍 Testing Column ${column} via OSC`);
-    
-    const result = await triggerColumn(column);
-    
-    res.json({ 
-      column, 
-      success: result.ok,
-      method: 'OSC',
-      oscAddress: `/composition/columns/${column}/connect`,
-      ...result
-    });
-    
-  } catch (error) {
-    console.log(`❌ Test column trigger failed: ${error.message}`);
-    res.json({ 
-      column, 
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Check Resolume connection (REST for monitoring, OSC for control)
-async function checkConnection() {
-  if (MOCK) return { 
-    connected: true, 
-    osc: true,
-    host: "MOCK", 
-    restPort: "MOCK",
-    oscPort: "MOCK"
-  };
-  
-  const now = Date.now();
-  if (now - lastConnectionCheck < CONNECTION_CHECK_INTERVAL) {
-    return { 
-      connected: isResolumeConnected,
-      osc: isOSCConnected,
-      host: HOST, 
-      restPort: REST_PORT,
-      oscPort: OSC_PORT
-    };
-  }
-  
-  try {
-    await resolumeRequest('GET', '/api/v1/composition');
-    return { 
-      connected: true,
-      osc: isOSCConnected,
-      host: HOST, 
-      restPort: REST_PORT,
-      oscPort: OSC_PORT
-    };
-  } catch (error) {
-    return { 
-      connected: false,
-      osc: isOSCConnected,
-      host: HOST, 
-      restPort: REST_PORT,
-      oscPort: OSC_PORT,
-      error: error.message 
-    };
-  }
-}
-
-// Macro execution
-async function executeMacro(steps) {
-  const results = [];
-  
-  for (const [index, step] of steps.entries()) {
-    try {
-      let result;
-      
-      switch (step.type?.toLowerCase()) {
-        case 'trigger':
-          result = await triggerClip(step.layer, step.column);
-          break;
-        case 'triggercolumn':
-          result = await triggerColumn(step.column);
-          break;
-        case 'cut':
-          result = await cutToProgram();
-          break;
-        case 'clear':
-          result = await clearAll();
-          break;
-        case 'sleep':
-          await new Promise(r => setTimeout(r, step.ms || 100));
-          result = { ok: true, action: 'sleep', ms: step.ms || 100 };
-          break;
-        default:
-          result = { ok: false, error: `Unknown step type: ${step.type}` };
-      }
-      
-      results.push({ step: index + 1, ...result });
-      
-      if (!result.ok && step.critical !== false) {
-        console.warn(`Macro step ${index + 1} failed, stopping`);
-        break;
-      }
-      
-    } catch (error) {
-      results.push({ 
-        step: index + 1, 
-        ok: false, 
-        error: error.message,
-        action: step.type 
-      });
-      break;
-    }
-  }
-  
-  return results;
-}
-
-// API Endpoints
-app.get("/health", async (req, res) => {
-  const connection = await checkConnection();
-  res.json({ 
-    ok: true, 
-    resolume: connection.connected,
-    host: connection.host,
-    port: connection.port,
-    timestamp: Date.now()
-  });
-});
-
-app.get("/api/connection", async (req, res) => {
-  const connection = await checkConnection();
-  res.json(connection);
-});
-
 app.post("/api/trigger", async (req, res) => {
   const { layer, column } = req.body;
-  if (!layer || !column) {
-    return res.status(400).json({ ok: false, error: "Missing layer or column" });
-  }
-  
+  if (!layer || !column) return res.status(400).json({ ok: false, error: "Missing layer or column" });
   const result = await triggerClip(parseInt(layer), parseInt(column));
   res.json(result);
 });
 
 app.post("/api/triggerColumn", async (req, res) => {
   const { column } = req.body;
-  if (!column) {
-    return res.status(400).json({ ok: false, error: "Missing column" });
-  }
-  
+  if (!column) return res.status(400).json({ ok: false, error: "Missing column" });
   const result = await triggerColumn(parseInt(column));
   res.json(result);
 });
 
 app.post("/api/cut", async (req, res) => {
-  const result = await cutToProgram();
-  res.json(result);
+  res.json(await cutToProgram());
 });
 
 app.post("/api/clear", async (req, res) => {
-  const result = await clearAll();
-  res.json(result);
+  res.json(await clearAll());
 });
+
+// Macro execution
+async function executeMacro(steps) {
+  const results = [];
+  for (const [index, step] of steps.entries()) {
+    try {
+      let result;
+      switch (String(step.type || '').toLowerCase()) {
+        case 'trigger':
+          result = await triggerClip(step.layer, step.column); break;
+        case 'triggercolumn':
+          result = await triggerColumn(step.column); break;
+        case 'cut':
+          result = await cutToProgram(); break;
+        case 'clear':
+          result = await clearAll(); break;
+        case 'sleep':
+          await new Promise(r => setTimeout(r, step.ms || 100));
+          result = { ok: true, action: 'sleep', ms: step.ms || 100 }; break;
+        default:
+          result = { ok: false, error: `Unknown step type: ${step.type}` };
+      }
+      results.push({ step: index + 1, ...result });
+      if (!result.ok && step.critical !== false) {
+        break;
+      }
+    } catch (error) {
+      results.push({ step: index + 1, ok: false, error: error.message, action: step.type });
+      break;
+    }
+  }
+  return results;
+}
 
 app.post("/api/macro", async (req, res) => {
   const { macro = [], id, name } = req.body;
-  
   if (!Array.isArray(macro) || macro.length === 0) {
     return res.status(400).json({ ok: false, error: "Invalid macro" });
   }
-  
-  console.log(`Executing macro "${name || id}" with ${macro.length} steps`);
   const results = await executeMacro(macro);
-  
-  res.json({ 
-    ok: true, 
-    id, 
-    name,
-    results,
-    totalSteps: macro.length
+  res.json({ ok: true, id, name, results, totalSteps: macro.length });
+});
+
+// Settings API
+app.get('/api/settings', async (req, res) => {
+  res.json({
+    resolumeHost: process.env.RESOLUME_HOST || '10.1.110.72',
+    resolumeRestPort: parseInt(process.env.RESOLUME_REST_PORT || '8080'),
+    resolumeOscPort: parseInt(process.env.RESOLUME_OSC_PORT || '7000'),
+    serverPort: parseInt(process.env.PORT || '3200')
   });
 });
 
-// Settings endpoints
-app.get("/api/settings", async (req, res) => {
+app.post('/api/settings', async (req, res) => {
   try {
-    const settings = {
-      resolumeHost: HOST,
-      resolumeRestPort: REST_PORT,
-      resolumeOscPort: OSC_PORT,
-      serverPort: process.env.PORT || 3200
-    };
-    res.json(settings);
-  } catch (error) {
-    console.error("Failed to get settings:", error);
-    res.status(500).json({ error: "Failed to get settings" });
+    const { resolumeHost, resolumeRestPort, resolumeOscPort, serverPort } = req.body || {};
+    if (!resolumeHost) return res.status(400).json({ ok: false, error: 'resolumeHost required' });
+    const rest = parseInt(resolumeRestPort);
+    const oscP = parseInt(resolumeOscPort);
+    const srv = parseInt(serverPort);
+    if (!(rest >= 1 && rest <= 65535)) return res.status(400).json({ ok: false, error: 'Invalid REST port' });
+    if (!(oscP >= 1 && oscP <= 65535)) return res.status(400).json({ ok: false, error: 'Invalid OSC port' });
+    if (!(srv >= 1024 && srv <= 65535)) return res.status(400).json({ ok: false, error: 'Invalid server port' });
+
+    const content = `# ShowCall Configuration\nRESOLUME_HOST=${resolumeHost}\nRESOLUME_REST_PORT=${rest}\nRESOLUME_OSC_PORT=${oscP}\nPORT=${srv}\nMOCK=${process.env.MOCK === '1' ? '1' : '0'}\n`;
+    await fs.promises.writeFile(USER_ENV_PATH, content);
+    res.json({ ok: true });
+    setTimeout(() => process.exit(0), 250); // Let Electron respawn the server
+  } catch (e) {
+    console.error('Failed to save settings:', e);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-app.post("/api/settings", async (req, res) => {
+// Presets API
+app.get('/api/presets', async (req, res) => {
   try {
-    const { resolumeHost, resolumeRestPort, resolumeOscPort, serverPort } = req.body;
-    
-    // Validate settings
-    if (!resolumeHost || typeof resolumeHost !== 'string') {
-      return res.status(400).json({ error: "Invalid Resolume host" });
+    if (fs.existsSync(USER_PRESETS_PATH)) {
+      const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
+      return res.json(JSON.parse(json));
     }
-    
-    if (!resolumeRestPort || resolumeRestPort < 1 || resolumeRestPort > 65535) {
-      return res.status(400).json({ error: "Invalid REST port" });
-    }
-    
-    if (!resolumeOscPort || resolumeOscPort < 1 || resolumeOscPort > 65535) {
-      return res.status(400).json({ error: "Invalid OSC port" });
-    }
-    
-    if (!serverPort || serverPort < 1024 || serverPort > 65535) {
-      return res.status(400).json({ error: "Invalid server port" });
-    }
-    
-    // Update .env file
-    const newEnvContent = `# ShowCall Configuration
-# Resolume connection settings
-RESOLUME_HOST=${resolumeHost}
-RESOLUME_REST_PORT=${resolumeRestPort}
-RESOLUME_OSC_PORT=${resolumeOscPort}
-
-# Server settings  
-PORT=${serverPort}
-NODE_ENV=production
-
-# Set to 1 to enable mock mode (for testing without Resolume)
-MOCK=0
-`;
-    
-    await fs.promises.writeFile(USER_ENV_PATH, newEnvContent);
-    console.log(`✅ Settings saved to ${USER_ENV_PATH}`);
-    
-    res.json({ ok: true, message: "Settings saved" });
-    
-    // Restart the application after a short delay
-    setTimeout(() => {
-      console.log("🔄 Restarting ShowCall to apply new settings...");
-      process.exit(0); // Electron will restart the server
-    }, 1000);
-    
-  } catch (error) {
-    console.error("Failed to save settings:", error);
-    res.status(500).json({ error: "Failed to save settings" });
+    // fallback to packaged/public config.json
+    const fallback = path.join(PUBLIC_DIR || __dirname, 'config.json');
+    const json = await fs.promises.readFile(fallback, 'utf-8');
+    return res.json(JSON.parse(json));
+  } catch (e) {
+    console.error('Failed to load presets:', e.message);
+    res.status(500).json({ presets: [], quickCues: [], error: e.message });
   }
+});
+
+app.post('/api/presets', async (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || typeof data !== 'object') return res.status(400).json({ ok: false, error: 'Invalid JSON' });
+    await fs.promises.writeFile(USER_PRESETS_PATH, JSON.stringify(data, null, 2));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Failed to save presets:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Update check API (GitHub Releases)
+async function getAppVersion() {
+  const candidates = [
+    path.join(__dirname, 'package.json'),
+    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'app.asar', 'package.json'),
+    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'package.json')
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        const j = JSON.parse(await fs.promises.readFile(p, 'utf-8'));
+        if (j.version) return String(j.version);
+      }
+    } catch {}
+  }
+  return '0.0.0';
+}
+
+app.get('/api/update/check', async (req, res) => {
+  try {
+    const currentVersion = await getAppVersion();
+    const { data } = await axios.get('https://api.github.com/repos/trevormarrr/showcall/releases/latest', {
+      headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'showcall-app' },
+      timeout: 5000
+    });
+    const latestVersion = data.tag_name?.replace(/^v/, '') || data.name || '0.0.0';
+    const assets = data.assets || [];
+    const findAsset = (exts) => {
+      const a = assets.find(a => exts.some(ext => a.name?.toLowerCase().endsWith(ext)));
+      return a ? a.browser_download_url : null;
+    };
+    const resp = {
+      currentVersion,
+      latestVersion,
+      updateAvailable: latestVersion !== currentVersion,
+      releaseUrl: data.html_url,
+      assets: {
+        mac: findAsset(['.dmg', '.zip']),
+        win: findAsset(['.exe', '.msi']),
+        linux: findAsset(['.AppImage', '.deb'])
+      }
+    };
+    res.json(resp);
+  } catch (e) {
+    console.error('Update check failed:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Health + connection APIs
+async function checkConnection() {
+  if (MOCK) return { connected: true, osc: true, host: "MOCK", restPort: "MOCK", oscPort: "MOCK" };
+  const now = Date.now();
+  if (now - lastConnectionCheck < CONNECTION_CHECK_INTERVAL) {
+    return { connected: isResolumeConnected, osc: isOSCConnected, host: HOST, restPort: REST_PORT, oscPort: OSC_PORT };
+  }
+  try {
+    await resolumeRequest('GET', '/api/v1/composition');
+    return { connected: true, osc: isOSCConnected, host: HOST, restPort: REST_PORT, oscPort: OSC_PORT };
+  } catch (error) {
+    return { connected: false, osc: isOSCConnected, host: HOST, restPort: REST_PORT, oscPort: OSC_PORT, error: error.message };
+  }
+}
+
+app.get("/health", async (req, res) => {
+  const connection = await checkConnection();
+  res.json({ ok: true, resolume: connection.connected, host: connection.host, port: connection.restPort, timestamp: Date.now() });
+});
+
+app.get("/api/connection", async (req, res) => {
+  const connection = await checkConnection();
+  res.json(connection);
 });
 
 // Server-Sent Events for real-time status
@@ -834,12 +590,9 @@ app.get("/api/status", async (req, res) => {
     "Access-Control-Allow-Origin": "*"
   });
   res.flushHeaders();
-
   let isActive = true;
-  
   const sendStatus = async () => {
     if (!isActive) return;
-    
     try {
       const composition = await getCompositionStatus();
       const status = parseCompositionStatus(composition);
@@ -849,20 +602,10 @@ app.get("/api/status", async (req, res) => {
       res.write(`data: ${JSON.stringify(errorStatus)}\n\n`);
     }
   };
-
   await sendStatus();
   const timer = setInterval(sendStatus, 1000);
-  
-  req.on("close", () => {
-    isActive = false;
-    clearInterval(timer);
-  });
-  
-  req.on("error", (error) => {
-    isActive = false;
-    clearInterval(timer);
-    console.error("SSE error:", error.message);
-  });
+  req.on("close", () => { isActive = false; clearInterval(timer); });
+  req.on("error", () => { isActive = false; clearInterval(timer); });
 });
 
 // Serve frontend
@@ -884,55 +627,31 @@ async function initializeApp() {
     console.log("__dirname:", __dirname);
     console.log("USER_DATA_DIR:", USER_DATA_DIR);
     console.log("USER_ENV_PATH:", USER_ENV_PATH);
-    console.log("Checking if ensureUserConfig exists:", typeof ensureUserConfig);
-    
-    // First ensure user config exists
-    console.log("Setting up user config...");
-    if (typeof ensureUserConfig !== 'function') {
-      throw new Error(`ensureUserConfig is not a function (type: ${typeof ensureUserConfig})`);
-    }
     await ensureUserConfig();
-    console.log("User config setup complete");
 
     // Start server
     const PORT = process.env.PORT || 3200;
     const server = http.createServer(app);
-
     server.on("error", (err) => {
       if (err.code === "EADDRINUSE") {
-        console.error(`❌ Port ${PORT} is already in use`);
+        console.error(`✖ Port ${PORT} is already in use`);
       } else {
-        console.error("❌ Server error:", err);
+        console.error("✖ Server error:", err);
       }
       process.exit(1);
     });
-
     server.listen(PORT, () => {
       console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid)");
-      console.log("=" .repeat(60));
+      console.log("=".repeat(60));
       console.log(`📡 Web UI:     http://localhost:${PORT}`);
       console.log(`🎯 Resolume:   ${HOST}`);
       console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
       console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
       console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
       if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
-      console.log("=" .repeat(60));
-      console.log("\n💡 Resolume Setup Required:");
-      console.log("   1. Preferences > Web Server > ✓ Enable Web Server");
-      console.log("   2. Preferences > OSC > ✓ Enable OSC Input (Port 7000)");
-      console.log("\n🚀 OSC for Control | REST for Monitoring\n");
-      
-      // Initialize OSC after server is running
-      try {
-        console.log("Initializing OSC...");
-        initOSC();
-        console.log("OSC initialized successfully");
-      } catch (error) {
-        console.error("❌ Failed to initialize OSC:", error);
-        // Don't exit, OSC can be retried later
-      }
+      console.log("=".repeat(60));
+      try { initOSC(); } catch {}
     });
-    
   } catch (error) {
     console.error("Fatal error during server initialization:", error);
     console.error("Stack trace:", error.stack);
@@ -940,5 +659,4 @@ async function initializeApp() {
   }
 }
 
-// Start the application
 initializeApp();
