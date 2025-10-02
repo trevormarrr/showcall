@@ -3,10 +3,13 @@ import cors from "cors";
 import axios from "axios";
 import dotenv from "dotenv";
 import path from "path";
+import fs from "fs";
+import os from "os";
 import { fileURLToPath } from "url";
 import http from "http";
 import osc from "osc";
 
+// Load .env from working directory first
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,10 +17,52 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+
+// User-writable config directory
+const USER_DATA_DIR = process.env.SERVER_USER_DATA
+  || (process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
+      : process.platform === 'win32'
+        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
+        : path.join(os.homedir(), '.showcall'));
+try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
+
+// Try to load .env from a user-writable location if not already provided
+const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
+if (!process.env.RESOLUME_HOST) {
+  if (fs.existsSync(USER_ENV_PATH)) {
+    dotenv.config({ path: USER_ENV_PATH, override: false });
+  } else {
+    // Seed a default .env file for users to edit
+    const defaultEnv = `PORT=3200\nRESOLUME_HOST=localhost\nRESOLUME_REST_PORT=8080\nRESOLUME_OSC_PORT=7000\nMOCK=0\n`;
+    try { fs.writeFileSync(USER_ENV_PATH, defaultEnv, { flag: 'wx' }); } catch {}
+  }
+}
+
+// Resolve static public directory robustly across dev/packaged
+function resolvePublicDir() {
+  const candidates = [
+    // dev
+    path.join(__dirname, 'public'),
+    path.join(process.cwd(), 'public'),
+    // packaged context: RESOURCES_PATH provided by Electron main
+    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'public')
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return p; } catch {}
+  }
+  return null;
+}
+
+const PUBLIC_DIR = resolvePublicDir();
+if (PUBLIC_DIR) {
+  app.use(express.static(PUBLIC_DIR));
+} else {
+  console.warn('Public directory not found; UI assets may not load.');
+}
 
 // Resolume Arena Configuration
-const HOST = process.env.RESOLUME_HOST || "10.1.110.72";
+const HOST = process.env.RESOLUME_HOST || "localhost";
 const REST_PORT = process.env.RESOLUME_REST_PORT || "8080";
 const OSC_PORT = process.env.RESOLUME_OSC_PORT || "7000";
 const MOCK = process.env.MOCK === "1";
@@ -687,7 +732,11 @@ app.get("/api/status", async (req, res) => {
 
 // Serve frontend
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  if (PUBLIC_DIR) {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  } else {
+    res.status(500).send('UI not available');
+  }
 });
 
 // Start server
@@ -708,8 +757,9 @@ server.listen(PORT, () => {
   console.log("=" .repeat(60));
   console.log(`📡 Web UI:     http://localhost:${PORT}`);
   console.log(`🎯 Resolume:   ${HOST}`);
-  console.log(`� REST API:   ${baseUrl()} (monitoring)`);
+  console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
   console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
+  console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
   if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
   console.log("=" .repeat(60));
   console.log("\n💡 Resolume Setup Required:");

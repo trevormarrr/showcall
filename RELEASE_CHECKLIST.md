@@ -143,3 +143,11 @@ git push origin v1.0.0
 ```
 
 Then monitor builds at: https://github.com/trevormarrr/showcall/actions
+
+---
+
+Quick v1.0.0 steps:
+- Update `package.json` version to `1.0.0`
+- Commit and push to `main`
+- Tag and push: `git tag -a v1.0.0 -m "Release v1.0.0" && git push origin v1.0.0`
+- Wait for the GitHub Release to publish installers in the Releases page

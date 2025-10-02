@@ -44,7 +44,15 @@ function isServerUp(url) {
 }
 
 function startServer() {
-  const env = { ...process.env, PORT: UI_PORT };
+  const env = { 
+    ...process.env, 
+    PORT: UI_PORT,
+    // Ensure the Electron binary runs Node semantics when executing server.js
+    ELECTRON_RUN_AS_NODE: '1',
+    NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV || 'development'),
+    // Provide app path so server can resolve packaged public/ assets
+    RESOURCES_PATH: app.getAppPath()
+  };
   
   // In production (packaged), use the unpacked server.js
   // In development, use the local server.js
