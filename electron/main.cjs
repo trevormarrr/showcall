@@ -47,8 +47,6 @@ function startServer() {
   const env = { 
     ...process.env, 
     PORT: UI_PORT,
-    // Ensure the Electron binary runs Node semantics when executing server.js
-    ELECTRON_RUN_AS_NODE: '1',
     NODE_ENV: app.isPackaged ? 'production' : (process.env.NODE_ENV || 'development'),
     // Provide app path so server can resolve packaged public/ assets
     RESOURCES_PATH: app.getAppPath()
@@ -61,9 +59,22 @@ function startServer() {
     serverPath = serverPath.replace("app.asar", "app.asar.unpacked");
   }
   
-  serverProcess = spawn(process.execPath, [serverPath], {
+  // Use Node.js directly in packaged builds, Electron in dev
+  const executable = app.isPackaged ? process.execPath : process.execPath;
+  const args = app.isPackaged ? [serverPath] : [serverPath];
+  
+  // Set ELECTRON_RUN_AS_NODE for packaged builds
+  if (app.isPackaged) {
+    env.ELECTRON_RUN_AS_NODE = '1';
+  }
+  
+  console.log(`Starting server: ${executable} ${args.join(' ')}`);
+  console.log(`Server path: ${serverPath}`);
+  console.log(`Working directory: ${path.dirname(serverPath)}`);
+  
+  serverProcess = spawn(executable, args, {
     env,
-    stdio: "inherit",
+    stdio: ["inherit", "inherit", "inherit"],
     cwd: path.dirname(serverPath)
   });
   serverProcess.on("exit", (code, signal) => {

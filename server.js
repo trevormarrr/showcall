@@ -31,11 +31,18 @@ try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
 const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
 if (!process.env.RESOLUME_HOST) {
   if (fs.existsSync(USER_ENV_PATH)) {
+    console.log(`Loading user config from: ${USER_ENV_PATH}`);
     dotenv.config({ path: USER_ENV_PATH, override: false });
   } else {
     // Seed a default .env file for users to edit
+    console.log(`Creating default config at: ${USER_ENV_PATH}`);
     const defaultEnv = `PORT=3200\nRESOLUME_HOST=localhost\nRESOLUME_REST_PORT=8080\nRESOLUME_OSC_PORT=7000\nMOCK=0\n`;
-    try { fs.writeFileSync(USER_ENV_PATH, defaultEnv, { flag: 'wx' }); } catch {}
+    try { 
+      fs.writeFileSync(USER_ENV_PATH, defaultEnv, { flag: 'wx' }); 
+      dotenv.config({ path: USER_ENV_PATH, override: false });
+    } catch (e) {
+      console.warn('Could not create default .env:', e.message);
+    }
   }
 }
 
@@ -57,8 +64,14 @@ function resolvePublicDir() {
 const PUBLIC_DIR = resolvePublicDir();
 if (PUBLIC_DIR) {
   app.use(express.static(PUBLIC_DIR));
+  console.log(`✅ Serving UI from: ${PUBLIC_DIR}`);
 } else {
-  console.warn('Public directory not found; UI assets may not load.');
+  console.error('❌ Public directory not found; UI assets may not load.');
+  console.log('Checked paths:', [
+    path.join(__dirname, 'public'),
+    path.join(process.cwd(), 'public'),
+    process.env.RESOURCES_PATH && path.join(process.env.RESOURCES_PATH, 'public')
+  ].filter(Boolean));
 }
 
 // Resolume Arena Configuration
