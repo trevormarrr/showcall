@@ -52,7 +52,7 @@ function startServer() {
   
   if (isDev) {
     // Development: use current node/electron
-    serverPath = path.join(__dirname, "..", "server.js");
+    serverPath = path.join(__dirname, "..", "server.mjs");
     nodeExecutable = process.execPath;
     spawnEnv = { 
       ...process.env, 
@@ -62,7 +62,7 @@ function startServer() {
     };
   } else {
     // Production: use Electron as Node with ELECTRON_RUN_AS_NODE
-    serverPath = path.join(process.resourcesPath, "app.asar.unpacked", "server.js");
+    serverPath = path.join(process.resourcesPath, "app.asar.unpacked", "server.mjs");
     nodeExecutable = process.execPath;
     spawnEnv = { 
       ...process.env, 
@@ -92,7 +92,7 @@ function startServer() {
     console.error(`Server process exited with code ${code}, signal ${signal}`);
     serverProcess = null;
     if (code !== 0 && app && !app.isQuitting) {
-      const errorMsg = `Server crashed: server.js exited (${signal || code})\n\nDebugging info:\n- isDev: ${isDev}\n- Server path: ${serverPath}\n- Resources path: ${spawnEnv.RESOURCES_PATH}\n- NODE_ENV: ${spawnEnv.NODE_ENV}`;
+      const errorMsg = `Server crashed: server.mjs exited (${signal || code})\n\nDebugging info:\n- isDev: ${isDev}\n- Server path: ${serverPath}\n- Resources path: ${spawnEnv.RESOURCES_PATH}\n- NODE_ENV: ${spawnEnv.NODE_ENV}`;
       console.error(errorMsg);
       dialog.showErrorBox("Server Crashed", errorMsg);
     }

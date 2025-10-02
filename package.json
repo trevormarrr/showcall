@@ -1,6 +1,6 @@
 {
   "name": "showcall",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Professional remote controller for Resolume Arena using OSC + REST API",
   "author": "Trevor Marr <trevormarrr@users.noreply.github.com>",
   "license": "MIT",
@@ -33,7 +33,7 @@
     "appId": "com.trevormarrr.showcall",
     "productName": "ShowCall",
     "files": [
-      "server.js",
+      "server.mjs",
       "public/**/*",
       "electron/**/*",
       ".env.example",
@@ -41,7 +41,7 @@
       "node_modules/**/*"
     ],
     "asarUnpack": [
-      "server.js",
+      "server.mjs",
       "node_modules/**/*"
     ],
     "directories": {
