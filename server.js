@@ -9,28 +9,7 @@ import { fileURLToPath } from "url";
 import http from "http";
 import osc from "osc";
 
-// Load .env from working directory first
-dotenv.config();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// User-writable config directory
-const USER_DATA_DIR = process.env.SERVER_USER_DATA
-  || (process.platform === 'darwin'
-      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
-      : process.platform === 'win32'
-        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
-        : path.join(os.homedir(), '.showcall'));
-try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
-
-// Try to load .env from a user-writable location if not already provided
-const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
-
-// Function to ensure user config exists
+// Function to ensure user config exists - defined early to avoid hoisting issues
 async function ensureUserConfig() {
   try {
     await fs.promises.access(USER_ENV_PATH);
@@ -54,6 +33,27 @@ MOCK=0
     console.log("✅ Default config created");
   }
 }
+
+// Load .env from working directory first
+dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// User-writable config directory
+const USER_DATA_DIR = process.env.SERVER_USER_DATA
+  || (process.platform === 'darwin'
+      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
+      : process.platform === 'win32'
+        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
+        : path.join(os.homedir(), '.showcall'));
+try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
+
+// Try to load .env from a user-writable location if not already provided
+const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
 
 if (!process.env.RESOLUME_HOST) {
   if (fs.existsSync(USER_ENV_PATH)) {
@@ -813,9 +813,15 @@ async function initializeApp() {
     console.log("RESOURCES_PATH:", process.env.RESOURCES_PATH);
     console.log("Current working directory:", process.cwd());
     console.log("__dirname:", __dirname);
+    console.log("USER_DATA_DIR:", USER_DATA_DIR);
+    console.log("USER_ENV_PATH:", USER_ENV_PATH);
+    console.log("Checking if ensureUserConfig exists:", typeof ensureUserConfig);
     
     // First ensure user config exists
     console.log("Setting up user config...");
+    if (typeof ensureUserConfig !== 'function') {
+      throw new Error(`ensureUserConfig is not a function (type: ${typeof ensureUserConfig})`);
+    }
     await ensureUserConfig();
     console.log("User config setup complete");
 
