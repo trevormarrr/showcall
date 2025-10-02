@@ -66,9 +66,7 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "type": "distribution",
-      "identity": "Developer ID Application"
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "afterSign": "scripts/notarize.cjs",
     "win": {
