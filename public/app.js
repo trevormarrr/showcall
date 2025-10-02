@@ -393,7 +393,7 @@ function buildGridFromComposition(comp) {
 
   // Layer rows (now Layer 1 will be at bottom)
   layersToShow.forEach(layer => {
-    const layerLabelEl = layerLabel(layer.name);
+    const layerLabelEl = layerLabel(`Layer ${layer.id}`);
     layerLabelEl.setAttribute("title", `Layer ${layer.id}: ${layer.name}`);
     container.appendChild(layerLabelEl);
     
@@ -667,5 +667,165 @@ function onHotkey(e) {
   }
 }
 
+// Settings functionality
+function initSettings() {
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeBtn = settingsModal.querySelector('.close');
+  const cancelBtn = document.getElementById('cancelSettings');
+  const saveBtn = document.getElementById('saveSettings');
+
+  // Load current settings
+  loadCurrentSettings();
+
+  // Open modal
+  settingsBtn.onclick = () => {
+    settingsModal.style.display = 'flex';
+    loadCurrentSettings();
+  };
+
+  // Close modal
+  const closeModal = () => {
+    settingsModal.style.display = 'none';
+  };
+
+  closeBtn.onclick = closeModal;
+  cancelBtn.onclick = closeModal;
+
+  // Close on backdrop click
+  settingsModal.onclick = (e) => {
+    if (e.target === settingsModal) closeModal();
+  };
+
+  // Close on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && settingsModal.style.display === 'flex') {
+      closeModal();
+    }
+  });
+
+  // Save settings
+  saveBtn.onclick = async () => {
+    await saveSettings();
+  };
+}
+
+async function loadCurrentSettings() {
+  try {
+    const response = await fetch('/api/settings');
+    const settings = await response.json();
+    
+    document.getElementById('resolumeHost').value = settings.resolumeHost || '10.1.110.72';
+    document.getElementById('resolumeRestPort').value = settings.resolumeRestPort || '8080';
+    document.getElementById('resolumeOscPort').value = settings.resolumeOscPort || '7000';
+    document.getElementById('serverPort').value = settings.serverPort || '3200';
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+    // Set defaults
+    document.getElementById('resolumeHost').value = '10.1.110.72';
+    document.getElementById('resolumeRestPort').value = '8080';
+    document.getElementById('resolumeOscPort').value = '7000';
+    document.getElementById('serverPort').value = '3200';
+  }
+}
+
+async function saveSettings() {
+  const settings = {
+    resolumeHost: document.getElementById('resolumeHost').value.trim(),
+    resolumeRestPort: parseInt(document.getElementById('resolumeRestPort').value),
+    resolumeOscPort: parseInt(document.getElementById('resolumeOscPort').value),
+    serverPort: parseInt(document.getElementById('serverPort').value)
+  };
+
+  // Basic validation
+  if (!settings.resolumeHost) {
+    alert('Please enter a valid Resolume IP address');
+    return;
+  }
+
+  if (settings.resolumeRestPort < 1 || settings.resolumeRestPort > 65535) {
+    alert('REST API port must be between 1 and 65535');
+    return;
+  }
+
+  if (settings.resolumeOscPort < 1 || settings.resolumeOscPort > 65535) {
+    alert('OSC port must be between 1 and 65535');
+    return;
+  }
+
+  if (settings.serverPort < 1024 || settings.serverPort > 65535) {
+    alert('Server port must be between 1024 and 65535');
+    return;
+  }
+
+  try {
+    showNotification('Saving settings...', 'info');
+    
+    const response = await fetch('/api/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(settings)
+    });
+
+    if (response.ok) {
+      showNotification('Settings saved! Restarting ShowCall...', 'success');
+      
+      // Close modal
+      document.getElementById('settingsModal').style.display = 'none';
+      
+      // Show restart message
+      setTimeout(() => {
+        document.body.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; gap: 20px;">
+            <h1>🔄 Restarting ShowCall...</h1>
+            <p>Settings have been saved. ShowCall is restarting to apply changes.</p>
+            <p style="opacity: 0.7;">This page will automatically reload in a few seconds.</p>
+          </div>
+        `;
+        
+        // Try to reload after a delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      }, 1000);
+    } else {
+      throw new Error('Failed to save settings');
+    }
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    showNotification('Failed to save settings', 'error');
+  }
+}
+
 // Initialize the application
+async function init() {
+  try {
+    // Load config for presets only
+    CFG = await fetch("/config.json").then(r => r.json());
+    gridEl = document.getElementById("grid");
+    
+    // Build UI elements
+    buildQuickCues(CFG);
+    buildDeck(CFG);
+    addDebugControls();
+    initSettings(); // Initialize settings modal
+    
+    document.addEventListener("keydown", onHotkey);
+    
+    // Check connection and load composition structure
+    await checkConnection();
+    await loadComposition();
+    setupStatusStream();
+    
+    // Refresh composition every 10 seconds
+    setInterval(loadComposition, 10000);
+    
+    console.log("🎬 ShowCall initialized");
+  } catch (error) {
+    console.error("❌ Init failed:", error);
+    showNotification("Failed to initialize", "error");
+  }
+}
 init();
