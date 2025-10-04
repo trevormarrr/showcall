@@ -2,6 +2,23 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [1.2.2] - 2025-10-04
+
+### Added
+- Enhanced active clip highlighting system that shows ALL active clips in a column (not just the top layer)
+- Right-click foundation for future preview functionality
+- Improved notification stacking with proper vertical spacing
+
+### Changed
+- Removed individual "PROG" text badges from clips for cleaner UI - now uses border highlighting only
+- Removed layer label highlighting on left side (columns-only highlighting approach)
+- Multi-clip detection via programClips array to handle multiple layers active in same column
+- Stronger CSS borders and glow effects for better visibility
+
+### Fixed
+- Visual feedback issue where only the top layer showed as active when multiple layers in the same column were live
+- Notification overlap and stacking problems in top-right corner
+
 ## [1.2.0] - 2025-10-02
 
 ### Added
