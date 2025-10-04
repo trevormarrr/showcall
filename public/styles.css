@@ -136,6 +136,10 @@
     text-align: center;
     position: relative;
   }
+  .grid .hdr.active-col-highlight {
+    background: linear-gradient(180deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 100%);
+    color: var(--green);
+  }
   .grid .hdr:hover {
     background: #1a2634;
     color: #ffffff;
@@ -161,6 +165,11 @@
     color: #cbd5e1;
     font-weight: 500;
     position: relative;
+  }
+  .grid .layer-label.active-layer-highlight {
+    background: linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.05) 100%);
+    color: var(--blue);
+    font-weight: 600;
   }
   .grid .layer-label.layer-active {
     background: rgba(34, 197, 94, 0.15);
@@ -215,6 +224,12 @@
     color: var(--blue);
     font-weight: 600;
   }
+  .grid .cell.col-sibling-prog {
+    box-shadow: inset 0 0 0 2px rgba(34,197,94,0.25);
+  }
+  .grid .cell.col-sibling-prev {
+    box-shadow: inset 0 0 0 2px rgba(59,130,246,0.25);
+  }
   .grid .cell.active-clip {
     background: rgba(125, 211, 252, 0.25);
     color: var(--accent);
@@ -230,6 +245,36 @@
     background: rgba(59, 130, 246, 0.3);
     color: var(--blue);
   }
+  /* Live indicators below status tiles */
+  .live-indicators { 
+    display: flex; 
+    gap: 10px; 
+    margin: 6px 0 14px; 
+    flex-wrap: wrap;
+  }
+  .live-indicators .indicator { 
+    flex: 1; 
+    min-width: 200px; 
+    background: var(--card); 
+    border: 1px solid var(--border); 
+    border-radius: 10px; 
+    padding: 10px 14px; 
+    font-size: 12px; 
+    line-height: 1.4; 
+    position: relative; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px;
+  }
+  .live-indicators .indicator.program { border-left: 5px solid var(--green); }
+  .live-indicators .indicator.preview { border-left: 5px solid var(--blue); }
+  .indicator .title-row { display: flex; justify-content: space-between; align-items: center; }
+  .indicator .clip-name { font-weight: 600; font-size: 14px; }
+  .indicator .meta-line { font-size: 11px; opacity: 0.8; font-family: ui-monospace, monospace; }
+  .indicator .coords-badge { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 6px; font-size: 10px; letter-spacing: .5px; }
+  .indicator .col-badge { background: rgba(125,211,252,0.15); color: var(--accent); padding: 2px 6px; border-radius: 6px; font-size: 10px; }
+  .indicator .layer-badge { background: rgba(255,255,255,0.07); padding: 2px 6px; border-radius: 6px; font-size: 10px; }
+  .indicator.empty { opacity: .5; }
   .grid .cell.empty { 
     background: #0f1a24; 
     color: #6b7280; 

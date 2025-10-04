@@ -313,8 +313,11 @@ function updateStatus(status) {
   
   // Clear previous highlights
   indexByKey.forEach(div => {
-    div.classList.remove("active-prog", "active-prev", "active-clip");
+    div.classList.remove("active-prog", "active-prev", "active-clip", "col-sibling-prog", "col-sibling-prev");
   });
+  // Clear header/layer highlights
+  document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight'));
+  document.querySelectorAll('.grid .layer-label').forEach(l => l.classList.remove('active-layer-highlight'));
   
   // Highlight active clips
   if (status.program?.layer && status.program?.column) {
@@ -322,6 +325,20 @@ function updateStatus(status) {
     const progDiv = indexByKey.get(key);
     if (progDiv) {
       progDiv.classList.add("active-prog", "active-clip");
+      // Highlight entire column siblings lightly
+      const col = status.program.column;
+      indexByKey.forEach((el, k) => {
+        if (k.endsWith(`-C${col}`) && el !== progDiv) el.classList.add('col-sibling-prog');
+      });
+      // Highlight column header
+      const grid = document.querySelector('.grid');
+      if (grid) {
+        const hdrs = grid.querySelectorAll('.hdr');
+        hdrs.forEach(h => { if (h.textContent.trim() === `Col ${col}`) h.classList.add('active-col-highlight'); });
+      }
+      // Highlight layer label
+      const layerLabelEl = document.querySelector(`.grid .layer-label:nth-of-type(${status.program.layer})`);
+      if (layerLabelEl) layerLabelEl.classList.add('active-layer-highlight');
     }
   }
   
@@ -330,8 +347,56 @@ function updateStatus(status) {
     const prevDiv = indexByKey.get(key);
     if (prevDiv) {
       prevDiv.classList.add("active-prev", "active-clip");
+      const col = status.preview.column;
+      indexByKey.forEach((el, k) => {
+        if (k.endsWith(`-C${col}`) && el !== prevDiv) el.classList.add('col-sibling-prev');
+      });
+      const grid = document.querySelector('.grid');
+      if (grid) {
+        const hdrs = grid.querySelectorAll('.hdr');
+        hdrs.forEach(h => { if (h.textContent.trim() === `Col ${col}`) h.classList.add('active-col-highlight'); });
+      }
+      const layerLabelEl = document.querySelector(`.grid .layer-label:nth-of-type(${status.preview.layer})`);
+      if (layerLabelEl && !layerLabelEl.classList.contains('active-layer-highlight')) layerLabelEl.classList.add('active-layer-highlight');
     }
   }
+
+  // Update live indicators panel
+  updateLiveIndicators(status);
+}
+
+function updateLiveIndicators(status) {
+  const container = document.getElementById('liveIndicators');
+  if (!container) return;
+  container.style.display = 'flex';
+  const progEl = document.getElementById('programIndicator');
+  const prevEl = document.getElementById('previewIndicator');
+  renderIndicator(progEl, status.program, 'Program');
+  renderIndicator(prevEl, status.preview, 'Preview');
+}
+
+function renderIndicator(el, clipInfo, label) {
+  if (!el) return;
+  if (!clipInfo || clipInfo.layer === '—' || clipInfo.column === '—') {
+    el.classList.add('empty');
+    el.innerHTML = `<div class="title-row"><span class="clip-name">${label}: —</span><span class="coords-badge">—</span></div><div class="meta-line">No active clip</div>`;
+    return;
+  }
+  el.classList.remove('empty');
+  const layer = clipInfo.layer;
+  const column = clipInfo.column;
+  const layerName = clipInfo.layerName || `Layer ${layer}`;
+  const clipName = clipInfo.clipName || '—';
+  el.innerHTML = `
+    <div class="title-row">
+      <span class="clip-name">${label}: ${clipName}</span>
+      <span class="coords-badge">L${layer} C${column}</span>
+    </div>
+    <div class="meta-line">
+      <span class="layer-badge">${layerName}</span>
+      <span class="col-badge">Column ${column}</span>
+    </div>
+  `;
 }
 
 function buildDeck(cfg) {

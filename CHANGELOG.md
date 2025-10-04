@@ -28,6 +28,21 @@ All notable changes to ShowCall will be documented in this file.
 
 ---
 
+## [1.2.1] - 2025-10-04
+
+### Added
+- Live Indicators panel showing current Program and Preview clip with layer + column badges.
+- Column-wide and layer label contextual highlighting for active Program and Preview clips.
+- Subtle sibling column highlighting to improve spatial awareness without overwhelming contrast.
+
+### Changed
+- Grid status update now unifies highlight clearing and applies consistent CSS classes.
+
+### Notes
+- No server/API changes; purely frontend enhancements (safe upgrade). If custom CSS overrides existed, verify new classes: `active-col-highlight`, `active-layer-highlight`, `col-sibling-prog`, `col-sibling-prev`.
+
+---
+
 ## [1.0.0] - 2025-10-01
 
 ### 🎉 Initial Release
