@@ -77,6 +77,26 @@
     gap: 10px; 
     margin: 12px 0 18px; 
   }
+  .status-bar.unified-status .tile.prog-tile.active { 
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.8), 0 0 20px -2px rgba(34,197,94,0.6) !important;
+    border: 2px solid rgba(34,197,94,0.9) !important;
+  }
+  .status-bar.unified-status .tile.prev-tile.active { 
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.8), 0 0 20px -2px rgba(59,130,246,0.6) !important;
+    border: 2px solid rgba(59,130,246,0.9) !important;
+  }
+  .status-bar.unified-status .tile.active { 
+    position: relative; 
+    animation: tilePulse 2s ease-in-out infinite;
+  }
+  .status-bar.unified-status .tile.active::after { 
+    content: ''; 
+    position: absolute; 
+    inset: 0; 
+    border-radius: 14px; 
+    background: linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0)); 
+    pointer-events: none;
+  }
   .tile { 
     background: var(--card); 
     border: 1px solid var(--border); 
@@ -140,6 +160,21 @@
     background: linear-gradient(180deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.05) 100%);
     color: var(--green);
   }
+  /* Strong program / preview column highlights */
+  .grid .hdr.active-col-prog { 
+    background: linear-gradient(180deg, rgba(34,197,94,0.4) 0%, rgba(34,197,94,0.15) 100%) !important; 
+    color: var(--green) !important; 
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.6) inset !important;
+    border: 2px solid rgba(34,197,94,0.8) !important;
+    font-weight: 700 !important;
+  }
+  .grid .hdr.active-col-prev { 
+    background: linear-gradient(180deg, rgba(59,130,246,0.4) 0%, rgba(59,130,246,0.15) 100%) !important; 
+    color: var(--blue) !important; 
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.6) inset !important;
+    border: 2px solid rgba(59,130,246,0.8) !important;
+    font-weight: 700 !important;
+  }
   .grid .hdr:hover {
     background: #1a2634;
     color: #ffffff;
@@ -170,6 +205,21 @@
     background: linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.05) 100%);
     color: var(--blue);
     font-weight: 600;
+  }
+  /* Strong layer highlights */
+  .grid .layer-label.active-layer-prog { 
+    background: linear-gradient(90deg, rgba(34,197,94,0.5) 0%, rgba(34,197,94,0.15) 100%) !important; 
+    color: var(--green) !important; 
+    font-weight: 700 !important; 
+    box-shadow: 4px 0 0 var(--green) inset !important;
+    border: 2px solid rgba(34,197,94,0.6) !important;
+  }
+  .grid .layer-label.active-layer-prev { 
+    background: linear-gradient(90deg, rgba(59,130,246,0.5) 0%, rgba(59,130,246,0.15) 100%) !important; 
+    color: var(--blue) !important; 
+    font-weight: 700 !important; 
+    box-shadow: 4px 0 0 var(--blue) inset !important;
+    border: 2px solid rgba(59,130,246,0.6) !important;
   }
   .grid .layer-label.layer-active {
     background: rgba(34, 197, 94, 0.15);
@@ -211,18 +261,20 @@
     z-index: 1;
   }
   .grid .cell.active-prog { 
-    outline: 2px solid var(--green); 
-    outline-offset: -2px;
-    background: rgba(34, 197, 94, 0.15);
-    color: var(--green);
-    font-weight: 600;
+    outline: 4px solid var(--green) !important; 
+    outline-offset: -2px !important;
+    background: rgba(34, 197, 94, 0.25) !important;
+    color: var(--green) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.8) inset, 0 0 15px rgba(34,197,94,0.5) !important;
   }
   .grid .cell.active-prev { 
-    outline: 2px dashed var(--blue); 
-    outline-offset: -2px;
-    background: rgba(59, 130, 246, 0.15);
-    color: var(--blue);
-    font-weight: 600;
+    outline: 4px dashed var(--blue) !important; 
+    outline-offset: -2px !important;
+    background: rgba(59, 130, 246, 0.25) !important;
+    color: var(--blue) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.8) inset, 0 0 15px rgba(59,130,246,0.5) !important;
   }
   .grid .cell.col-sibling-prog {
     box-shadow: inset 0 0 0 2px rgba(34,197,94,0.25);
@@ -395,6 +447,12 @@
     transition: transform 0.3s ease;
     min-width: 200px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin-bottom: 10px; /* Add spacing between notifications */
+  }
+  
+  /* Stack notifications vertically */
+  .notification:nth-of-type(n+2) {
+    top: calc(20px + (60px * var(--notification-index, 0)));
   }
   .notification.visible {
     transform: translateX(0);

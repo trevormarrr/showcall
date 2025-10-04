@@ -226,35 +226,43 @@ async function getCompositionStatus() {
 function parseCompositionStatus(data) {
   if (!data) return getDefaultStatus();
   try {
-    let programClip = null;
+    let programClips = []; // Change to array to handle multiple clips
     let previewClip = null;
+    
+    console.log("🔍 Raw composition data layers:", data.layers?.length);
+    
     if (data.layers && Array.isArray(data.layers)) {
       data.layers.forEach((layer, layerIdx) => {
         if (layer.clips && Array.isArray(layer.clips)) {
           layer.clips.forEach((clip, clipIdx) => {
-            if (clip && clip.connected && clip.connected.value > 0) {
+            // Only check clips that are actually connected (not empty or disconnected)
+            if (clip && clip.connected && clip.connected.value === 'Connected') {
               const clipInfo = {
                 layer: layerIdx + 1,
                 column: clipIdx + 1,
                 clipName: clip.name?.value || `Clip ${clipIdx + 1}`,
                 layerName: layer.name?.value || `Layer ${layerIdx + 1}`
               };
-              if (clip.video && clip.video.opacity && clip.video.opacity.value > 0) {
-                programClip = clipInfo;
-              } else {
-                previewClip = clipInfo;
-              }
+              
+              console.log(`� CONNECTED clip found: L${clipInfo.layer}C${clipInfo.column} - ${clipInfo.clipName}`);
+              
+              // Add to program clips array
+              programClips.push(clipInfo);
             }
           });
         }
       });
     }
+    
+    console.log("🔍 Final result - Program clips:", programClips, "Preview:", previewClip);
+    
     let bpm = "—";
     if (data.tempocontroller?.tempo && typeof data.tempocontroller.tempo.value === 'number') {
       bpm = Math.round(data.tempocontroller.tempo.value);
     }
     return {
-      program: programClip || { layer: "—", column: "—", clipName: "—", layerName: "—" },
+      programClips: programClips, // Return array of all active clips
+      program: programClips[0] || { layer: "—", column: "—", clipName: "—", layerName: "—" }, // Keep first for backwards compatibility
       preview: previewClip || { layer: "—", column: "—", clipName: "—", layerName: "—" },
       bpm,
       comp: data.name?.value || data.name || "Unknown",

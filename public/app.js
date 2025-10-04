@@ -96,30 +96,32 @@ function addDebugControls() {
   testColumnBtn.style.backgroundColor = "#f59e0b";
   quickCues.appendChild(testColumnBtn);
 
-  // Check updates button
-  const updateBtn = document.createElement("button");
-  updateBtn.className = "quick-cue-btn";
-  updateBtn.textContent = "⬇️ Check Updates";
-  updateBtn.onclick = async () => {
-    try {
-      showNotification('Checking for updates...', 'info');
-      const res = await fetch('/api/update/check');
-      const data = await res.json();
-      if (data.updateAvailable) {
-        const assetUrl = data.assets?.mac || data.assets?.win || data.assets?.linux || data.releaseUrl;
-        if (confirm(`Update ${data.latestVersion} available (current ${data.currentVersion}). Open download page?`)) {
-          window.open(assetUrl, '_blank');
-          showNotification('Opening download page...', 'info');
-        }
-      } else {
-        showNotification('You are up to date!', 'success');
+  // Test button for highlighting
+  const testHighlightBtn = document.createElement("button");
+  testHighlightBtn.className = "quick-cue-btn";
+  testHighlightBtn.textContent = "🎨 Test Highlight";
+  testHighlightBtn.onclick = () => {
+    console.log("🎨 Testing highlight...");
+    // Force highlight column 1 and layer 1
+    document.querySelectorAll('.grid .hdr').forEach(h => { 
+      if (h.textContent.trim() === 'Col 1') {
+        console.log("🎨 Found Col 1 header:", h);
+        h.classList.add('active-col-prog'); 
+        h.style.background = 'red !important'; // Emergency override
       }
-    } catch (e) {
-      showNotification('Update check failed', 'error');
+    });
+    // Test if we can find any cell
+    const testKey = 'L1-C1';
+    const testEl = indexByKey.get(testKey);
+    console.log("🎨 Test element for L1-C1:", testEl);
+    if (testEl) {
+      testEl.classList.add('active-prog');
+      testEl.style.border = '5px solid red'; // Emergency override
     }
+    showNotification("Force highlighted Col 1 / L1C1", "info");
   };
-  updateBtn.style.backgroundColor = "#10b981";
-  quickCues.appendChild(updateBtn);
+  testHighlightBtn.style.backgroundColor = "#e11d48";
+  quickCues.appendChild(testHighlightBtn);
 }
 
 async function testConnection() {
@@ -284,6 +286,11 @@ function setupStatusStream() {
 }
 
 function updateStatus(status) {
+  // Add debugging
+  console.log("🔍 UpdateStatus called with:", status);
+  console.log("🔍 Program:", status.program);
+  console.log("🔍 Preview:", status.preview);
+  
   // Update display elements
   document.getElementById("progName").textContent = status.program?.clipName || "—";
   document.getElementById("prevName").textContent = status.preview?.clipName || "—";
@@ -311,93 +318,62 @@ function updateStatus(status) {
     oscPort: status.oscPort
   });
   
-  // Clear previous highlights
-  indexByKey.forEach(div => {
-    div.classList.remove("active-prog", "active-prev", "active-clip", "col-sibling-prog", "col-sibling-prev");
-  });
-  // Clear header/layer highlights
-  document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight'));
-  document.querySelectorAll('.grid .layer-label').forEach(l => l.classList.remove('active-layer-highlight'));
+  // Clear previous highlights (cells, headers, tiles) - removed layer clearing
+  indexByKey.forEach(div => div.classList.remove("active-prog", "active-prev", "active-clip"));
+  document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight','active-col-prog','active-col-prev'));
+  document.getElementById('programTile')?.classList.remove('active');
+  document.getElementById('previewTile')?.classList.remove('active');
   
-  // Highlight active clips
-  if (status.program?.layer && status.program?.column) {
-    const key = `L${status.program.layer}-C${status.program.column}`;
-    const progDiv = indexByKey.get(key);
-    if (progDiv) {
-      progDiv.classList.add("active-prog", "active-clip");
-      // Highlight entire column siblings lightly
-      const col = status.program.column;
-      indexByKey.forEach((el, k) => {
-        if (k.endsWith(`-C${col}`) && el !== progDiv) el.classList.add('col-sibling-prog');
-      });
-      // Highlight column header
-      const grid = document.querySelector('.grid');
-      if (grid) {
-        const hdrs = grid.querySelectorAll('.hdr');
-        hdrs.forEach(h => { if (h.textContent.trim() === `Col ${col}`) h.classList.add('active-col-highlight'); });
+  // Highlight ALL active program clips
+  if (status.programClips && status.programClips.length > 0) {
+    console.log("🟢 Highlighting ALL program clips:", status.programClips);
+    
+    // Mark the program tile as active
+    document.getElementById('programTile')?.classList.add('active');
+    
+    // Get all active columns to highlight headers
+    const activeColumns = [...new Set(status.programClips.map(clip => clip.column))];
+    
+    status.programClips.forEach(clipInfo => {
+      const key = `L${clipInfo.layer}-C${clipInfo.column}`;
+      console.log("🟢 Looking for key:", key);
+      const el = indexByKey.get(key);
+      console.log("🟢 Found element:", el);
+      if (el) {
+        el.classList.add('active-prog','active-clip');
       }
-      // Highlight layer label
-      const layerLabelEl = document.querySelector(`.grid .layer-label:nth-of-type(${status.program.layer})`);
-      if (layerLabelEl) layerLabelEl.classList.add('active-layer-highlight');
-    }
+    });
+    
+    // Highlight column headers for all active columns
+    activeColumns.forEach(col => {
+      document.querySelectorAll('.grid .hdr').forEach(h => { 
+        if (h.textContent.trim() === `Col ${col}`) {
+          console.log("🟢 Adding active-col-prog to:", h);
+          h.classList.add('active-col-prog'); 
+        }
+      });
+    });
   }
   
   if (status.preview?.layer && status.preview?.column) {
+    console.log("🔵 Highlighting preview:", status.preview);
     const key = `L${status.preview.layer}-C${status.preview.column}`;
-    const prevDiv = indexByKey.get(key);
-    if (prevDiv) {
-      prevDiv.classList.add("active-prev", "active-clip");
+    const el = indexByKey.get(key);
+    if (el) {
+      el.classList.add('active-prev','active-clip');
+      document.getElementById('previewTile')?.classList.add('active');
       const col = status.preview.column;
-      indexByKey.forEach((el, k) => {
-        if (k.endsWith(`-C${col}`) && el !== prevDiv) el.classList.add('col-sibling-prev');
+      document.querySelectorAll('.grid .hdr').forEach(h => { 
+        if (h.textContent.trim() === `Col ${col}`) {
+          console.log("🔵 Adding active-col-prev to:", h);
+          h.classList.add('active-col-prev'); 
+        }
       });
-      const grid = document.querySelector('.grid');
-      if (grid) {
-        const hdrs = grid.querySelectorAll('.hdr');
-        hdrs.forEach(h => { if (h.textContent.trim() === `Col ${col}`) h.classList.add('active-col-highlight'); });
-      }
-      const layerLabelEl = document.querySelector(`.grid .layer-label:nth-of-type(${status.preview.layer})`);
-      if (layerLabelEl && !layerLabelEl.classList.contains('active-layer-highlight')) layerLabelEl.classList.add('active-layer-highlight');
     }
   }
-
-  // Update live indicators panel
-  updateLiveIndicators(status);
 }
 
-function updateLiveIndicators(status) {
-  const container = document.getElementById('liveIndicators');
-  if (!container) return;
-  container.style.display = 'flex';
-  const progEl = document.getElementById('programIndicator');
-  const prevEl = document.getElementById('previewIndicator');
-  renderIndicator(progEl, status.program, 'Program');
-  renderIndicator(prevEl, status.preview, 'Preview');
-}
-
-function renderIndicator(el, clipInfo, label) {
-  if (!el) return;
-  if (!clipInfo || clipInfo.layer === '—' || clipInfo.column === '—') {
-    el.classList.add('empty');
-    el.innerHTML = `<div class="title-row"><span class="clip-name">${label}: —</span><span class="coords-badge">—</span></div><div class="meta-line">No active clip</div>`;
-    return;
-  }
-  el.classList.remove('empty');
-  const layer = clipInfo.layer;
-  const column = clipInfo.column;
-  const layerName = clipInfo.layerName || `Layer ${layer}`;
-  const clipName = clipInfo.clipName || '—';
-  el.innerHTML = `
-    <div class="title-row">
-      <span class="clip-name">${label}: ${clipName}</span>
-      <span class="coords-badge">L${layer} C${column}</span>
-    </div>
-    <div class="meta-line">
-      <span class="layer-badge">${layerName}</span>
-      <span class="col-badge">Column ${column}</span>
-    </div>
-  `;
-}
+// (liveIndicators removed in favor of unified tiles)
 
 function buildDeck(cfg) {
   const deck = document.getElementById("deck");
@@ -487,6 +463,7 @@ function buildGridFromComposition(comp) {
   layersToShow.forEach(layer => {
     const layerLabelEl = layerLabel(`Layer ${layer.id}`);
     layerLabelEl.setAttribute("title", `Layer ${layer.id}: ${layer.name}`);
+      layerLabelEl.dataset.layer = layer.id; // Add data-layer attribute
     container.appendChild(layerLabelEl);
     
     // Create cells for each column
@@ -505,7 +482,14 @@ function buildGridFromComposition(comp) {
         div.className = "cell";
         div.textContent = clip.name;
         div.onclick = () => trigger(layer.id, col);
-        div.setAttribute("title", `${clip.name}\nLayer ${layer.id}, Column ${col}\nClick to trigger`);
+        div.oncontextmenu = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`🔵 Right-click detected on L${layer.id}C${col}`);
+          triggerPreview(layer.id, col);
+          return false;
+        };
+        div.setAttribute("title", `${clip.name}\nLayer ${layer.id}, Column ${col}\nLeft-click: Program | Right-click: Preview`);
         div.style.cursor = "pointer";
       } else {
         // Empty slot or invalid name
@@ -633,6 +617,26 @@ async function trigger(layer, column) {
   }
 }
 
+async function triggerPreview(layer, column) {
+  if (!resolumeConnected) {
+    showNotification("Not connected to Resolume", "error");
+    return;
+  }
+  
+  try {
+    console.log(`🔵 Preview L${layer}C${column}...`);
+    showNotification(`🔵 Preview L${layer}C${column} (right-click detected!)`, "info");
+    
+    // For now, just show notification with preview styling
+    // You can implement actual preview logic here later
+    // Preview in Resolume typically means selecting but not connecting
+    
+  } catch (error) {
+    console.error("❌ Preview error:", error);
+    showNotification(`Preview error: ${error.message}`, "error");
+  }
+}
+
 async function triggerColumn(column) {
   if (!resolumeConnected) {
     showNotification("Not connected to Resolume", "error");
@@ -733,11 +737,23 @@ function showNotification(message, type = "info") {
   notification.className = `notification ${type}`;
   notification.textContent = message;
   
+  // Calculate position based on existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  const topOffset = 20 + (existingNotifications.length * 70); // 70px spacing between notifications
+  notification.style.top = `${topOffset}px`;
+  
   document.body.appendChild(notification);
   setTimeout(() => notification.classList.add("visible"), 10);
   setTimeout(() => {
     notification.classList.remove("visible");
-    setTimeout(() => notification.remove(), 300);
+    setTimeout(() => {
+      notification.remove();
+      // Reposition remaining notifications
+      const remainingNotifications = document.querySelectorAll('.notification');
+      remainingNotifications.forEach((notif, index) => {
+        notif.style.top = `${20 + (index * 70)}px`;
+      });
+    }, 300);
   }, 3000);
 }
 

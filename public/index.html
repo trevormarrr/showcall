@@ -19,22 +19,17 @@
       </div>
     </header>
 
-    <section class="status-bar">
-      <div class="tile">
+    <section class="status-bar unified-status">
+      <div class="tile prog-tile" id="programTile" title="Active Program Clip">
         <div class="title program">PROGRAM</div>
         <div class="clip" id="progName">—</div>
         <div class="sub" id="progLayer">Layer — • Col —</div>
       </div>
-      <div class="tile">
+      <div class="tile prev-tile" id="previewTile" title="Active Preview Clip">
         <div class="title preview">PREVIEW</div>
         <div class="clip" id="prevName">—</div>
         <div class="sub" id="prevLayer">Layer — • Col —</div>
       </div>
-    </section>
-
-    <section id="liveIndicators" class="live-indicators" aria-label="Active clip context" style="display:none;">
-      <div class="indicator program" id="programIndicator" title="Currently playing clip"></div>
-      <div class="indicator preview" id="previewIndicator" title="Currently previewed clip"></div>
     </section>
 
     <section id="grid" role="grid" aria-label="Resolume clip grid"></section>
