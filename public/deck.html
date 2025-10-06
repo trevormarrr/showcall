@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowCall - Preset Deck</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Deck-specific styles */
+        body {
+            margin: 0;
+            padding: 10px;
+            background: #0b0f14;
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .deck-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        .deck-header {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #58a6ff;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+        
+        .preset-button {
+            width: 100%;
+            min-height: 40px;
+            padding: 8px 12px;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            background: #21262d;
+            color: #c9d1d9;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word;
+            box-sizing: border-box;
+        }
+        
+        .preset-button:hover {
+            background: #30363d;
+            border-color: #58a6ff;
+            transform: translateY(-1px);
+        }
+        
+        .preset-button:active {
+            transform: translateY(0);
+            background: #388bfd;
+            color: white;
+        }
+        
+        .preset-button[data-hotkey]:after {
+            content: " [" attr(data-hotkey) "]";
+            font-size: 10px;
+            opacity: 0.7;
+            margin-left: 4px;
+        }
+        
+        .loading {
+            text-align: center;
+            opacity: 0.7;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-container">
+        <div class="deck-header">Preset Deck</div>
+        <div id="deckPresets" class="loading">Loading presets...</div>
+    </div>
+
+    <script>
+        let presets = [];
+        
+        // Load configuration and build preset buttons
+        async function loadPresets() {
+            try {
+                const response = await fetch('/config.json');
+                const config = await response.json();
+                presets = config.presets || [];
+                buildDeck();
+            } catch (error) {
+                console.error('Failed to load presets:', error);
+                document.getElementById('deckPresets').innerHTML = '<div style="color: #f85149;">Failed to load presets</div>';
+            }
+        }
+        
+        // Build the preset deck UI
+        function buildDeck() {
+            const container = document.getElementById('deckPresets');
+            
+            if (presets.length === 0) {
+                container.innerHTML = '<div style="opacity: 0.7;">No presets configured</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            presets.forEach(preset => {
+                const button = document.createElement('button');
+                button.className = 'preset-button';
+                button.textContent = preset.name;
+                
+                if (preset.hotkey) {
+                    button.setAttribute('data-hotkey', preset.hotkey);
+                }
+                
+                button.addEventListener('click', () => firePreset(preset));
+                container.appendChild(button);
+            });
+        }
+        
+        // Fire a preset (same logic as main app)
+        async function firePreset(preset) {
+            try {
+                const response = await fetch('/api/macro', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: preset.id,
+                        name: preset.name,
+                        macro: preset.macro
+                    })
+                });
+                
+                if (response.ok) {
+                    // Visual feedback
+                    const button = event.target;
+                    const originalBg = button.style.background;
+                    button.style.background = '#238636';
+                    setTimeout(() => {
+                        button.style.background = originalBg;
+                    }, 200);
+                } else {
+                    console.error('Failed to execute preset:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error executing preset:', error);
+            }
+        }
+        
+        // Keyboard shortcuts (same as main app)
+        document.addEventListener('keydown', (e) => {
+            // Don't interfere with text inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            const preset = presets.find(p => p.hotkey && p.hotkey.toLowerCase() === e.key.toLowerCase());
+            if (preset) {
+                e.preventDefault();
+                firePreset(preset);
+            }
+        });
+        
+        // Initialize
+        loadPresets();
+    </script>
+</body>
+</html>

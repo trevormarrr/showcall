@@ -2,6 +2,24 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [1.3.0] - 2025-10-04
+
+### Added
+- **Pop-out Preset Deck Window**: New floating window for preset buttons that stays always-on-top
+  - Access via "🪟 Pop-out Deck" button in the main UI header
+  - Compact 300x600px window optimized for quick preset access
+  - Fully functional preset buttons with keyboard shortcuts
+  - Always-on-top behavior for use alongside other applications (like ProPresenter)
+  - Fallback to new browser tab when running in web mode
+- IPC communication system for Electron main/renderer process coordination
+- Dedicated deck.html page with responsive preset button layout
+
+### Technical Changes
+- Added `electron/preload.js` for secure IPC communication
+- Extended `electron/main.cjs` with `createDeckWindow()` function and IPC handlers
+- Enhanced main window with preload script for deck window communication
+- New deck UI with hover effects, keyboard shortcut indicators, and visual feedback
+
 ## [1.2.2] - 2025-10-04
 
 ### Added

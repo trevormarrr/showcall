@@ -1,5 +1,5 @@
 // electron/main.cjs
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 let autoUpdater;
 try {
   autoUpdater = require("electron-updater").autoUpdater;
@@ -13,6 +13,7 @@ const waitOn = require("wait-on");
 
 let serverProcess;
 let mainWindow;
+let deckWindow;
 let created = false;
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
@@ -128,7 +129,11 @@ async function createWindowOnce() {
     height: 800,
     title: "ShowCall",
     backgroundColor: "#0b0f14",
-    webPreferences: { nodeIntegration: false, contextIsolation: true }
+    webPreferences: { 
+      nodeIntegration: false, 
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.js")
+    }
   });
 
   await mainWindow.loadURL(UI_URL);
@@ -138,6 +143,51 @@ async function createWindowOnce() {
     created = false;
   });
 }
+
+// ---- Preset Deck Window ----
+function createDeckWindow() {
+  if (deckWindow && !deckWindow.isDestroyed()) {
+    deckWindow.focus();
+    return;
+  }
+
+  deckWindow = new BrowserWindow({
+    width: 300,
+    height: 600,
+    title: "ShowCall - Preset Deck",
+    backgroundColor: "#0b0f14",
+    alwaysOnTop: true,
+    resizable: true,
+    minimizable: true,
+    maximizable: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      enableRemoteModule: false
+    }
+  });
+
+  // Load the deck page
+  deckWindow.loadURL(`http://localhost:${process.env.PORT || 3200}/deck.html`);
+
+  deckWindow.on("closed", () => {
+    deckWindow = null;
+  });
+
+  // Remove menu bar
+  deckWindow.setMenuBarVisibility(false);
+}
+
+// ---- IPC Handlers ----
+ipcMain.handle('open-deck-window', () => {
+  createDeckWindow();
+});
+
+ipcMain.handle('close-deck-window', () => {
+  if (deckWindow && !deckWindow.isDestroyed()) {
+    deckWindow.close();
+  }
+});
 
 app.whenReady().then(async () => {
   try {

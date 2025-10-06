@@ -792,6 +792,19 @@ function initSettings() {
     loadCurrentSettings();
   };
 
+  // Pop-out deck window (Electron only)
+  const deckWindowBtn = document.getElementById('deckWindowBtn');
+  if (deckWindowBtn) {
+    deckWindowBtn.onclick = () => {
+      if (window.electronAPI && window.electronAPI.openDeckWindow) {
+        window.electronAPI.openDeckWindow();
+      } else {
+        // Fallback for web browser - open in new tab
+        window.open('/deck.html', '_blank', 'width=300,height=600,resizable=yes,scrollbars=yes');
+      }
+    };
+  }
+
   // Close modal
   const closeModal = () => {
     settingsModal.style.display = 'none';
