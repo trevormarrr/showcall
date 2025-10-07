@@ -4,6 +4,7 @@ let gridEl = null;
 let indexByKey = new Map();
 let deckByKey = new Map();
 let resolumeConnected = false;
+let lastStatusState = null; // Track previous status to prevent unnecessary updates
 
 async function init() {
   try {
@@ -17,6 +18,7 @@ async function init() {
   addDebugControls();
   initSettings();
   initPresets();
+  initNDIPreview();
     
   document.addEventListener("keydown", onHotkey);
     
@@ -24,6 +26,11 @@ async function init() {
     await checkConnection();
     await loadComposition();
     setupStatusStream();
+    
+    // Setup auto-updater notifications (Electron only)
+    if (window.electronAPI) {
+      setupUpdateNotifications();
+    }
     
     // Refresh composition every 10 seconds
     setInterval(loadComposition, 10000);
@@ -285,11 +292,41 @@ function setupStatusStream() {
   connectSSE();
 }
 
+// Helper function to compare status states for highlighting
+function hasHighlightingChanged(newStatus, oldStatus) {
+  if (!oldStatus) return true;
+  
+  // Compare programClips arrays
+  const newProgram = newStatus.programClips || [];
+  const oldProgram = oldStatus.programClips || [];
+  
+  if (newProgram.length !== oldProgram.length) return true;
+  
+  // Check if program clips are different
+  const newProgramKeys = newProgram.map(c => `L${c.layer}-C${c.column}`).sort();
+  const oldProgramKeys = oldProgram.map(c => `L${c.layer}-C${c.column}`).sort();
+  
+  if (JSON.stringify(newProgramKeys) !== JSON.stringify(oldProgramKeys)) return true;
+  
+  // Compare preview
+  const newPreview = newStatus.preview;
+  const oldPreview = oldStatus.preview;
+  
+  if (!newPreview && !oldPreview) return false;
+  if (!newPreview || !oldPreview) return true;
+  
+  return newPreview.layer !== oldPreview.layer || newPreview.column !== oldPreview.column;
+}
+
 function updateStatus(status) {
-  // Add debugging
-  console.log("🔍 UpdateStatus called with:", status);
-  console.log("🔍 Program:", status.program);
-  console.log("🔍 Preview:", status.preview);
+  // Only log major changes, not every status update
+  const highlightingChanged = hasHighlightingChanged(status, lastStatusState);
+  
+  if (highlightingChanged) {
+    console.log("🔍 Highlighting changed - updating UI");
+    console.log("🔍 Program clips:", status.programClips);
+    console.log("🔍 Preview:", status.preview);
+  }
   
   // Update display elements
   document.getElementById("progName").textContent = status.program?.clipName || "—";
@@ -318,59 +355,67 @@ function updateStatus(status) {
     oscPort: status.oscPort
   });
   
-  // Clear previous highlights (cells, headers, tiles) - removed layer clearing
-  indexByKey.forEach(div => div.classList.remove("active-prog", "active-prev", "active-clip"));
-  document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight','active-col-prog','active-col-prev'));
-  document.getElementById('programTile')?.classList.remove('active');
-  document.getElementById('previewTile')?.classList.remove('active');
-  
-  // Highlight ALL active program clips
-  if (status.programClips && status.programClips.length > 0) {
-    console.log("🟢 Highlighting ALL program clips:", status.programClips);
+  // Only update highlights if something actually changed
+  if (highlightingChanged) {
+    console.log("🎨 Updating highlights due to state change");
     
-    // Mark the program tile as active
-    document.getElementById('programTile')?.classList.add('active');
+    // Clear previous highlights (cells, headers, tiles)
+    indexByKey.forEach(div => div.classList.remove("active-prog", "active-prev", "active-clip"));
+    document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight','active-col-prog','active-col-prev'));
+    document.getElementById('programTile')?.classList.remove('active');
+    document.getElementById('previewTile')?.classList.remove('active');
     
-    // Get all active columns to highlight headers
-    const activeColumns = [...new Set(status.programClips.map(clip => clip.column))];
-    
-    status.programClips.forEach(clipInfo => {
-      const key = `L${clipInfo.layer}-C${clipInfo.column}`;
-      console.log("🟢 Looking for key:", key);
-      const el = indexByKey.get(key);
-      console.log("🟢 Found element:", el);
-      if (el) {
-        el.classList.add('active-prog','active-clip');
-      }
-    });
-    
-    // Highlight column headers for all active columns
-    activeColumns.forEach(col => {
-      document.querySelectorAll('.grid .hdr').forEach(h => { 
-        if (h.textContent.trim() === `Col ${col}`) {
-          console.log("🟢 Adding active-col-prog to:", h);
-          h.classList.add('active-col-prog'); 
+    // Highlight ALL active program clips
+    if (status.programClips && status.programClips.length > 0) {
+      console.log("🟢 Highlighting program clips:", status.programClips);
+      
+      // Mark the program tile as active
+      document.getElementById('programTile')?.classList.add('active');
+      
+      // Get all active columns to highlight headers
+      const activeColumns = [...new Set(status.programClips.map(clip => clip.column))];
+      
+      status.programClips.forEach(clipInfo => {
+        const key = `L${clipInfo.layer}-C${clipInfo.column}`;
+        const el = indexByKey.get(key);
+        if (el) {
+          el.classList.add('active-prog','active-clip');
         }
       });
-    });
-  }
-  
-  if (status.preview?.layer && status.preview?.column) {
-    console.log("🔵 Highlighting preview:", status.preview);
-    const key = `L${status.preview.layer}-C${status.preview.column}`;
-    const el = indexByKey.get(key);
-    if (el) {
-      el.classList.add('active-prev','active-clip');
-      document.getElementById('previewTile')?.classList.add('active');
-      const col = status.preview.column;
-      document.querySelectorAll('.grid .hdr').forEach(h => { 
-        if (h.textContent.trim() === `Col ${col}`) {
-          console.log("🔵 Adding active-col-prev to:", h);
-          h.classList.add('active-col-prev'); 
-        }
+      
+      // Highlight column headers for all active columns
+      activeColumns.forEach(col => {
+        document.querySelectorAll('.grid .hdr').forEach(h => { 
+          if (h.textContent.trim() === `Col ${col}`) {
+            h.classList.add('active-col-prog'); 
+          }
+        });
       });
     }
+    
+    // Highlight preview
+    if (status.preview?.layer && status.preview?.column) {
+      console.log("🔵 Highlighting preview:", status.preview);
+      const key = `L${status.preview.layer}-C${status.preview.column}`;
+      const el = indexByKey.get(key);
+      if (el) {
+        el.classList.add('active-prev','active-clip');
+        document.getElementById('previewTile')?.classList.add('active');
+        const col = status.preview.column;
+        document.querySelectorAll('.grid .hdr').forEach(h => { 
+          if (h.textContent.trim() === `Col ${col}`) {
+            h.classList.add('active-col-prev'); 
+          }
+        });
+      }
+    }
   }
+  
+  // Store current state for next comparison
+  lastStatusState = {
+    programClips: status.programClips ? [...status.programClips] : [],
+    preview: status.preview ? { ...status.preview } : null
+  };
 }
 
 // (liveIndicators removed in favor of unified tiles)
@@ -407,6 +452,169 @@ function buildDeck(cfg) {
       deckByKey.set(p.hotkey.toLowerCase(), p);
     }
   });
+}
+
+// ---- NDI Preview System ----
+let ndiPreviewEnabled = false;
+let ndiStreamUrl = null;
+let previewSettings = {
+  ndiSource: 'ShowCall_Preview', // Default NDI source name
+  streamUrl: '', // HTTP stream URL if using bridge
+  autoConnect: false,
+  quality: 'medium' // low, medium, high
+};
+
+function initNDIPreview() {
+  const video = document.getElementById('ndiPreview');
+  const overlay = document.querySelector('.preview-overlay');
+  const status = document.getElementById('previewStatus');
+  const toggleBtn = document.getElementById('previewToggle');
+  const settingsBtn = document.getElementById('previewSettings');
+  
+  // Load saved settings
+  loadPreviewSettings();
+  
+  // Event handlers
+  toggleBtn.addEventListener('click', toggleNDIPreview);
+  settingsBtn.addEventListener('click', openPreviewSettings);
+  
+  // Video event handlers
+  video.addEventListener('loadstart', () => {
+    updatePreviewStatus('Loading...');
+  });
+  
+  video.addEventListener('loadedmetadata', () => {
+    updatePreviewInfo(video);
+    overlay.classList.add('hidden');
+  });
+  
+  video.addEventListener('error', (e) => {
+    console.error('NDI Preview error:', e);
+    updatePreviewStatus('Failed to load NDI stream');
+    overlay.classList.remove('hidden');
+  });
+  
+  video.addEventListener('play', () => {
+    overlay.classList.add('hidden');
+  });
+  
+  video.addEventListener('pause', () => {
+    overlay.classList.remove('hidden');
+  });
+  
+  // Auto-connect if enabled
+  if (previewSettings.autoConnect && previewSettings.streamUrl) {
+    setTimeout(() => toggleNDIPreview(), 1000);
+  }
+}
+
+function toggleNDIPreview() {
+  const video = document.getElementById('ndiPreview');
+  const source = document.getElementById('ndiSource');
+  const toggleBtn = document.getElementById('previewToggle');
+  
+  if (!ndiPreviewEnabled) {
+    // Enable preview
+    const streamUrl = previewSettings.streamUrl || getDefaultStreamUrl();
+    if (!streamUrl) {
+      openPreviewSettings();
+      return;
+    }
+    
+    source.src = streamUrl;
+    video.load();
+    video.play().catch(e => {
+      console.error('Failed to start preview:', e);
+      updatePreviewStatus('Failed to start video playback');
+    });
+    
+    ndiPreviewEnabled = true;
+    toggleBtn.textContent = '⏹️ Stop Preview';
+    updatePreviewStatus('Connecting...');
+    
+    console.log('🎥 NDI Preview enabled:', streamUrl);
+  } else {
+    // Disable preview
+    video.pause();
+    source.src = '';
+    video.load();
+    
+    ndiPreviewEnabled = false;
+    toggleBtn.textContent = '📺 Enable Preview';
+    updatePreviewStatus('Preview stopped');
+    document.querySelector('.preview-overlay').classList.remove('hidden');
+    
+    console.log('🎥 NDI Preview disabled');
+  }
+}
+
+function updatePreviewStatus(message) {
+  document.getElementById('previewStatus').textContent = message;
+}
+
+function updatePreviewInfo(video) {
+  const resolution = `${video.videoWidth}x${video.videoHeight}`;
+  const frameRate = video.getVideoPlaybackQuality ? 
+    `${Math.round(video.getVideoPlaybackQuality().totalVideoFrames / video.currentTime)}fps` : '—';
+  
+  document.getElementById('previewResolution').textContent = resolution;
+  document.getElementById('previewFrameRate').textContent = frameRate;
+  document.getElementById('previewSource').textContent = previewSettings.ndiSource;
+}
+
+function getDefaultStreamUrl() {
+  // Default URLs for network setup (Resolume on 10.1.110.72)
+  const possibleUrls = [
+    `http://10.1.110.72:8080/ndi.mjpg`, // FFmpeg MJPEG bridge on Resolume machine
+    `http://10.1.110.72:8888/stream.mjpg`, // OBS HTTP stream on Resolume machine
+    `http://10.1.110.72:5000/video`, // Custom NDI bridge on Resolume machine
+    `http://localhost:8080/ndi` // Local bridge (fallback)
+  ];
+  
+  return previewSettings.streamUrl || possibleUrls[0];
+}
+
+function openPreviewSettings() {
+  // For now, use a simple prompt - we can make a proper modal later
+  const newUrl = prompt(
+    'Enter NDI stream URL:\n\n' +
+    'Common setups:\n' +
+    '• OBS Virtual Camera HTTP: http://localhost:8888/stream.mjpg\n' +
+    '• Custom NDI Bridge: http://localhost:5000/video\n' +
+    '• RTSP Bridge: http://IP:8554/ndi.mjpg\n\n' +
+    'Current URL:', 
+    previewSettings.streamUrl
+  );
+  
+  if (newUrl !== null) {
+    previewSettings.streamUrl = newUrl;
+    savePreviewSettings();
+    
+    if (ndiPreviewEnabled) {
+      // Restart preview with new URL
+      toggleNDIPreview(); // Stop
+      setTimeout(() => toggleNDIPreview(), 500); // Start
+    }
+  }
+}
+
+function loadPreviewSettings() {
+  try {
+    const saved = localStorage.getItem('showcall_preview_settings');
+    if (saved) {
+      previewSettings = { ...previewSettings, ...JSON.parse(saved) };
+    }
+  } catch (e) {
+    console.warn('Failed to load preview settings:', e);
+  }
+}
+
+function savePreviewSettings() {
+  try {
+    localStorage.setItem('showcall_preview_settings', JSON.stringify(previewSettings));
+  } catch (e) {
+    console.warn('Failed to save preview settings:', e);
+  }
 }
 
 // Grid view settings
@@ -840,6 +1048,11 @@ async function loadCurrentSettings() {
     document.getElementById('resolumeRestPort').value = settings.resolumeRestPort || '8080';
     document.getElementById('resolumeOscPort').value = settings.resolumeOscPort || '7000';
     document.getElementById('serverPort').value = settings.serverPort || '3200';
+    
+    // Load NDI settings from localStorage
+    document.getElementById('ndiStreamUrl').value = previewSettings.streamUrl || '';
+    document.getElementById('ndiSourceName').value = previewSettings.ndiSource || 'ShowCall_Preview';
+    document.getElementById('ndiAutoConnect').checked = previewSettings.autoConnect || false;
   } catch (error) {
     console.error('Failed to load settings:', error);
     // Set defaults
@@ -847,6 +1060,9 @@ async function loadCurrentSettings() {
     document.getElementById('resolumeRestPort').value = '8080';
     document.getElementById('resolumeOscPort').value = '7000';
     document.getElementById('serverPort').value = '3200';
+    document.getElementById('ndiStreamUrl').value = previewSettings.streamUrl || '';
+    document.getElementById('ndiSourceName').value = previewSettings.ndiSource || 'ShowCall_Preview';
+    document.getElementById('ndiAutoConnect').checked = previewSettings.autoConnect || false;
   }
 }
 
@@ -857,6 +1073,12 @@ async function saveSettings() {
     resolumeOscPort: parseInt(document.getElementById('resolumeOscPort').value),
     serverPort: parseInt(document.getElementById('serverPort').value)
   };
+
+  // Save NDI settings to localStorage
+  previewSettings.streamUrl = document.getElementById('ndiStreamUrl').value.trim();
+  previewSettings.ndiSource = document.getElementById('ndiSourceName').value.trim() || 'ShowCall_Preview';
+  previewSettings.autoConnect = document.getElementById('ndiAutoConnect').checked;
+  savePreviewSettings();
 
   // Basic validation
   if (!settings.resolumeHost) {
@@ -1004,4 +1226,40 @@ function initPresets() {
       showNotification('Invalid JSON or save failed', 'error');
     }
   };
+}
+
+// ---- Auto-Update Notifications ----
+function setupUpdateNotifications() {
+  console.log('🔄 Setting up update notifications...');
+  
+  // Update available
+  window.electronAPI.onUpdateAvailable((event, info) => {
+    console.log('📦 Update available:', info.version);
+    showNotification(`Update v${info.version} available - downloading...`, 'info', 8000);
+  });
+  
+  // Download progress
+  let lastProgressNotification = 0;
+  window.electronAPI.onDownloadProgress((event, progress) => {
+    const percent = Math.round(progress.percent);
+    
+    // Only show progress every 25% to avoid spam
+    if (percent >= lastProgressNotification + 25) {
+      showNotification(`Downloading update: ${percent}%`, 'info', 3000);
+      lastProgressNotification = percent;
+    }
+  });
+  
+  // Update downloaded and ready
+  window.electronAPI.onUpdateDownloaded((event, info) => {
+    console.log('✅ Update downloaded:', info.version);
+    showNotification(`Update v${info.version} ready! Restart when convenient.`, 'success', 10000);
+  });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
 }

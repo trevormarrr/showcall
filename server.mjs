@@ -205,15 +205,15 @@ async function getCompositionStatus() {
     return {
       name: "Weekend_Main",
       layers: [
-        { name: "Background", clips: [
-          { name: "Walk-In BG", connected: { value: 0 } },
-          { name: "Sermon BG", connected: { value: 1 } },
-          { name: "Baptism BG", connected: { value: 0 } }
+        { name: { value: "Background" }, clips: [
+          { name: { value: "Walk-In BG" }, connected: { value: 0 } },
+          { name: { value: "Sermon BG" }, connected: { value: "Connected" } },
+          { name: { value: "Baptism BG" }, connected: { value: 0 } }
         ]},
-        { name: "Video Feed", clips: [
-          { name: "NDI Feed", connected: { value: 0 } },
-          { name: "Camera 1", connected: { value: 1 } },
-          { name: "Baptism Cam", connected: { value: 0 } }
+        { name: { value: "Video Feed" }, clips: [
+          { name: { value: "NDI Feed" }, connected: { value: 0 } },
+          { name: { value: "Camera 1" }, connected: { value: "Connected" } },
+          { name: { value: "Baptism Cam" }, connected: { value: 0 } }
         ]}
       ],
       transport: { bpm: { value: 120 } }

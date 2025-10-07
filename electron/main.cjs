@@ -193,20 +193,86 @@ app.whenReady().then(async () => {
   try {
     await ensureServer();      // <— do not spawn if already running
     await createWindowOnce();
-    // Check for updates (non-blocking)
-    try {
-      if (autoUpdater) {
-        autoUpdater.autoDownload = false;
-        autoUpdater.checkForUpdatesAndNotify();
-      }
-    } catch (e) {
-      console.warn('Auto update check failed:', e.message);
+    
+    // Enhanced Auto-updater Setup
+    if (autoUpdater && !process.env.DISABLE_AUTO_UPDATER) {
+      setupAutoUpdater();
     }
   } catch (e) {
     console.error("Failed to load UI:", e);
     app.quit();
   }
 });
+
+// ---- Enhanced Auto-Updater ----
+function setupAutoUpdater() {
+  console.log('🔄 Setting up auto-updater...');
+  
+  // Configure auto-updater
+  autoUpdater.autoDownload = true; // Enable automatic downloads
+  autoUpdater.autoInstallOnAppQuit = true; // Install when app quits
+  
+  // Check for updates every 30 minutes
+  autoUpdater.checkForUpdatesAndNotify();
+  setInterval(() => {
+    autoUpdater.checkForUpdatesAndNotify();
+  }, 30 * 60 * 1000); // 30 minutes
+  
+  // Event handlers
+  autoUpdater.on('checking-for-update', () => {
+    console.log('🔍 Checking for updates...');
+  });
+  
+  autoUpdater.on('update-available', (info) => {
+    console.log('✅ Update available:', info.version);
+    // Show non-intrusive notification to user
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info);
+    }
+  });
+  
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('ℹ️ No updates available. Current version:', info.version);
+  });
+  
+  autoUpdater.on('error', (err) => {
+    console.error('❌ Auto-updater error:', err);
+  });
+  
+  autoUpdater.on('download-progress', (progressObj) => {
+    const logMessage = `📥 Download progress: ${Math.round(progressObj.percent)}% (${progressObj.bytesPerSecond}/s)`;
+    console.log(logMessage);
+    
+    // Send progress to renderer
+    if (mainWindow) {
+      mainWindow.webContents.send('download-progress', progressObj);
+    }
+  });
+  
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('✅ Update downloaded, will install on quit. Version:', info.version);
+    
+    // Notify user that update is ready
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', info);
+    }
+    
+    // Show dialog asking if user wants to restart now
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Update Ready',
+      message: `ShowCall v${info.version} is ready to install.`,
+      detail: 'The application will restart to apply the update.',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall();
+      }
+    });
+  });
+}
 
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
