@@ -2,6 +2,24 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [1.3.1] - 2025-10-06
+
+### Improved
+- **Enhanced Pop-out Deck Design**: Complete visual overhaul to match main UI
+  - Modern card-based design with CSS variables and consistent styling
+  - Proper color dots matching preset colors from configuration
+  - Loading states with spinner animation and better error handling
+  - Success flash animation on button press for visual feedback
+  - Fixed data loading to use `/api/presets` endpoint (same as main app)
+  - Improved typography, spacing, and hover/active states
+  - Better responsive layout optimized for 300px width
+  - Enhanced console logging for debugging
+
+### Fixed
+- Pop-out deck now loads actual preset names and colors instead of placeholder [1], [2], [3]
+- Removed loading spinner issue that persisted indefinitely
+- Proper keyboard shortcut handling in deck window
+
 ## [1.3.0] - 2025-10-04
 
 ### Added
