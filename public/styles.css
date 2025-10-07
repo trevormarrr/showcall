@@ -29,6 +29,10 @@
     margin-bottom: 10px; 
     flex-wrap: wrap;
     gap: 10px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
   }
   .top h1 { font-size: 20px; margin: 0; }
   .meta { 
@@ -76,6 +80,10 @@
     grid-template-columns: 1fr 1fr; 
     gap: 10px; 
     margin: 12px 0 18px; 
+    padding: 8px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
   }
   .status-bar.unified-status .tile.prog-tile.active { 
     box-shadow: 0 0 0 3px rgba(34,197,94,0.8), 0 0 20px -2px rgba(34,197,94,0.6) !important;
@@ -634,6 +642,18 @@
 
 .update-icon {
   margin-right: 4px;
+}
+
+/* Version Display */
+.version-display {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.7);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: ui-monospace, monospace;
 }
 
 /* Modal Styles */

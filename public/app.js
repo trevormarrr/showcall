@@ -30,6 +30,21 @@ async function init() {
     // Setup auto-updater notifications (Electron only)
     if (window.electronAPI) {
       setupUpdateNotifications();
+    } else {
+      // In web mode, show a demo update indicator after 10 seconds
+      setTimeout(() => {
+        const updateIndicator = document.getElementById('updateIndicator');
+        const updateText = updateIndicator?.querySelector('.update-text');
+        if (updateIndicator && updateText) {
+          updateText.textContent = 'v1.3.6 Available!';
+          updateIndicator.className = 'update-indicator';
+          updateIndicator.style.display = 'block';
+          updateIndicator.title = 'Demo: Update available (this is just for testing)';
+          updateIndicator.onclick = () => {
+            alert('This is a demo update indicator. In the real app, this would trigger the update process.');
+          };
+        }
+      }, 10000);
     }
     
     // Refresh composition every 10 seconds
