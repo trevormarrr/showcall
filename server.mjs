@@ -776,7 +776,25 @@ async function initializeApp() {
               
             case 'execute_macro':
               if (command.macro && Array.isArray(command.macro)) {
+                // Direct macro execution
                 result = await executeMacro(command.macro);
+              } else if (command.macroId) {
+                // Look up macro by ID from config
+                try {
+                  const configPath = path.join(import.meta.dirname, 'public', 'config.json');
+                  const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                  const preset = configData.presets?.find(p => p.id === command.macroId);
+                  
+                  if (preset && preset.macro) {
+                    result = await executeMacro(preset.macro);
+                  } else {
+                    result = { ok: false, error: `Macro '${command.macroId}' not found` };
+                  }
+                } catch (error) {
+                  result = { ok: false, error: `Failed to load macro: ${error.message}` };
+                }
+              } else {
+                result = { ok: false, error: 'No macro or macroId provided' };
               }
               break;
               
