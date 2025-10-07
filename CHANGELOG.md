@@ -2,6 +2,29 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [1.5.0] - 2025-10-07
+
+### Added
+- **🎛️ Stream Deck Integration via Companion Module**: Professional Stream Deck control
+  - WebSocket server on `/api/companion` endpoint for real-time communication
+  - Complete Companion module (`showcall-companion`) available on GitHub
+  - Full action support: trigger clips/columns, cut to program, clear all, execute macros
+  - Real-time visual feedback showing active clips and connection status
+  - Comprehensive preset library with 32+ ready-to-use Stream Deck buttons
+  - Live status variables: BPM, clip count, clip names, connection status
+  - Professional integration tested with Stream Deck Studio, XL, and Companion/Bitfocus
+
+### Enhanced
+- **WebSocket Protocol**: Modern real-time communication architecture
+- **Server Startup**: Enhanced console output showing all integration endpoints
+- **Production Ready**: Full professional deployment with GitHub repositories
+
+### Technical
+- Added `ws` WebSocket dependency for real-time communication
+- Companion client tracking and automatic status broadcasting
+- Command validation and error handling for WebSocket messages
+- Cross-platform compatibility for Stream Deck setups
+
 ## [1.3.1] - 2025-10-06
 
 ### Improved
