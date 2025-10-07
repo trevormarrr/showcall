@@ -98,9 +98,8 @@
       ],
       "title": "ShowCall ${version}",
       "icon": "build/showcall_icon.icns",
-      "background": "build/dmg-background.png",
       "iconSize": 100,
-      "windowSize": {
+      "window": {
         "width": 600,
         "height": 400
       }
