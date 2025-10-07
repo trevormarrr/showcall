@@ -1232,10 +1232,21 @@ function initPresets() {
 function setupUpdateNotifications() {
   console.log('🔄 Setting up update notifications...');
   
+  const updateIndicator = document.getElementById('updateIndicator');
+  const updateText = updateIndicator?.querySelector('.update-text');
+  
   // Update available
   window.electronAPI.onUpdateAvailable((event, info) => {
     console.log('📦 Update available:', info.version);
     showNotification(`Update v${info.version} available - downloading...`, 'info', 8000);
+    
+    // Show persistent indicator
+    if (updateIndicator && updateText) {
+      updateText.textContent = `v${info.version} Downloading...`;
+      updateIndicator.className = 'update-indicator downloading';
+      updateIndicator.style.display = 'block';
+      updateIndicator.title = `Update v${info.version} is downloading`;
+    }
   });
   
   // Download progress
@@ -1243,7 +1254,12 @@ function setupUpdateNotifications() {
   window.electronAPI.onDownloadProgress((event, progress) => {
     const percent = Math.round(progress.percent);
     
-    // Only show progress every 25% to avoid spam
+    // Update indicator with progress
+    if (updateText) {
+      updateText.textContent = `Downloading ${percent}%`;
+    }
+    
+    // Only show progress notifications every 25% to avoid spam
     if (percent >= lastProgressNotification + 25) {
       showNotification(`Downloading update: ${percent}%`, 'info', 3000);
       lastProgressNotification = percent;
@@ -1254,6 +1270,29 @@ function setupUpdateNotifications() {
   window.electronAPI.onUpdateDownloaded((event, info) => {
     console.log('✅ Update downloaded:', info.version);
     showNotification(`Update v${info.version} ready! Restart when convenient.`, 'success', 10000);
+    
+    // Update indicator to ready state
+    if (updateIndicator && updateText) {
+      updateText.textContent = `v${info.version} Ready!`;
+      updateIndicator.className = 'update-indicator ready';
+      updateIndicator.title = `Update v${info.version} is ready - restart to install`;
+      
+      // Add click to restart functionality
+      updateIndicator.onclick = () => {
+        if (confirm(`Restart ShowCall to install update v${info.version}?`)) {
+          // The main process will handle the restart via dialog
+        }
+      };
+    }
+  });
+  
+  // Update errors
+  window.electronAPI.onUpdateError((event, error) => {
+    console.warn('🔄 Update check failed:', error.message);
+    // Don't show error notifications for network issues - just log them
+    if (updateIndicator) {
+      updateIndicator.style.display = 'none';
+    }
   });
 }
 

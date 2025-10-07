@@ -237,6 +237,13 @@ function setupAutoUpdater() {
   
   autoUpdater.on('error', (err) => {
     console.error('❌ Auto-updater error:', err);
+    // Send error to renderer for user notification
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error', { 
+        message: err.message,
+        type: 'update-check-failed'
+      });
+    }
   });
   
   autoUpdater.on('download-progress', (progressObj) => {

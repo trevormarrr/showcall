@@ -5,13 +5,14 @@
 ### Download
 1. Go to [Releases](https://github.com/trevormarrr/showcall/releases)
 2. Download the appropriate file for your Mac:
-   - **Apple Silicon (M1/M2/M3)**: `ShowCall-1.0.0-arm64.dmg`
-   - **Intel**: `ShowCall-1.0.0-x64.dmg`
+   - **Apple Silicon (M1/M2/M3/M4)**: `ShowCall-X.X.X-arm64.dmg`
+   - **Intel**: `ShowCall-X.X.X.dmg` (universal)
 
 ### Install
 
 1. **Open the DMG file**
-2. **Drag ShowCall to Applications folder**
+2. **Drag ShowCall to Applications folder** (shown in the installer window)
+3. **Eject the DMG** after copying
 
 ### First Launch - Security Warning
 
@@ -60,13 +61,15 @@ You can verify the download matches the source code:
 ## Windows Installation
 
 ### Download
-Download `ShowCall-Setup-1.0.0.exe` from [Releases](https://github.com/trevormarrr/showcall/releases)
+Download `ShowCall-Setup-X.X.X.exe` from [Releases](https://github.com/trevormarrr/showcall/releases)
 
 ### Install
 1. **Run the installer**
 2. Windows may show "Windows protected your PC"
 3. Click **"More info"** → **"Run anyway"**
 4. Follow installation prompts
+5. **Choose installation location** (optional)
+6. **Create desktop shortcut** (recommended)
 
 ### Why the Warning?
 - Same reason as macOS - no code signing certificate yet
@@ -79,23 +82,23 @@ Download `ShowCall-Setup-1.0.0.exe` from [Releases](https://github.com/trevormar
 
 ### AppImage (Universal)
 ```bash
-# Download
-wget https://github.com/trevormarrr/showcall/releases/download/v1.0.0/ShowCall-1.0.0.AppImage
+# Download (replace X.X.X with latest version)
+wget https://github.com/trevormarrr/showcall/releases/download/vX.X.X/ShowCall-X.X.X.AppImage
 
 # Make executable
-chmod +x ShowCall-1.0.0.AppImage
+chmod +x ShowCall-X.X.X.AppImage
 
 # Run
-./ShowCall-1.0.0.AppImage
+./ShowCall-X.X.X.AppImage
 ```
 
 ### Debian/Ubuntu (.deb)
 ```bash
-# Download
-wget https://github.com/trevormarrr/showcall/releases/download/v1.0.0/showcall_1.0.0_amd64.deb
+# Download (replace X.X.X with latest version)
+wget https://github.com/trevormarrr/showcall/releases/download/vX.X.X/showcall_X.X.X_amd64.deb
 
 # Install
-sudo dpkg -i showcall_1.0.0_amd64.deb
+sudo dpkg -i showcall_X.X.X_amd64.deb
 
 # Fix dependencies if needed
 sudo apt-get install -f

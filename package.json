@@ -1,6 +1,6 @@
 {
   "name": "showcall",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Professional remote controller for Resolume Arena using OSC + REST API",
   "author": "Trevor Marr <trevormarrr@users.noreply.github.com>",
   "license": "MIT",
@@ -98,7 +98,9 @@
       ],
       "title": "ShowCall ${version}",
       "icon": "build/showcall_icon.icns",
+      "backgroundColor": "#0b0f14",
       "iconSize": 100,
+      "format": "ULFO",
       "window": {
         "width": 600,
         "height": 400
