@@ -1,6 +1,6 @@
 {
   "name": "showcall",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "Professional remote controller for Resolume Arena using OSC + REST API",
   "author": "Trevor Marr <trevormarrr@users.noreply.github.com>",
   "license": "MIT",
@@ -109,9 +109,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "installerIcon": "build/showcall_icon.ico",
-      "uninstallerIcon": "build/showcall_icon.ico",
-      "installerHeaderIcon": "build/showcall_icon.ico",
+      "installerIcon": "build/showcall_icon_256x256.ico",
+      "uninstallerIcon": "build/showcall_icon_256x256.ico",
+      "installerHeaderIcon": "build/showcall_icon_256x256.ico",
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
       "displayLanguageSelector": false
