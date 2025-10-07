@@ -53,25 +53,10 @@
     </section>
 
     <section class="preview-section">
-      <h2 style="margin: 24px 0 8px; opacity: 0.9; font-size: 18px; font-weight: 600;">Composition Preview</h2>
-      <div id="compositionPreview" class="composition-preview">
-        <div class="preview-container">
-          <video id="ndiPreview" class="ndi-preview" autoplay muted playsinline>
-            <source id="ndiSource" src="" type="video/mp4">
-            Your browser does not support the video element.
-          </video>
-          <div class="preview-overlay">
-            <div id="previewStatus" class="preview-status">Connecting to NDI feed...</div>
-            <div class="preview-controls">
-              <button id="previewToggle" class="preview-btn">📺 Enable Preview</button>
-              <button id="previewSettings" class="preview-btn">⚙️ Settings</button>
-            </div>
-          </div>
-        </div>
-        <div class="preview-info">
-          <span id="previewResolution">—</span> • <span id="previewFrameRate">—</span> • <span id="previewSource">NDI Source</span>
-        </div>
-      </div>
+      <h2 style="margin: 24px 0 8px; opacity: 0.9; font-size: 18px; font-weight: 600;">NDI Preview</h2>
+      
+      <iframe src="/video-test.html" width="100%" height="600" style="border: 1px solid #333; border-radius: 8px;"></iframe>
+      
     </section>
   </div>
 
@@ -104,25 +89,28 @@
           <small>Local port for ShowCall web interface</small>
         </div>
         
-        <h3 style="margin: 24px 0 12px; color: var(--accent); font-size: 16px;">NDI Preview</h3>
-        <div class="setting-group">
-          <label for="ndiStreamUrl">NDI Stream URL:</label>
-          <input type="text" id="ndiStreamUrl" placeholder="http://10.1.110.72:8080/ndi.mjpg">
-          <small>HTTP stream URL for NDI feed from Resolume machine (10.1.110.72)</small>
-        </div>
-        <div class="setting-group">
-          <label for="ndiSourceName">NDI Source Name:</label>
-          <input type="text" id="ndiSourceName" placeholder="ShowCall_Preview">
-          <small>Name of the NDI source for identification</small>
-        </div>
-        <div class="setting-group">
-          <label>
-            <input type="checkbox" id="ndiAutoConnect"> Auto-connect on startup
+        <h3 style="margin: 24px 0 12px; color: var(--accent); font-size: 16px;">NDI Preview (OBS Integration)</h3>
+        <div style="margin-bottom: 16px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="ndiAutoReconnect"> Auto-check NDI-OBS status
           </label>
-          <small>Automatically start NDI preview when ShowCall opens</small>
+          <small>Automatically monitor NDI stream via OBS Studio</small>
         </div>
-        
-        <div class="setting-actions">
+        <div style="margin-bottom: 16px;">
+          <label for="ndiQuality">Stream Quality:</label>
+          <select id="ndiQuality">
+            <option value="high">High Quality (1080p)</option>
+            <option value="medium" selected>Medium Quality (720p)</option>
+            <option value="low">Low Quality (480p)</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 16px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px;">
+          <strong>📋 Setup Instructions:</strong><br>
+          1. Install OBS Studio with NDI plugin<br>
+          2. Add NDI source in OBS (10.1.110.72:5960)<br>
+          3. Enable OBS WebSocket in Tools → WebSocket Server<br>
+          4. ShowCall will automatically connect and stream via OBS
+        </div>        <div class="setting-actions">
           <button id="saveSettings" class="btn-primary">Save & Restart</button>
           <button id="cancelSettings" class="btn-secondary">Cancel</button>
         </div>

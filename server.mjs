@@ -515,6 +515,56 @@ app.post('/api/presets', async (req, res) => {
   }
 });
 
+// Simple NDI API endpoints
+app.get('/api/ndi/status', async (req, res) => {
+  try {
+    // Return simple status - NDI available through manual OBS setup
+    res.json({
+      connected: false, // User needs to manually start OBS
+      obsRunning: false,
+      ndiSources: [],
+      streamUrl: null,
+      message: 'Start OBS Studio manually with NDI source, then enable preview'
+    });
+  } catch (error) {
+    console.error('Failed to get NDI status:', error.message);
+    res.status(500).json({ 
+      connected: false, 
+      error: error.message 
+    });
+  }
+});
+
+app.post('/api/ndi/switch', async (req, res) => {
+  try {
+    const { sourceId } = req.body;
+    
+    // Simple response - user needs to switch manually in OBS
+    res.json({ 
+      ok: true, 
+      message: `Switch to NDI source "${sourceId}" in OBS Studio manually`,
+      sourceId 
+    });
+    
+  } catch (error) {
+    console.error('Failed to switch NDI source:', error.message);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+app.post('/api/ndi/restart', async (req, res) => {
+  try {
+    // Simple restart message
+    res.json({ 
+      ok: true, 
+      message: 'Restart OBS Studio manually to refresh NDI sources' 
+    });
+  } catch (error) {
+    console.error('Failed to restart NDI bridge:', error.message);
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 // Update check API (GitHub Releases)
 async function getAppVersion() {
   const candidates = [
@@ -625,6 +675,9 @@ app.use((req, res) => {
   }
 });
 
+// Global NDI bridge instance
+let ndiBridge = null;
+
 // Initialize the app
 async function initializeApp() {
   try {
@@ -649,17 +702,28 @@ async function initializeApp() {
       process.exit(1);
     });
     server.listen(PORT, () => {
-      console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid)");
+      console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid + NDI-OBS)");
       console.log("=".repeat(60));
       console.log(`📡 Web UI:     http://localhost:${PORT}`);
       console.log(`🎯 Resolume:   ${HOST}`);
       console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
       console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
+      console.log(`🎥 NDI:        Professional OBS WebSocket integration`);
       console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
       if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
       console.log("=".repeat(60));
       try { initOSC(); } catch {}
     });
+
+    // Graceful shutdown
+    process.on('SIGINT', async () => {
+      console.log('\n🛑 Shutting down...');
+      if (ndiBridge) {
+        await ndiBridge.shutdown();
+      }
+      process.exit(0);
+    });
+
   } catch (error) {
     console.error("Fatal error during server initialization:", error);
     console.error("Stack trace:", error.stack);

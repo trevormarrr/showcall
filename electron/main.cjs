@@ -125,9 +125,11 @@ async function createWindowOnce() {
   created = true;
 
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    title: "ShowCall",
+    width: 1500,
+    height: 1000,
+    minWidth: 1200,
+    minHeight: 800,
+    title: "ShowCall - Live Event Controller",
     backgroundColor: "#0b0f14",
     webPreferences: { 
       nodeIntegration: false, 

@@ -27,7 +27,8 @@
     "dev": "electron .",
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "rebuild": "npx electron-rebuild"
   },
   "build": {
     "appId": "com.trevormarrr.showcall",
@@ -130,13 +131,17 @@
     "axios": "^1.6.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "electron-updater": "^6.3.9",
     "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "obs-websocket-js": "^5.0.6",
     "osc": "^2.4.5",
     "wait-on": "^7.2.0",
-    "electron-updater": "^6.3.9"
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
+    "@electron/rebuild": "^3.6.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3"
   }

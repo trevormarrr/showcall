@@ -6,19 +6,34 @@ let deckByKey = new Map();
 let resolumeConnected = false;
 let lastStatusState = null; // Track previous status to prevent unnecessary updates
 
+// Debug function for video preview
+function debugLog(message) {
+  console.log(message);
+  const debugDiv = document.getElementById('debugLog');
+  if (debugDiv) {
+    debugDiv.innerHTML += '<br>' + message;
+  }
+}
+
 async function init() {
+  console.log('🔥 INIT DEBUG: init() function started');
   try {
+    console.log('🔥 INIT DEBUG: Loading config...');
     // Load config for presets only
-  CFG = await fetch("/api/presets").then(r => r.json());
+    CFG = await fetch("/api/presets").then(r => r.json());
+    console.log('🔥 INIT DEBUG: Config loaded, getting grid element...');
     gridEl = document.getElementById("grid");
     
+    console.log('🔥 INIT DEBUG: Building UI elements...');
     // Build UI elements
     buildQuickCues(CFG);
-  buildDeck(CFG);
-  addDebugControls();
-  initSettings();
-  initPresets();
-  initNDIPreview();
+    buildDeck(CFG);
+    addDebugControls();
+    initSettings();
+    initPresets();
+    console.log('🔥 INIT DEBUG: About to call initVideoPreview()...');
+    // Initialize video preview - NOW USING IFRAME
+    console.log('🔥 INIT DEBUG: Video preview now handled by iframe');
     
   document.addEventListener("keydown", onHotkey);
     
@@ -284,19 +299,45 @@ async function checkConnection() {
 }
 
 function updateConnectionStatus(status) {
+  // Update composition and BPM in header
+  const compEl = document.getElementById('comp');
+  const bpmEl = document.getElementById('bpm');
+  
+  if (compEl && status.comp) {
+    compEl.textContent = status.comp;
+  }
+  
+  if (bpmEl && status.bpm) {
+    bpmEl.textContent = `BPM: ${status.bpm}`;
+  }
+  
+  // Create/update connection indicator
   let indicator = document.getElementById("connectionStatus");
   if (!indicator) {
     indicator = document.createElement("div");
     indicator.id = "connectionStatus";
-    document.querySelector(".meta").appendChild(indicator);
+    indicator.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      z-index: 1000;
+      pointer-events: none;
+    `;
+    document.body.appendChild(indicator);
   }
   
   if (status.connected) {
     const oscStatus = status.osc ? '🎵 OSC' : '⚠️ OSC Off';
-    indicator.className = "connection-status connected";
+    indicator.style.background = '#34C759';
+    indicator.style.color = 'white';
     indicator.textContent = `✅ REST ${status.restPort} | ${oscStatus} ${status.oscPort}`;
   } else {
-    indicator.className = "connection-status disconnected";
+    indicator.style.background = '#FF3B30';
+    indicator.style.color = 'white';
     indicator.textContent = `❌ Disconnected: ${status.error || 'Check Resolume'}`;
   }
 }
@@ -502,18 +543,49 @@ let previewSettings = {
 };
 
 function initNDIPreview() {
+  console.log('🎬 Initializing NDI Preview...');
+  
   const video = document.getElementById('ndiPreview');
   const overlay = document.querySelector('.preview-overlay');
   const status = document.getElementById('previewStatus');
   const toggleBtn = document.getElementById('previewToggle');
   const settingsBtn = document.getElementById('previewSettings');
   
+  console.log('NDI elements found:', { video, overlay, status, toggleBtn, settingsBtn });
+  
   // Load saved settings
   loadPreviewSettings();
   
   // Event handlers
-  toggleBtn.addEventListener('click', toggleNDIPreview);
-  settingsBtn.addEventListener('click', openPreviewSettings);
+  if (toggleBtn) {
+    console.log('Adding click listener to toggle button');
+    toggleBtn.addEventListener('click', function(e) {
+      console.log('🎯 Toggle button clicked!');
+      e.preventDefault();
+      toggleNDIPreview();
+    });
+  } else {
+    console.error('❌ Toggle button not found!');
+  }
+  
+  if (settingsBtn) {
+    console.log('Adding click listener to settings button');
+    settingsBtn.addEventListener('click', function(e) {
+      console.log('⚙️ Settings button clicked!');
+      e.preventDefault();
+      openPreviewSettings();
+    });
+  } else {
+    console.error('❌ Settings button not found!');
+  }
+  
+  // Update initial status
+  if (status) {
+    status.textContent = 'Ready for NDI preview (ensure OBS Virtual Camera is running)';
+    console.log('✅ Initial status updated');
+  } else {
+    console.error('❌ Status element not found!');
+  }
   
   // Video event handlers
   video.addEventListener('loadstart', () => {
@@ -546,42 +618,45 @@ function initNDIPreview() {
 }
 
 function toggleNDIPreview() {
+  console.log('🎬 toggleNDIPreview called, current state:', ndiPreviewEnabled);
+  
   const video = document.getElementById('ndiPreview');
-  const source = document.getElementById('ndiSource');
   const toggleBtn = document.getElementById('previewToggle');
   
   if (!ndiPreviewEnabled) {
-    // Enable preview
-    const streamUrl = previewSettings.streamUrl || getDefaultStreamUrl();
-    if (!streamUrl) {
-      openPreviewSettings();
-      return;
-    }
+    console.log('📹 Enabling NDI preview via camera access...');
+    // Enable preview via OBS Virtual Camera
+    updatePreviewStatus('Requesting camera access...');
     
-    source.src = streamUrl;
-    video.load();
-    video.play().catch(e => {
-      console.error('Failed to start preview:', e);
-      updatePreviewStatus('Failed to start video playback');
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    }).then(stream => {
+      console.log('✅ Camera stream obtained:', stream);
+      video.srcObject = stream;
+      video.style.display = 'block';
+      video.play();
+      ndiPreviewEnabled = true;
+      toggleBtn.textContent = '⏹️ Stop Preview';
+      updatePreviewStatus('NDI Preview Active (via OBS Virtual Camera)');
+      console.log('✅ NDI Preview started via Virtual Camera');
+    }).catch(error => {
+      console.error('❌ Camera access failed:', error);
+      updatePreviewStatus('Camera access denied. Start OBS Virtual Camera first.');
     });
-    
-    ndiPreviewEnabled = true;
-    toggleBtn.textContent = '⏹️ Stop Preview';
-    updatePreviewStatus('Connecting...');
-    
-    console.log('🎥 NDI Preview enabled:', streamUrl);
   } else {
     // Disable preview
-    video.pause();
-    source.src = '';
-    video.load();
-    
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
+    }
+    video.style.display = 'none';
     ndiPreviewEnabled = false;
     toggleBtn.textContent = '📺 Enable Preview';
-    updatePreviewStatus('Preview stopped');
-    document.querySelector('.preview-overlay').classList.remove('hidden');
-    
-    console.log('🎥 NDI Preview disabled');
+    updatePreviewStatus('NDI Preview stopped');
+    console.log('🛑 NDI Preview stopped');
   }
 }
 
@@ -612,27 +687,19 @@ function getDefaultStreamUrl() {
 }
 
 function openPreviewSettings() {
-  // For now, use a simple prompt - we can make a proper modal later
-  const newUrl = prompt(
-    'Enter NDI stream URL:\n\n' +
-    'Common setups:\n' +
-    '• OBS Virtual Camera HTTP: http://localhost:8888/stream.mjpg\n' +
-    '• Custom NDI Bridge: http://localhost:5000/video\n' +
-    '• RTSP Bridge: http://IP:8554/ndi.mjpg\n\n' +
-    'Current URL:', 
-    previewSettings.streamUrl
-  );
+  console.log('⚙️ openPreviewSettings called');
   
-  if (newUrl !== null) {
-    previewSettings.streamUrl = newUrl;
-    savePreviewSettings();
-    
-    if (ndiPreviewEnabled) {
-      // Restart preview with new URL
-      toggleNDIPreview(); // Stop
-      setTimeout(() => toggleNDIPreview(), 500); // Start
-    }
-  }
+  // Simple instructions for OBS Virtual Camera setup
+  alert(
+    'NDI Preview Setup Instructions:\n\n' +
+    '1. Open OBS Studio\n' +
+    '2. Add NDI Source (pointing to 10.1.110.72:5960)\n' +
+    '3. Go to Tools → Virtual Camera\n' +
+    '4. Click "Start Virtual Camera"\n' +
+    '5. Return to ShowCall and click "📺 Enable Preview"\n' +
+    '6. Grant camera permission when prompted\n\n' +
+    'The preview will show your NDI stream via OBS Virtual Camera!'
+  );
 }
 
 function loadPreviewSettings() {
@@ -1086,10 +1153,14 @@ async function loadCurrentSettings() {
     document.getElementById('resolumeOscPort').value = settings.resolumeOscPort || '7000';
     document.getElementById('serverPort').value = settings.serverPort || '3200';
     
-    // Load NDI settings from localStorage
-    document.getElementById('ndiStreamUrl').value = previewSettings.streamUrl || '';
-    document.getElementById('ndiSourceName').value = previewSettings.ndiSource || 'ShowCall_Preview';
-    document.getElementById('ndiAutoConnect').checked = previewSettings.autoConnect || false;
+    // Load NDI settings from localStorage (only if elements exist)
+    const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
+    const ndiSourceNameEl = document.getElementById('ndiSourceName');
+    const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
+    
+    if (ndiStreamUrlEl) ndiStreamUrlEl.value = previewSettings.streamUrl || '';
+    if (ndiSourceNameEl) ndiSourceNameEl.value = previewSettings.ndiSource || 'ShowCall_Preview';
+    if (ndiAutoConnectEl) ndiAutoConnectEl.checked = previewSettings.autoConnect || false;
   } catch (error) {
     console.error('Failed to load settings:', error);
     // Set defaults
@@ -1097,9 +1168,15 @@ async function loadCurrentSettings() {
     document.getElementById('resolumeRestPort').value = '8080';
     document.getElementById('resolumeOscPort').value = '7000';
     document.getElementById('serverPort').value = '3200';
-    document.getElementById('ndiStreamUrl').value = previewSettings.streamUrl || '';
-    document.getElementById('ndiSourceName').value = previewSettings.ndiSource || 'ShowCall_Preview';
-    document.getElementById('ndiAutoConnect').checked = previewSettings.autoConnect || false;
+    
+    // Set NDI defaults (only if elements exist)
+    const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
+    const ndiSourceNameEl = document.getElementById('ndiSourceName');
+    const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
+    
+    if (ndiStreamUrlEl) ndiStreamUrlEl.value = previewSettings.streamUrl || '';
+    if (ndiSourceNameEl) ndiSourceNameEl.value = previewSettings.ndiSource || 'ShowCall_Preview';
+    if (ndiAutoConnectEl) ndiAutoConnectEl.checked = previewSettings.autoConnect || false;
   }
 }
 
@@ -1111,10 +1188,14 @@ async function saveSettings() {
     serverPort: parseInt(document.getElementById('serverPort').value)
   };
 
-  // Save NDI settings to localStorage
-  previewSettings.streamUrl = document.getElementById('ndiStreamUrl').value.trim();
-  previewSettings.ndiSource = document.getElementById('ndiSourceName').value.trim() || 'ShowCall_Preview';
-  previewSettings.autoConnect = document.getElementById('ndiAutoConnect').checked;
+  // Save NDI settings to localStorage (only if elements exist)
+  const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
+  const ndiSourceNameEl = document.getElementById('ndiSourceName');
+  const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
+  
+  if (ndiStreamUrlEl) previewSettings.streamUrl = ndiStreamUrlEl.value.trim();
+  if (ndiSourceNameEl) previewSettings.ndiSource = ndiSourceNameEl.value.trim() || 'ShowCall_Preview';
+  if (ndiAutoConnectEl) previewSettings.autoConnect = ndiAutoConnectEl.checked;
   savePreviewSettings();
 
   // Basic validation
@@ -1340,8 +1421,271 @@ function setupUpdateNotifications() {
 }
 
 // Initialize when DOM is ready
+// === VIDEO PREVIEW - Simple Implementation ===
+let currentStream = null;
+
+function initVideoPreview() {
+  debugLog('🔥 VIDEO DEBUG: initVideoPreview() called');
+  
+  const videoSource = document.getElementById('videoSource');
+  const permissionBtn = document.getElementById('requestPermission');
+  const refreshBtn = document.getElementById('refreshSources');
+  const videoDisplay = document.getElementById('videoDisplay');
+  
+  debugLog('🔥 VIDEO DEBUG: Elements found: ' + JSON.stringify({
+    videoSource: !!videoSource,
+    permissionBtn: !!permissionBtn,
+    refreshBtn: !!refreshBtn,
+    videoDisplay: !!videoDisplay
+  }));
+  
+  if (!videoSource || !permissionBtn || !refreshBtn || !videoDisplay) {
+    debugLog('🔥 VIDEO DEBUG: Missing elements!');
+    console.log('🔥 VIDEO DEBUG: videoSource:', videoSource);
+    console.log('🔥 VIDEO DEBUG: permissionBtn:', permissionBtn);
+    console.log('🔥 VIDEO DEBUG: refreshBtn:', refreshBtn);
+    console.log('🔥 VIDEO DEBUG: videoDisplay:', videoDisplay);
+    return;
+  }
+  
+  // Check API support
+  debugLog('🔥 VIDEO DEBUG: Checking APIs...');
+  debugLog('🔥 VIDEO DEBUG: navigator.mediaDevices: ' + !!navigator.mediaDevices);
+  debugLog('🔥 VIDEO DEBUG: enumerateDevices: ' + !!navigator.mediaDevices?.enumerateDevices);
+  debugLog('🔥 VIDEO DEBUG: getUserMedia: ' + !!navigator.mediaDevices?.getUserMedia);
+  
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    debugLog("🔥 VIDEO DEBUG: enumerateDevices() not supported.");
+    return;
+  }
+  
+  debugLog('🔥 VIDEO DEBUG: Adding event listeners...');
+  // Event listeners
+  permissionBtn.addEventListener('click', function() {
+    debugLog('🔥 VIDEO DEBUG: Permission button clicked!');
+    requestVideoPermission();
+  });
+  
+  refreshBtn.addEventListener('click', function() {
+    debugLog('🔥 VIDEO DEBUG: Refresh button clicked!');
+    loadVideoSources();
+  });
+  
+  videoSource.addEventListener('change', function() {
+    debugLog('🔥 VIDEO DEBUG: Video source changed to: ' + videoSource.value);
+    selectSource();
+  });
+  
+  debugLog('🔥 VIDEO DEBUG: Event listeners added, loading initial sources...');
+  // Load sources on init
+  loadVideoSources();
+  debugLog('🔥 VIDEO DEBUG: initVideoPreview() complete');
+}
+
+// Direct from MDN docs
+function loadVideoSources() {
+  debugLog('🔥 VIDEO DEBUG: loadVideoSources() called');
+  const videoSource = document.getElementById('videoSource');
+  
+  if (!videoSource) {
+    debugLog('🔥 VIDEO DEBUG: videoSource element not found in loadVideoSources');
+    return;
+  }
+  
+  debugLog('🔥 VIDEO DEBUG: Calling enumerateDevices...');
+  navigator.mediaDevices
+    .enumerateDevices()
+    .then((devices) => {
+      debugLog('🔥 VIDEO DEBUG: enumerateDevices success, found ' + devices.length + ' devices');
+      console.log('🔥 VIDEO DEBUG: All devices:', devices);
+      
+      videoSource.innerHTML = '<option value="">Select video source...</option>';
+      
+      let videoDeviceCount = 0;
+      devices.forEach((device, index) => {
+        debugLog(`🔥 VIDEO DEBUG: Device ${index}: ${device.kind} - ${device.label || 'NO LABEL'} - ${device.deviceId.substring(0, 20)}...`);
+        
+        if (device.kind === 'videoinput') {
+          videoDeviceCount++;
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || `Camera ${device.deviceId.substring(0, 8)}`;
+          videoSource.appendChild(option);
+          debugLog(`🔥 VIDEO DEBUG: Added video device: ${option.textContent}`);
+        }
+      });
+      
+      debugLog(`🔥 VIDEO DEBUG: Found ${videoDeviceCount} video devices total`);
+      
+      if (videoDeviceCount === 0) {
+        debugLog('🔥 VIDEO DEBUG: No video devices found!');
+        videoSource.innerHTML = '<option value="">No cameras found</option>';
+      }
+    })
+    .catch((err) => {
+      debugLog('🔥 VIDEO DEBUG: enumerateDevices failed: ' + err.name + ' - ' + err.message);
+      console.error('🔥 VIDEO DEBUG: enumerateDevices failed:', err);
+    });
+}
+
+// Direct from MDN docs  
+async function requestVideoPermission() {
+  console.log('🔥 VIDEO DEBUG: requestVideoPermission() called');
+  try {
+    console.log('🔥 VIDEO DEBUG: Requesting camera permission...');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    console.log('🔥 VIDEO DEBUG: Permission granted! Stream:', stream);
+    
+    // Stop stream immediately, we just needed permission
+    stream.getTracks().forEach(track => {
+      console.log('🔥 VIDEO DEBUG: Stopping track:', track.label);
+      track.stop();
+    });
+    
+    console.log('🔥 VIDEO DEBUG: Reloading video sources after permission...');
+    // Reload to get device labels
+    loadVideoSources();
+    console.log("🔥 VIDEO DEBUG: Permission process complete");
+  } catch (err) {
+    console.error('🔥 VIDEO DEBUG: Permission request failed:', err);
+    console.error(`🔥 VIDEO DEBUG: Error name: ${err.name}, message: ${err.message}`);
+  }
+}
+
+// Direct from MDN docs
+async function selectSource() {
+  console.log('🔥 VIDEO DEBUG: selectSource() called');
+  const videoSource = document.getElementById('videoSource');
+  const videoDisplay = document.getElementById('videoDisplay');
+  const deviceId = videoSource.value;
+  
+  console.log('🔥 VIDEO DEBUG: Selected device ID:', deviceId);
+  
+  if (!deviceId) {
+    console.log('🔥 VIDEO DEBUG: No device selected, returning');
+    return;
+  }
+  
+  // Stop current stream
+  if (currentStream) {
+    console.log('🔥 VIDEO DEBUG: Stopping current stream');
+    currentStream.getTracks().forEach(track => track.stop());
+  }
+  
+  try {
+    console.log('🔥 VIDEO DEBUG: Requesting video stream for device:', deviceId.substring(0, 20) + '...');
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { deviceId: { exact: deviceId } }
+    });
+    
+    console.log('🔥 VIDEO DEBUG: Got video stream:', stream);
+    videoDisplay.srcObject = stream;
+    currentStream = stream;
+    
+    videoDisplay.onloadedmetadata = () => {
+      console.log('🔥 VIDEO DEBUG: Video metadata loaded, starting playback');
+      videoDisplay.play().then(() => {
+        console.log('🔥 VIDEO DEBUG: Video playback started successfully');
+      }).catch(e => {
+        console.error('🔥 VIDEO DEBUG: Video play failed:', e);
+      });
+    };
+    
+    console.log("🔥 VIDEO DEBUG: Video setup complete");
+  } catch (err) {
+    console.error('🔥 VIDEO DEBUG: Video stream failed:', err);
+    console.error(`🔥 VIDEO DEBUG: Error name: ${err.name}, message: ${err.message}`);
+  }
+}
+
+
+// === END VIDEO PREVIEW ===
+
+// === WORKING VIDEO PREVIEW ===
+function initWorkingVideo() {
+  console.log('Working video init starting...');
+  
+  const output = document.getElementById('videoOutput');
+  const video = document.getElementById('videoElement');
+  const deviceSelect = document.getElementById('deviceSelect');
+  const permBtn = document.getElementById('permBtn');
+  const listBtn = document.getElementById('listBtn');
+  
+  if (!output || !video || !deviceSelect || !permBtn || !listBtn) {
+    console.error('Video elements missing!');
+    return;
+  }
+  
+  function log(msg) {
+    console.log(msg);
+    output.innerHTML += msg + '<br>';
+  }
+  
+  log('Video preview ready!');
+  
+  permBtn.onclick = async function() {
+    log('Requesting permission...');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({video: true});
+      log('Permission granted!');
+      stream.getTracks().forEach(t => t.stop());
+      listDevices();
+    } catch(e) {
+      log('Permission denied: ' + e.message);
+    }
+  };
+  
+  listBtn.onclick = listDevices;
+  
+  async function listDevices() {
+    log('Listing devices...');
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      log('Found ' + devices.length + ' devices');
+      
+      deviceSelect.innerHTML = '';
+      devices.forEach(device => {
+        if (device.kind === 'videoinput') {
+          log('Video: ' + (device.label || 'Unknown') + ' - ' + device.deviceId.substr(0,10));
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || 'Camera';
+          deviceSelect.appendChild(option);
+        }
+      });
+    } catch(e) {
+      log('Error listing devices: ' + e.message);
+    }
+  }
+  
+  deviceSelect.onchange = async function() {
+    if (!deviceSelect.value) return;
+    log('Starting video for: ' + deviceSelect.value.substr(0,10));
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceSelect.value } }
+      });
+      video.srcObject = stream;
+      log('Video started!');
+    } catch(e) {
+      log('Video failed: ' + e.message);
+    }
+  };
+  
+  // Auto-start
+  listDevices();
+  console.log('Working video init complete!');
+}
+
+console.log('🔥 MAIN DEBUG: Script loaded, checking DOM ready state:', document.readyState);
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init);
+  console.log('🔥 MAIN DEBUG: DOM still loading, adding event listener');
+  document.addEventListener("DOMContentLoaded", function() {
+    console.log('🔥 MAIN DEBUG: DOMContentLoaded event fired, calling init()');
+    init();
+  });
 } else {
+  console.log('🔥 MAIN DEBUG: DOM already loaded, calling init() immediately');
   init();
 }
