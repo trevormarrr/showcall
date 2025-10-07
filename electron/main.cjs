@@ -189,6 +189,15 @@ ipcMain.handle('close-deck-window', () => {
   }
 });
 
+ipcMain.handle('check-for-updates', () => {
+  if (autoUpdater) {
+    console.log('🔄 Manual update check requested');
+    autoUpdater.checkForUpdatesAndNotify();
+    return true;
+  }
+  return false;
+});
+
 app.whenReady().then(async () => {
   try {
     await ensureServer();      // <— do not spawn if already running
@@ -216,7 +225,7 @@ function setupAutoUpdater() {
   autoUpdater.checkForUpdatesAndNotify();
   setInterval(() => {
     autoUpdater.checkForUpdatesAndNotify();
-  }, 30 * 60 * 1000); // 30 minutes
+  }, 5 * 60 * 1000); // 5 minutes for testing (was 30 minutes)
   
   // Event handlers
   autoUpdater.on('checking-for-update', () => {
@@ -233,6 +242,10 @@ function setupAutoUpdater() {
   
   autoUpdater.on('update-not-available', (info) => {
     console.log('ℹ️ No updates available. Current version:', info.version);
+    // Send to renderer for manual check feedback
+    if (mainWindow) {
+      mainWindow.webContents.send('update-not-available', info);
+    }
   });
   
   autoUpdater.on('error', (err) => {

@@ -30,13 +30,35 @@ async function init() {
     // Setup auto-updater notifications (Electron only)
     if (window.electronAPI) {
       setupUpdateNotifications();
+      
+      // Show manual update check button
+      const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+      if (checkUpdateBtn) {
+        checkUpdateBtn.style.display = 'block';
+        checkUpdateBtn.addEventListener('click', async () => {
+          checkUpdateBtn.textContent = '🔄 Checking...';
+          checkUpdateBtn.disabled = true;
+          
+          try {
+            await window.electronAPI.checkForUpdates();
+            showNotification('Checking for updates...', 'info', 3000);
+          } catch (e) {
+            showNotification('Update check failed', 'error', 3000);
+          }
+          
+          setTimeout(() => {
+            checkUpdateBtn.textContent = '🔄 Check Updates';
+            checkUpdateBtn.disabled = false;
+          }, 3000);
+        });
+      }
     } else {
       // In web mode, show a demo update indicator after 10 seconds
       setTimeout(() => {
         const updateIndicator = document.getElementById('updateIndicator');
         const updateText = updateIndicator?.querySelector('.update-text');
         if (updateIndicator && updateText) {
-          updateText.textContent = 'v1.3.6 Available!';
+          updateText.textContent = 'v1.3.7 Available!';
           updateIndicator.className = 'update-indicator';
           updateIndicator.style.display = 'block';
           updateIndicator.title = 'Demo: Update available (this is just for testing)';
@@ -1308,6 +1330,12 @@ function setupUpdateNotifications() {
     if (updateIndicator) {
       updateIndicator.style.display = 'none';
     }
+  });
+  
+  // No updates available (for manual check feedback)
+  window.electronAPI.onUpdateNotAvailable((event, info) => {
+    console.log('✅ App is up to date:', info.version);
+    showNotification(`App is up to date (v${info.version})`, 'success', 3000);
   });
 }
 
