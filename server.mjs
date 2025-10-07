@@ -8,6 +8,7 @@ import os from "os";
 import { fileURLToPath } from "url";
 import http from "http";
 import osc from "osc";
+import { WebSocketServer } from "ws";
 
 // Load .env from working directory first (dev convenience)
 dotenv.config();
@@ -115,6 +116,10 @@ let isResolumeConnected = false;
 let isOSCConnected = false;
 let lastConnectionCheck = 0;
 const CONNECTION_CHECK_INTERVAL = 3000;
+
+// Companion WebSocket clients
+const companionClients = new Set();
+let lastStatusState = null;
 
 // OSC Setup
 let oscPort = null;
@@ -654,10 +659,21 @@ app.get("/api/status", async (req, res) => {
     try {
       const composition = await getCompositionStatus();
       const status = parseCompositionStatus(composition);
+      
+      // Store for Companion clients
+      lastStatusState = status;
+      
+      // Send to SSE clients
       res.write(`data: ${JSON.stringify(status)}\n\n`);
+      
+      // Broadcast to Companion clients
+      broadcastToCompanion(status);
+      
     } catch (error) {
       const errorStatus = { ...getDefaultStatus(), error: error.message };
+      lastStatusState = errorStatus;
       res.write(`data: ${JSON.stringify(errorStatus)}\n\n`);
+      broadcastToCompanion(errorStatus);
     }
   };
   await sendStatus();
@@ -678,6 +694,28 @@ app.use((req, res) => {
 // Global NDI bridge instance
 let ndiBridge = null;
 
+// Companion WebSocket broadcast function
+function broadcastToCompanion(status) {
+  if (companionClients.size === 0) return;
+  
+  const message = JSON.stringify({
+    type: 'status_update',
+    data: status,
+    timestamp: Date.now()
+  });
+  
+  companionClients.forEach(client => {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      try {
+        client.send(message);
+      } catch (error) {
+        console.error('🎛️ Failed to send to Companion client:', error);
+        companionClients.delete(client);
+      }
+    }
+  });
+}
+
 // Initialize the app
 async function initializeApp() {
   try {
@@ -693,6 +731,90 @@ async function initializeApp() {
     // Start server
     const PORT = process.env.PORT || 3200;
     const server = http.createServer(app);
+    
+    // WebSocket server for Companion integration
+    const wss = new WebSocketServer({ 
+      server,
+      path: '/api/companion'
+    });
+    
+    wss.on('connection', (ws, req) => {
+      console.log('🎛️ Companion module connected from:', req.socket.remoteAddress);
+      companionClients.add(ws);
+      
+      // Send current status immediately
+      if (lastStatusState) {
+        ws.send(JSON.stringify({
+          type: 'status_update',
+          data: lastStatusState
+        }));
+      }
+      
+      ws.on('message', async (message) => {
+        try {
+          const command = JSON.parse(message.toString());
+          console.log('🎛️ Companion command:', command);
+          
+          let result = { ok: false };
+          
+          switch (command.action) {
+            case 'trigger_clip':
+              result = await triggerClip(parseInt(command.layer), parseInt(command.column));
+              break;
+              
+            case 'trigger_column':
+              result = await triggerColumn(parseInt(command.column));
+              break;
+              
+            case 'cut_to_program':
+              result = await cutToProgram();
+              break;
+              
+            case 'clear_all':
+              result = await clearAll();
+              break;
+              
+            case 'execute_macro':
+              if (command.macro && Array.isArray(command.macro)) {
+                result = await executeMacro(command.macro);
+              }
+              break;
+              
+            case 'get_status':
+              result = { ok: true, data: lastStatusState };
+              break;
+              
+            default:
+              result = { ok: false, error: `Unknown action: ${command.action}` };
+          }
+          
+          // Send response back to Companion
+          ws.send(JSON.stringify({
+            type: 'command_response',
+            id: command.id,
+            result
+          }));
+          
+        } catch (error) {
+          console.error('🎛️ Companion command error:', error);
+          ws.send(JSON.stringify({
+            type: 'command_response',
+            id: command.id || 'unknown',
+            result: { ok: false, error: error.message }
+          }));
+        }
+      });
+      
+      ws.on('close', () => {
+        companionClients.delete(ws);
+        console.log('🎛️ Companion module disconnected');
+      });
+      
+      ws.on('error', (error) => {
+        console.error('🎛️ Companion WebSocket error:', error);
+        companionClients.delete(ws);
+      });
+    });
     server.on("error", (err) => {
       if (err.code === "EADDRINUSE") {
         console.error(`✖ Port ${PORT} is already in use`);
@@ -702,13 +824,14 @@ async function initializeApp() {
       process.exit(1);
     });
     server.listen(PORT, () => {
-      console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid + NDI-OBS)");
+      console.log("\n🎬 ShowCall Server Started (OSC + REST Hybrid + NDI-OBS + Companion)");
       console.log("=".repeat(60));
       console.log(`📡 Web UI:     http://localhost:${PORT}`);
       console.log(`🎯 Resolume:   ${HOST}`);
       console.log(`🔗 REST API:   ${baseUrl()} (monitoring)`);
       console.log(`🎵 OSC Output: ${HOST}:${OSC_PORT} (control)`);
       console.log(`🎥 NDI:        Professional OBS WebSocket integration`);
+      console.log(`🎛️ Companion:  ws://localhost:${PORT}/api/companion`);
       console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
       if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
       console.log("=".repeat(60));
