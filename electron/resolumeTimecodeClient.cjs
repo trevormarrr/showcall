@@ -181,6 +181,10 @@ class ResolumeTimecodeClient {
     this.ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString())
+        const msgStr = JSON.stringify(msg).substring(0, 150)
+        
+        // LOG EVERYTHING to see what Resolume actually sends
+        this.log.info(`📨 WS MSG: ${msgStr}...`)
         
         // Log subscription confirmations
         if (msg.type === 'parameter_subscribed') {
@@ -188,11 +192,9 @@ class ResolumeTimecodeClient {
           return
         }
         
-        // Skip errors but log them
+        // Log errors
         if (msg.error) {
-          if (!msg.error.includes('Invalid parameter path')) {
-            this.log.warn(`WebSocket error for ${msg.path || msg.parameter}: ${msg.error}`)
-          }
+          this.log.warn(`❌ Error: ${msg.error} (path: ${msg.path || msg.parameter})`)
           return
         }
         
@@ -201,7 +203,6 @@ class ResolumeTimecodeClient {
           const path = msg.path || ''
           const value = msg.value
           
-          // Log ALL updates to see what we get
           this.log.info(`📟 Update: ${path} = ${JSON.stringify(value).substring(0, 100)}`)
           
           const isTimecode = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
@@ -220,7 +221,7 @@ class ResolumeTimecodeClient {
           }
         }
       } catch (e) {
-        // Ignore parse errors
+        this.log.warn('Parse error:', e.message)
       }
     })
 
