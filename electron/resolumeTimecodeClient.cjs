@@ -139,37 +139,38 @@ class ResolumeTimecodeClient {
       try {
         const msg = JSON.parse(data.toString())
         
-        // Skip errors and subscription confirmations
-        if (msg.error || msg.type === 'parameter_subscribed' || msg.type === 'parameter_unsubscribed') return
+        // Log EVERY message type to see what Resolume sends
+        if (msg.type && msg.type !== 'parameter_subscribed' && msg.type !== 'parameter_unsubscribed') {
+          const shortValue = JSON.stringify(msg.value || '').substring(0, 80)
+          this.log.info(`WS: ${msg.type} | path: ${msg.path || 'none'} | value: ${shortValue}`)
+        }
+        
+        // Skip errors
+        if (msg.error) {
+          if (!msg.error.includes('Invalid parameter path')) {
+            this.log.warn('Resolume error:', msg.error)
+          }
+          return
+        }
         
         // Look for parameter updates/sets
         if (msg.type === 'parameter_update' || msg.type === 'parameter_set') {
           const path = msg.path || ''
           const value = msg.value
           
-          // Check if this is timecode-related by path OR value format
-          const isTimecodeRelated = path.toLowerCase().includes('smpte') || 
-                                   path.toLowerCase().includes('timecode') ||
-                                   path.toLowerCase().includes('ltc') ||
-                                   path.toLowerCase().includes('transport')
-          
-          // Also check if the value itself looks like timecode
+          // Check if the value looks like timecode
           const isTimecodeValue = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
           
-          if (isTimecodeRelated || isTimecodeValue) {
-            this.log.info(`📟 ${msg.type}: ${path} = ${JSON.stringify(value).substring(0, 100)}`)
-            
-            // Broadcast any timecode value we find
-            if (isTimecodeValue) {
-              const now = Date.now()
-              if (now - this._lastSentTs >= this._throttleMs) {
-                this._lastSentTs = now
-                this._broadcast({ 
-                  connected: true, 
-                  timecode: value,
-                  source: path
-                })
-              }
+          if (isTimecodeValue) {
+            this.log.info(`📟 TIMECODE DETECTED: ${value} from ${path}`)
+            const now = Date.now()
+            if (now - this._lastSentTs >= this._throttleMs) {
+              this._lastSentTs = now
+              this._broadcast({ 
+                connected: true, 
+                timecode: value,
+                source: path
+              })
             }
           }
         }
