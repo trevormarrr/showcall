@@ -8,6 +8,7 @@ try {
   console.warn('electron-updater not available in dev:', e.message);
 }
 const path = require("path");
+const fs = require("fs");
 const { spawn } = require("child_process");
 const http = require("http");
 const waitOn = require("wait-on");
@@ -19,6 +20,30 @@ let created = false;
 let timecodeClient;
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
+
+// Load user .env (same location server uses) so Electron can see RESOLUME_* values
+function loadUserEnvIntoProcess() {
+  try {
+    const userDataDir = app.getPath('userData');
+    const userEnvPath = path.join(userDataDir, '.env');
+    if (fs.existsSync(userEnvPath)) {
+      const content = fs.readFileSync(userEnvPath, 'utf8');
+      for (const line of content.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq > 0) {
+          const key = trimmed.slice(0, eq).trim();
+          const val = trimmed.slice(eq + 1).trim();
+          if (!(key in process.env)) process.env[key] = val;
+        }
+      }
+      console.log(`✅ Loaded user env into Electron from: ${userEnvPath}`);
+    }
+  } catch (e) {
+    console.warn('⚠️ Failed to load user .env into Electron process:', e.message);
+  }
+}
 
 // ---- Single-instance lock ----
 const gotTheLock = app.requestSingleInstanceLock();
@@ -204,6 +229,8 @@ ipcMain.handle('check-for-updates', () => {
 
 app.whenReady().then(async () => {
   try {
+    // Ensure Electron process inherits user .env values (RESOLUME_HOST, ports, etc.)
+    loadUserEnvIntoProcess();
     await ensureServer();      // <— do not spawn if already running
     await createWindowOnce();
     
