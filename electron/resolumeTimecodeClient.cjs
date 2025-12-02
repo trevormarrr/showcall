@@ -72,52 +72,63 @@ class ResolumeTimecodeClient {
     }
 
     this.ws.on('open', () => {
-      this.log.info('Connected to Resolume events')
+      this.log.info('✓ Connected to Resolume WebSocket API')
       this._broadcast({ connected: true })
-      // Attempt to subscribe to common timecode-related parameters per WebSocket API
-      const subscribe = (path) => {
-        try {
-          const msg = JSON.stringify({ action: 'subscribe', parameter: path })
-          this.ws.send(msg)
-          this.log.info('Subscribed to', path)
-        } catch (e) {
-          this.log.warn('Subscribe failed for', path, e.message)
-        }
+      
+      // Subscribe to the clip's transporttype parameter to detect when SMPTE 1 is selected
+      // Based on the user's WebSocket logs, this is the correct path format
+      const transportTypePath = '/composition/layers/2/clips/1/transporttype'
+      
+      try {
+        const subscribeMsg = JSON.stringify({ action: 'subscribe', parameter: transportTypePath })
+        this.ws.send(subscribeMsg)
+        this.log.info(`Subscribed to ${transportTypePath} to monitor SMPTE 1 selection`)
+      } catch (e) {
+        this.log.warn('Subscribe failed for', transportTypePath, e.message)
       }
-      // Candidate parameter paths based on REST schema conventions
-      const candidates = [
-        '/transport/timecode',
-        '/transport/running',
-        '/smpte/timecode',
-        '/smpte/running',
-        '/composition/tempocontroller/timecode'
-      ]
-      for (const p of candidates) subscribe(p)
     })
 
     this.ws.on('message', (data) => {
       let obj = null
       try { obj = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString()) } catch {}
-      // Handle parameter updates from WebSocket API
-      if (obj && obj.type) {
-        if (obj.type === 'parameter_update' || obj.type === 'parameter_set' || obj.type === 'parameter_get') {
-          const maybe = extractTimecode(obj.value ?? obj)
-          if (maybe && maybe.timecode) {
-            const now = Date.now()
-            if (now - this._lastSentTs >= this._throttleMs) {
-              this._lastSentTs = now
-              this._broadcast({ connected: true, ...maybe })
-            }
-          }
+      
+      if (!obj) return
+      
+      // Log errors from Resolume
+      if (obj.error) {
+        this.log.warn('Resolume error:', obj.error, 'for path:', obj.path || obj.parameter)
+        return
+      }
+      
+      // Check if this is a transporttype parameter update
+      if (obj.path === '/composition/layers/2/clips/1/transporttype') {
+        const transportValue = obj.value
+        this.log.info(`Transport type changed to: ${transportValue} (index: ${obj.index})`)
+        
+        if (transportValue === 'SMPTE 1' || obj.index === 2) {
+          this.log.info('✓ SMPTE 1 is now ACTIVE!')
+          this.log.info('Next step: Need to find the SMPTE input timecode parameter.')
+          this.log.info('Looking at your earlier logs, check Resolume WebSocket messages for parameters containing "smpte" or "timecode"')
         }
-      } else {
-        const tc = extractTimecode(obj ?? data)
-        if (tc && tc.timecode) {
-          const now = Date.now()
-          if (now - this._lastSentTs >= this._throttleMs) {
-            this._lastSentTs = now
-            this._broadcast({ connected: true, ...tc })
-          }
+      }
+      
+      // Log all parameter_update/parameter_set messages to help discover the timecode parameter
+      if (obj.type === 'parameter_update' || obj.type === 'parameter_set') {
+        const pathStr = obj.path || 'unknown'
+        // Only log if it might be related to timecode/SMPTE
+        if (pathStr.toLowerCase().includes('smpte') || pathStr.toLowerCase().includes('timecode')) {
+          this.log.info(`SMPTE/Timecode parameter: ${pathStr} = ${JSON.stringify(obj.value).substring(0, 100)}`)
+        }
+      }
+      
+      // Try to extract timecode from the message
+      const tc = extractTimecode(obj.value ?? obj)
+      if (tc && tc.timecode) {
+        const now = Date.now()
+        if (now - this._lastSentTs >= this._throttleMs) {
+          this._lastSentTs = now
+          this._broadcast({ connected: true, ...tc })
+          this.log.info(`Timecode update: ${tc.timecode}`)
         }
       }
     })
