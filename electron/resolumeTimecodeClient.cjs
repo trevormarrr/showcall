@@ -52,7 +52,8 @@ class ResolumeTimecodeClient {
     this._reconnectTimer = null
     this._lastSentTs = 0
     this._throttleMs = config.throttleMs ?? 75
-    this._paths = config.paths || ['/api/v1/events', '/api/events', '/events']
+  // WebSocket base per Resolume docs is /api/v1; keep legacy fallbacks
+  this._paths = config.paths || ['/api/v1', '/api/v1/events', '/api/events', '/events']
     this._pathIndex = 0
     this.log = createLogger('client')
   }
@@ -60,7 +61,7 @@ class ResolumeTimecodeClient {
   start() {
     this.stop()
   const url = buildWsUrl({ host: this.config.host, port: this.config.port, path: this._paths[this._pathIndex] })
-    this.log.info('Connecting to Resolume events:', url)
+    this.log.info('Connecting to Resolume WebSocket:', url)
 
     try {
       this.ws = new WebSocket(url)
@@ -95,26 +96,41 @@ class ResolumeTimecodeClient {
     })
 
     this.ws.on('message', (data) => {
-      this.log.info('Event:', typeof data === 'string' ? data.slice(0, 256) : data)
-      const tc = extractTimecode(data)
-      if (tc) {
-        const now = Date.now()
-        if (now - this._lastSentTs >= this._throttleMs) {
-          this._lastSentTs = now
-          this._broadcast({ connected: true, ...tc })
+      let obj = null
+      try { obj = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString()) } catch {}
+      // Handle parameter updates from WebSocket API
+      if (obj && obj.type) {
+        if (obj.type === 'parameter_update' || obj.type === 'parameter_set' || obj.type === 'parameter_get') {
+          const maybe = extractTimecode(obj.value ?? obj)
+          if (maybe && maybe.timecode) {
+            const now = Date.now()
+            if (now - this._lastSentTs >= this._throttleMs) {
+              this._lastSentTs = now
+              this._broadcast({ connected: true, ...maybe })
+            }
+          }
+        }
+      } else {
+        const tc = extractTimecode(obj ?? data)
+        if (tc && tc.timecode) {
+          const now = Date.now()
+          if (now - this._lastSentTs >= this._throttleMs) {
+            this._lastSentTs = now
+            this._broadcast({ connected: true, ...tc })
+          }
         }
       }
     })
 
     this.ws.on('close', (code, reason) => {
-      this.log.warn('Resolume events closed:', code, reason?.toString?.())
+  this.log.warn('Resolume WebSocket closed:', code, reason?.toString?.())
       this._broadcast({ connected: false })
       this._advancePathOnError(code)
       this._scheduleReconnect()
     })
 
     this.ws.on('error', (err) => {
-      this.log.error('Resolume events error:', err.message)
+  this.log.error('Resolume WebSocket error:', err.message)
       this._broadcast({ connected: false })
       this._advancePathOnError(err?.code)
       this._scheduleReconnect()
