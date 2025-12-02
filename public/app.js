@@ -16,24 +16,17 @@ function debugLog(message) {
 }
 
 async function init() {
-  console.log('🔥 INIT DEBUG: init() function started');
   try {
-    console.log('🔥 INIT DEBUG: Loading config...');
     // Load config for presets only
     CFG = await fetch("/api/presets").then(r => r.json());
-    console.log('🔥 INIT DEBUG: Config loaded, getting grid element...');
     gridEl = document.getElementById("grid");
     
-    console.log('🔥 INIT DEBUG: Building UI elements...');
     // Build UI elements
     buildQuickCues(CFG);
     buildDeck(CFG);
     addDebugControls();
     initSettings();
     initPresets();
-    console.log('🔥 INIT DEBUG: About to call initVideoPreview()...');
-    // Initialize video preview - NOW USING IFRAME
-    console.log('🔥 INIT DEBUG: Video preview now handled by iframe');
     
   document.addEventListener("keydown", onHotkey);
     
@@ -94,42 +87,12 @@ async function init() {
   }
 }
 
-// ---- Resolume SMPTE Timecode HUD ----
-(function initTimecodeHUD() {
-  const dot = document.getElementById('timecodeStatusDot');
-  const val = document.getElementById('timecodeValue');
-  const label = document.getElementById('timecodeLabel');
-  if (!dot || !val) return;
-
-  function render(payload) {
-    if (!payload || !payload.connected) {
-      dot.style.background = '#6b7280'; // gray
-      dot.title = 'Disconnected';
-      val.textContent = '--:--:--:--';
-      label && (label.textContent = 'Timecode');
-      return;
-    }
-    const running = !!payload.running;
-    dot.style.background = running ? '#22c55e' : '#93c5fd'; // green running, blue stopped
-    dot.title = running ? 'Running' : 'Stopped';
-    val.textContent = typeof payload.timecode === 'string' ? payload.timecode : '--:--:--:--';
-    label && (label.textContent = 'Timecode');
-  }
-
-  if (window.electronAPI && typeof window.electronAPI.onTimecodeUpdate === 'function') {
-    window.electronAPI.onTimecodeUpdate(render);
-  }
-})();
-
 async function loadComposition() {
   try {
-    console.log("📡 Loading composition from Resolume...");
     const response = await fetch("/api/composition");
     composition = await response.json();
     
     if (composition.connected) {
-      console.log(`✅ Loaded: ${composition.compositionName}`);
-      console.log(`   Layers: ${composition.layers.length}, Max Columns: ${composition.maxColumns}`);
       buildGridFromComposition(composition);
       resolumeConnected = true;
     } else {
@@ -187,11 +150,9 @@ function addDebugControls() {
   testHighlightBtn.className = "quick-cue-btn";
   testHighlightBtn.textContent = "🎨 Test Highlight";
   testHighlightBtn.onclick = () => {
-    console.log("🎨 Testing highlight...");
     // Force highlight column 1 and layer 1
     document.querySelectorAll('.grid .hdr').forEach(h => { 
       if (h.textContent.trim() === 'Col 1') {
-        console.log("🎨 Found Col 1 header:", h);
         h.classList.add('active-col-prog'); 
         h.style.background = 'red !important'; // Emergency override
       }
@@ -199,7 +160,6 @@ function addDebugControls() {
     // Test if we can find any cell
     const testKey = 'L1-C1';
     const testEl = indexByKey.get(testKey);
-    console.log("🎨 Test element for L1-C1:", testEl);
     if (testEl) {
       testEl.classList.add('active-prog');
       testEl.style.border = '5px solid red'; // Emergency override
@@ -217,10 +177,8 @@ async function testConnection() {
     const result = await response.json();
     
     if (result.connected) {
-      console.log("✅ Debug info:", result);
       const layerInfo = result.layersInfo?.map(l => `${l.name}(${l.clipCount} clips)`).join(', ') || 'None';
       showNotification(`Connected: ${result.compositionName} - ${result.layerCount} layers`, "success");
-      console.log("Layers:", layerInfo);
     } else {
       console.error("❌ Debug failed:", result);
       showNotification(`Connection failed: ${result.error}`, "error");
@@ -241,7 +199,6 @@ async function testTrigger(layer, column) {
     });
     
     const result = await response.json();
-    console.log("🔍 Test trigger result:", result);
     
     if (result.success) {
       showNotification(`✅ L${layer}C${column} trigger works!`, "success");
@@ -264,7 +221,6 @@ async function testColumnTrigger(column) {
     });
     
     const result = await response.json();
-    console.log("🔍 Test column result:", result);
     
     if (result.success) {
       showNotification(`✅ Column ${column} trigger works!`, "success");
@@ -285,7 +241,6 @@ async function trigger(layer, column) {
   }
   
   try {
-    console.log(`🎯 Triggering L${layer}C${column}...`);
     showNotification(`Triggering L${layer}C${column}...`, "info");
     
     const response = await fetch("/api/trigger", {
@@ -295,10 +250,8 @@ async function trigger(layer, column) {
     });
     
     const result = await response.json();
-    console.log("🎯 Trigger result:", result);
     
     if (result.ok) {
-      console.log(`✅ Triggered L${layer}C${column} using ${result.method || 'unknown method'}`);
       showNotification(`Triggered L${layer}C${column}`, "success");
     } else {
       console.error("❌ Trigger failed:", result.error);

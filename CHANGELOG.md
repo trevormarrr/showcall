@@ -2,6 +2,23 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.0.0] - 2025-01-XX
+
+### Major Release
+- **Version 2.0**: Comprehensive feature set and stability improvements
+- Enhanced UI/UX with refined controls and visual feedback
+- Production-ready Stream Deck integration via Companion module
+- Robust OSC + REST API integration with Resolume Arena
+- Professional-grade macro system with customizable presets
+- Real-time composition monitoring and status updates
+- Pop-out deck window for flexible control layouts
+
+### Architecture
+- Electron-based desktop application for cross-platform support
+- Express server with WebSocket and SSE for real-time updates
+- Modern vanilla JavaScript UI with no framework dependencies
+- Comprehensive error handling and connection recovery
+
 ## [1.5.0] - 2025-10-07
 
 ### Added
