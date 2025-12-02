@@ -73,6 +73,25 @@ class ResolumeTimecodeClient {
     this.ws.on('open', () => {
       this.log.info('Connected to Resolume events')
       this._broadcast({ connected: true })
+      // Attempt to subscribe to common timecode-related parameters per WebSocket API
+      const subscribe = (path) => {
+        try {
+          const msg = JSON.stringify({ action: 'subscribe', parameter: path })
+          this.ws.send(msg)
+          this.log.info('Subscribed to', path)
+        } catch (e) {
+          this.log.warn('Subscribe failed for', path, e.message)
+        }
+      }
+      // Candidate parameter paths based on REST schema conventions
+      const candidates = [
+        '/transport/timecode',
+        '/transport/running',
+        '/smpte/timecode',
+        '/smpte/running',
+        '/composition/tempocontroller/timecode'
+      ]
+      for (const p of candidates) subscribe(p)
     })
 
     this.ws.on('message', (data) => {
@@ -123,10 +142,14 @@ class ResolumeTimecodeClient {
     }, delay)
   }
 
-  _advancePathOnError(code) {
-    // If 404 or connection issues, try next candidate path
-    const indicative = [404, '404', 'ECONNREFUSED']
-    if (indicative.includes(code)) {
+  _advancePathOnError(codeOrErr) {
+    // Try next candidate path on common failures
+    const asStr = typeof codeOrErr === 'string' ? codeOrErr : (codeOrErr?.toString?.() || '')
+    const msg = codeOrErr?.message || ''
+    const hint404 = asStr.includes('404') || msg.includes('404')
+    const connRefused = asStr.includes('ECONNREFUSED') || msg.includes('ECONNREFUSED')
+    // Rotate path if 404 or connection refused; otherwise keep
+    if (hint404 || connRefused) {
       this._pathIndex = (this._pathIndex + 1) % this._paths.length
       this.log.info('Switching events path to', this._paths[this._pathIndex])
     }
