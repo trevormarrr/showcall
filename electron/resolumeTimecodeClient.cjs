@@ -1,4 +1,4 @@
-// Resolume SMPTE Timecode WebSocket client (CommonJS)
+// Resolume SMPTE Timecode client (CommonJS) - Hybrid WebSocket + REST polling
 const { ipcMain, webContents } = require('electron')
 const WebSocket = require('ws')
 const http = require('http')
@@ -11,14 +11,14 @@ function createLogger(prefix) {
   }
 }
 
-// Helper to fetch composition and find SMPTE clips
-function findSMPTEClips(host, port, callback) {
+// Helper to poll Resolume composition and extract timecode from connected SMPTE clips
+function pollTimecode(host, port, callback) {
   const options = {
     hostname: host || '127.0.0.1',
     port: port || 8080,
     path: '/api/v1/composition',
     method: 'GET',
-    timeout: 5000
+    timeout: 2000
   }
   
   const req = http.request(options, (res) => {
@@ -27,38 +27,58 @@ function findSMPTEClips(host, port, callback) {
     res.on('end', () => {
       try {
         const json = JSON.parse(data)
-        const smpteClips = []
-        
-        // Scan all layers and clips for SMPTE transport
         const layers = json.layers || []
-        for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
-          const layer = layers[layerIdx]
+        
+        // Find connected clips with SMPTE transport
+        for (const layer of layers) {
           const clips = layer.clips || []
-          for (let clipIdx = 0; clipIdx < clips.length; clipIdx++) {
-            const clip = clips[clipIdx]
-            const transportType = clip.transporttype?.value || clip.transporttype
-            if (transportType && (transportType.includes('SMPTE') || transportType.includes('LTC'))) {
-              smpteClips.push({
-                layer: layerIdx + 1,
-                column: clipIdx + 1,
-                transportType: transportType,
-                path: `/composition/layers/${layerIdx + 1}/clips/${clipIdx + 1}`
-              })
+          for (const clip of clips) {
+            const isConnected = clip.connected?.value === 1 || clip.connected === 1
+            const transportType = clip.transporttype?.value || clip.transporttype || ''
+            
+            if (isConnected && (transportType.includes('SMPTE') || transportType.includes('LTC'))) {
+              // Check video position for timecode
+              const video = clip.video || {}
+              const position = video.playbackPosition || video.position
+              
+              // Also check for timecode string in various places
+              const checkTimecode = (obj, path = '') => {
+                if (typeof obj === 'string' && obj.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)) {
+                  return obj
+                }
+                if (obj && typeof obj === 'object') {
+                  for (const [key, val] of Object.entries(obj)) {
+                    if (key.toLowerCase().includes('timecode') || key.toLowerCase().includes('smpte')) {
+                      const tc = checkTimecode(val, `${path}/${key}`)
+                      if (tc) return tc
+                    }
+                  }
+                }
+                return null
+              }
+              
+              const timecode = checkTimecode(clip) || checkTimecode(video)
+              
+              if (timecode) {
+                callback(null, { timecode, connected: true, transportType })
+                return
+              }
             }
           }
         }
         
-        callback(null, smpteClips)
+        // No timecode found
+        callback(null, { connected: true, timecode: null })
       } catch (e) {
-        callback(e, [])
+        callback(e, null)
       }
     })
   })
   
-  req.on('error', (err) => callback(err, []))
+  req.on('error', (err) => callback(err, null))
   req.on('timeout', () => {
     req.destroy()
-    callback(new Error('Request timeout'), [])
+    callback(new Error('Timeout'), null)
   })
   req.end()
 }
@@ -68,125 +88,105 @@ class ResolumeTimecodeClient {
     this.config = config || {}
     this.ws = null
     this._reconnectTimer = null
+    this._pollTimer = null
     this._lastSentTs = 0
-    this._throttleMs = config.throttleMs ?? 75
-    this.log = createLogger('client')
+    this._throttleMs = config.throttleMs ?? 50 // 20 Hz max
+    this._pollIntervalMs = config.pollIntervalMs ?? 100 // Poll at 10 Hz
     this._subscribedParams = new Set()
+    this.log = createLogger('client')
   }
 
   start() {
     this.stop()
     const host = this.config.host || '127.0.0.1'
     const port = this.config.port || 8080
-    const url = `ws://${host}:${port}/api/v1`
     
-    this.log.info('Connecting to Resolume WebSocket:', url)
+    this.log.info(`🎬 Starting LTC/SMPTE timecode monitoring`)
+    this.log.info(`   Host: ${host}:${port}`)
+    this.log.info(`   Poll rate: ${1000/this._pollIntervalMs} Hz`)
+    
+    // Start REST polling for timecode
+    this._startPolling(host, port)
+    
+    // Also try WebSocket for parameter updates (backup method)
+    this._startWebSocket(host, port)
+  }
+
+  _startPolling(host, port) {
+    this.log.info('📡 Starting REST API polling for timecode...')
+    
+    this._pollTimer = setInterval(() => {
+      pollTimecode(host, port, (err, data) => {
+        if (err) {
+          this._broadcast({ connected: false })
+          return
+        }
+        
+        if (data && data.timecode) {
+          const now = Date.now()
+          if (now - this._lastSentTs >= this._throttleMs) {
+            this._lastSentTs = now
+            this._broadcast({ 
+              connected: true,
+              timecode: data.timecode,
+              transport: data.transportType
+            })
+          }
+        } else if (data && data.connected && !data.timecode) {
+          // Connected but no timecode
+          this._broadcast({ connected: true, timecode: '--:--:--:--' })
+        }
+      })
+    }, this._pollIntervalMs)
+  }
+
+  _startWebSocket(host, port) {
+    const url = `ws://${host}:${port}/api/v1`
+    this.log.info('🔌 Connecting WebSocket as backup:', url)
 
     try {
       this.ws = new WebSocket(url)
     } catch (e) {
-      this.log.error('Failed to connect:', e.message)
-      this._scheduleReconnect()
+      this.log.warn('WebSocket failed:', e.message)
       return
     }
 
     this.ws.on('open', () => {
-      this.log.info('✓ WebSocket connected! Discovering SMPTE clips...')
-      this._broadcast({ connected: true })
-      
-      // Find and subscribe to SMPTE clips
-      findSMPTEClips(host, port, (err, clips) => {
-        if (err) {
-          this.log.warn('Failed to discover SMPTE clips:', err.message)
-          this.log.info('Will listen for any timecode values in parameter updates')
-          return
-        }
-        
-        if (clips.length === 0) {
-          this.log.info('No SMPTE clips found. Will listen for any timecode values.')
-          return
-        }
-        
-        this.log.info(`Found ${clips.length} SMPTE clip(s):`)
-        clips.forEach(clip => {
-          this.log.info(`  Layer ${clip.layer}, Column ${clip.column}: ${clip.transportType}`)
-          
-          // Subscribe to the transport parameter for this clip
-          // Try multiple possible parameter paths
-          const paths = [
-            `${clip.path}/transport`,
-            `${clip.path}/transport/timecode`,
-            `${clip.path}/timecode`,
-            `${clip.path}/video/position/positiontimecode`
-          ]
-          
-          paths.forEach(paramPath => {
-            try {
-              const msg = JSON.stringify({ action: 'subscribe', parameter: paramPath })
-              this.ws.send(msg)
-              this._subscribedParams.add(paramPath)
-            } catch (e) {
-              // Ignore
-            }
-          })
-        })
-        
-        this.log.info(`Subscribed to ${this._subscribedParams.size} timecode parameters`)
-      })
+      this.log.info('✓ WebSocket connected (backup channel)')
     })
 
     this.ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString())
         
-        // Log EVERY message type to see what Resolume sends
-        if (msg.type && msg.type !== 'parameter_subscribed' && msg.type !== 'parameter_unsubscribed') {
-          const shortValue = JSON.stringify(msg.value || '').substring(0, 80)
-          this.log.info(`WS: ${msg.type} | path: ${msg.path || 'none'} | value: ${shortValue}`)
-        }
-        
-        // Skip errors
-        if (msg.error) {
-          if (!msg.error.includes('Invalid parameter path')) {
-            this.log.warn('Resolume error:', msg.error)
-          }
-          return
-        }
-        
-        // Look for parameter updates/sets
+        // Look for timecode in any parameter update
         if (msg.type === 'parameter_update' || msg.type === 'parameter_set') {
-          const path = msg.path || ''
           const value = msg.value
+          const isTimecode = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
           
-          // Check if the value looks like timecode
-          const isTimecodeValue = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
-          
-          if (isTimecodeValue) {
-            this.log.info(`📟 TIMECODE DETECTED: ${value} from ${path}`)
+          if (isTimecode) {
             const now = Date.now()
             if (now - this._lastSentTs >= this._throttleMs) {
               this._lastSentTs = now
               this._broadcast({ 
                 connected: true, 
                 timecode: value,
-                source: path
+                source: 'websocket'
               })
             }
           }
         }
       } catch (e) {
-        // Silently ignore parse errors
+        // Ignore
       }
     })
 
-    this.ws.on('close', (code) => {
-      this.log.warn('WebSocket closed:', code)
-      this._broadcast({ connected: false })
-      this._scheduleReconnect()
+    this.ws.on('close', () => {
+      this.log.warn('WebSocket closed (not critical, polling continues)')
     })
 
     this.ws.on('error', (err) => {
-      this.log.error('WebSocket error:', err.message)
+      // Silently ignore WS errors since polling is primary
     })
   }
 
@@ -195,19 +195,14 @@ class ResolumeTimecodeClient {
       clearTimeout(this._reconnectTimer)
       this._reconnectTimer = null
     }
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer)
+      this._pollTimer = null
+    }
     if (this.ws) {
       try { this.ws.close() } catch {}
       this.ws = null
     }
-  }
-
-  _scheduleReconnect() {
-    if (this._reconnectTimer) return
-    const delay = 4000
-    this._reconnectTimer = setTimeout(() => {
-      this._reconnectTimer = null
-      this.start()
-    }, delay)
   }
 
   _broadcast(payload) {
