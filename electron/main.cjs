@@ -1,5 +1,6 @@
 // electron/main.cjs
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { ResolumeTimecodeClient } = require("./resolumeTimecodeClient");
 let autoUpdater;
 try {
   autoUpdater = require("electron-updater").autoUpdater;
@@ -15,6 +16,7 @@ let serverProcess;
 let mainWindow;
 let deckWindow;
 let created = false;
+let timecodeClient;
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
 
@@ -209,6 +211,12 @@ app.whenReady().then(async () => {
     if (autoUpdater && !process.env.DISABLE_AUTO_UPDATER) {
       setupAutoUpdater();
     }
+
+    // Start Resolume timecode client using env/config
+    const host = process.env.RESOLUME_HOST || "127.0.0.1";
+    const port = parseInt(process.env.RESOLUME_EVENTS_PORT || process.env.RESOLUME_REST_PORT || "8080");
+    timecodeClient = new ResolumeTimecodeClient({ host, port, throttleMs: 75, reconnectMs: 4000 });
+    timecodeClient.start();
   } catch (e) {
     console.error("Failed to load UI:", e);
     app.quit();
@@ -304,6 +312,10 @@ app.on("activate", async () => {
 
 app.on("before-quit", () => {
   app.isQuitting = true;
+  if (timecodeClient) {
+    try { timecodeClient.stop(); } catch {}
+    timecodeClient = null;
+  }
   if (serverProcess && !serverProcess.killed) {
     try { serverProcess.kill(); } catch {}
   }

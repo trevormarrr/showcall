@@ -15,6 +15,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Manual update check
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   
+  // Resolume SMPTE timecode updates
+  onTimecodeUpdate: (callback) => {
+    if (typeof callback !== 'function') return undefined
+    const handler = (_, payload) => {
+      try { callback(payload) } catch (e) { console.error('onTimecodeUpdate callback error:', e) }
+    }
+    ipcRenderer.on('resolume-timecode-update', handler)
+    // Return unsubscribe
+    return () => ipcRenderer.removeListener('resolume-timecode-update', handler)
+  },
+
   // Remove listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });

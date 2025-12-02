@@ -94,6 +94,33 @@ async function init() {
   }
 }
 
+// ---- Resolume SMPTE Timecode HUD ----
+(function initTimecodeHUD() {
+  const dot = document.getElementById('timecodeStatusDot');
+  const val = document.getElementById('timecodeValue');
+  const label = document.getElementById('timecodeLabel');
+  if (!dot || !val) return;
+
+  function render(payload) {
+    if (!payload || !payload.connected) {
+      dot.style.background = '#6b7280'; // gray
+      dot.title = 'Disconnected';
+      val.textContent = '--:--:--:--';
+      label && (label.textContent = 'Timecode');
+      return;
+    }
+    const running = !!payload.running;
+    dot.style.background = running ? '#22c55e' : '#93c5fd'; // green running, blue stopped
+    dot.title = running ? 'Running' : 'Stopped';
+    val.textContent = typeof payload.timecode === 'string' ? payload.timecode : '--:--:--:--';
+    label && (label.textContent = 'Timecode');
+  }
+
+  if (window.electronAPI && typeof window.electronAPI.onTimecodeUpdate === 'function') {
+    window.electronAPI.onTimecodeUpdate(render);
+  }
+})();
+
 async function loadComposition() {
   try {
     console.log("📡 Loading composition from Resolume...");
