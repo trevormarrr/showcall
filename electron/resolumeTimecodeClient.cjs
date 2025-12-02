@@ -142,7 +142,7 @@ class ResolumeTimecodeClient {
 
   _startWebSocket(host, port) {
     const url = `ws://${host}:${port}/api/v1`
-    this.log.info('🔌 Connecting WebSocket as backup:', url)
+    this.log.info('🔌 Connecting WebSocket for global SMPTE inputs:', url)
 
     try {
       this.ws = new WebSocket(url)
@@ -152,41 +152,84 @@ class ResolumeTimecodeClient {
     }
 
     this.ws.on('open', () => {
-      this.log.info('✓ WebSocket connected (backup channel)')
+      this.log.info('✓ WebSocket connected! Subscribing to global SMPTE inputs...')
+      
+      // Subscribe to global SMPTE/LTC input parameters
+      // Based on Resolume's structure, SMPTE inputs are at composition level
+      const globalPaths = [
+        '/composition/smpte/inputs/1/timecode',
+        '/composition/smpte/inputs/2/timecode',
+        '/composition/ltc/inputs/1/timecode',
+        '/composition/ltc/inputs/2/timecode',
+        '/composition/smpte/input1/timecode',
+        '/composition/smpte/input2/timecode',
+        '/composition/smpte1/timecode',
+        '/composition/smpte2/timecode'
+      ]
+      
+      globalPaths.forEach(path => {
+        try {
+          const msg = JSON.stringify({ action: 'subscribe', parameter: path })
+          this.ws.send(msg)
+          this.log.info(`   Subscribing to: ${path}`)
+        } catch (e) {
+          // Continue
+        }
+      })
     })
 
     this.ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString())
         
+        // Log subscription confirmations
+        if (msg.type === 'parameter_subscribed') {
+          this.log.info(`✓ Subscribed: ${msg.parameter || msg.path}`)
+          return
+        }
+        
+        // Skip errors but log them
+        if (msg.error) {
+          if (!msg.error.includes('Invalid parameter path')) {
+            this.log.warn(`WebSocket error for ${msg.path || msg.parameter}: ${msg.error}`)
+          }
+          return
+        }
+        
         // Look for timecode in any parameter update
         if (msg.type === 'parameter_update' || msg.type === 'parameter_set') {
+          const path = msg.path || ''
           const value = msg.value
+          
+          // Log ALL updates to see what we get
+          this.log.info(`📟 Update: ${path} = ${JSON.stringify(value).substring(0, 100)}`)
+          
           const isTimecode = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
           
           if (isTimecode) {
+            this.log.info(`✓✓✓ TIMECODE FOUND: ${value}`)
             const now = Date.now()
             if (now - this._lastSentTs >= this._throttleMs) {
               this._lastSentTs = now
               this._broadcast({ 
                 connected: true, 
                 timecode: value,
-                source: 'websocket'
+                source: path
               })
             }
           }
         }
       } catch (e) {
-        // Ignore
+        // Ignore parse errors
       }
     })
 
     this.ws.on('close', () => {
-      this.log.warn('WebSocket closed (not critical, polling continues)')
+      this.log.warn('WebSocket closed, will retry...')
     })
 
     this.ws.on('error', (err) => {
-      // Silently ignore WS errors since polling is primary
+      this.log.warn('WebSocket error:', err.message)
     })
   }
 
