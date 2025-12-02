@@ -1,6 +1,7 @@
 // Resolume SMPTE Timecode WebSocket client (CommonJS)
 const { ipcMain, webContents } = require('electron')
 const WebSocket = require('ws')
+const http = require('http')
 
 function createLogger(prefix) {
   return {
@@ -8,6 +9,58 @@ function createLogger(prefix) {
     warn: (...args) => console.warn(`[Timecode] ${prefix}`, ...args),
     error: (...args) => console.error(`[Timecode] ${prefix}`, ...args),
   }
+}
+
+// Helper to fetch composition and find SMPTE clips
+function findSMPTEClips(host, port, callback) {
+  const options = {
+    hostname: host || '127.0.0.1',
+    port: port || 8080,
+    path: '/api/v1/composition',
+    method: 'GET',
+    timeout: 5000
+  }
+  
+  const req = http.request(options, (res) => {
+    let data = ''
+    res.on('data', (chunk) => { data += chunk })
+    res.on('end', () => {
+      try {
+        const json = JSON.parse(data)
+        const smpteClips = []
+        
+        // Scan all layers and clips for SMPTE transport
+        const layers = json.layers || []
+        for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
+          const layer = layers[layerIdx]
+          const clips = layer.clips || []
+          for (let clipIdx = 0; clipIdx < clips.length; clipIdx++) {
+            const clip = clips[clipIdx]
+            const transportType = clip.transporttype?.value || clip.transporttype
+            if (transportType && (transportType.includes('SMPTE') || transportType.includes('LTC'))) {
+              smpteClips.push({
+                layer: layerIdx + 1,
+                column: clipIdx + 1,
+                transportType: transportType,
+                path: `/composition/layers/${layerIdx + 1}/clips/${clipIdx + 1}`
+              })
+            }
+          }
+        }
+        
+        callback(null, smpteClips)
+      } catch (e) {
+        callback(e, [])
+      }
+    })
+  })
+  
+  req.on('error', (err) => callback(err, []))
+  req.on('timeout', () => {
+    req.destroy()
+    callback(new Error('Request timeout'), [])
+  })
+  req.end()
 }
 
 class ResolumeTimecodeClient {
@@ -38,33 +91,76 @@ class ResolumeTimecodeClient {
     }
 
     this.ws.on('open', () => {
-      this.log.info('✓ Connected! Listening for all parameter updates...')
+      this.log.info('✓ WebSocket connected! Discovering SMPTE clips...')
       this._broadcast({ connected: true })
+      
+      // Find and subscribe to SMPTE clips
+      findSMPTEClips(host, port, (err, clips) => {
+        if (err) {
+          this.log.warn('Failed to discover SMPTE clips:', err.message)
+          this.log.info('Will listen for any timecode values in parameter updates')
+          return
+        }
+        
+        if (clips.length === 0) {
+          this.log.info('No SMPTE clips found. Will listen for any timecode values.')
+          return
+        }
+        
+        this.log.info(`Found ${clips.length} SMPTE clip(s):`)
+        clips.forEach(clip => {
+          this.log.info(`  Layer ${clip.layer}, Column ${clip.column}: ${clip.transportType}`)
+          
+          // Subscribe to the transport parameter for this clip
+          // Try multiple possible parameter paths
+          const paths = [
+            `${clip.path}/transport`,
+            `${clip.path}/transport/timecode`,
+            `${clip.path}/timecode`,
+            `${clip.path}/video/position/positiontimecode`
+          ]
+          
+          paths.forEach(paramPath => {
+            try {
+              const msg = JSON.stringify({ action: 'subscribe', parameter: paramPath })
+              this.ws.send(msg)
+              this._subscribedParams.add(paramPath)
+            } catch (e) {
+              // Ignore
+            }
+          })
+        })
+        
+        this.log.info(`Subscribed to ${this._subscribedParams.size} timecode parameters`)
+      })
     })
 
     this.ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString())
         
-        // Skip errors
-        if (msg.error) return
+        // Skip errors and subscription confirmations
+        if (msg.error || msg.type === 'parameter_subscribed' || msg.type === 'parameter_unsubscribed') return
         
         // Look for parameter updates/sets
         if (msg.type === 'parameter_update' || msg.type === 'parameter_set') {
           const path = msg.path || ''
           const value = msg.value
           
-          // Log ANYTHING that might be timecode-related
+          // Check if this is timecode-related by path OR value format
           const isTimecodeRelated = path.toLowerCase().includes('smpte') || 
                                    path.toLowerCase().includes('timecode') ||
-                                   path.toLowerCase().includes('transport') ||
-                                   (typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}:\d{2}$/))
+                                   path.toLowerCase().includes('ltc') ||
+                                   path.toLowerCase().includes('transport')
           
-          if (isTimecodeRelated) {
+          // Also check if the value itself looks like timecode
+          const isTimecodeValue = typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}[:\.]?\d{2}$/)
+          
+          if (isTimecodeRelated || isTimecodeValue) {
             this.log.info(`📟 ${msg.type}: ${path} = ${JSON.stringify(value).substring(0, 100)}`)
             
-            // If this looks like a timecode string, broadcast it!
-            if (typeof value === 'string' && value.match(/^\d{2}:\d{2}:\d{2}:\d{2}$/)) {
+            // Broadcast any timecode value we find
+            if (isTimecodeValue) {
               const now = Date.now()
               if (now - this._lastSentTs >= this._throttleMs) {
                 this._lastSentTs = now
@@ -73,7 +169,6 @@ class ResolumeTimecodeClient {
                   timecode: value,
                   source: path
                 })
-                this.log.info(`✓ Broadcasting timecode: ${value}`)
               }
             }
           }
