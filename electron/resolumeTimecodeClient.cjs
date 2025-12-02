@@ -10,10 +10,11 @@ function createLogger(prefix) {
   }
 }
 
-function resolumeEventUrl({ host, port }) {
+function buildWsUrl({ host, port, path }) {
   const h = host || '127.0.0.1'
   const p = port || 8080
-  return `ws://${h}:${p}/api/v1/events`
+  const base = path.startsWith('/') ? path : `/${path}`
+  return `ws://${h}:${p}${base}`
 }
 
 function extractTimecode(payload) {
@@ -51,12 +52,14 @@ class ResolumeTimecodeClient {
     this._reconnectTimer = null
     this._lastSentTs = 0
     this._throttleMs = config.throttleMs ?? 75
+    this._paths = config.paths || ['/api/v1/events', '/api/events', '/events']
+    this._pathIndex = 0
     this.log = createLogger('client')
   }
 
   start() {
     this.stop()
-    const url = resolumeEventUrl({ host: this.config.host, port: this.config.port })
+  const url = buildWsUrl({ host: this.config.host, port: this.config.port, path: this._paths[this._pathIndex] })
     this.log.info('Connecting to Resolume events:', url)
 
     try {
@@ -87,12 +90,14 @@ class ResolumeTimecodeClient {
     this.ws.on('close', (code, reason) => {
       this.log.warn('Resolume events closed:', code, reason?.toString?.())
       this._broadcast({ connected: false })
+      this._advancePathOnError(code)
       this._scheduleReconnect()
     })
 
     this.ws.on('error', (err) => {
       this.log.error('Resolume events error:', err.message)
       this._broadcast({ connected: false })
+      this._advancePathOnError(err?.code)
       this._scheduleReconnect()
     })
   }
@@ -116,6 +121,15 @@ class ResolumeTimecodeClient {
       this._reconnectTimer = null
       this.start()
     }, delay)
+  }
+
+  _advancePathOnError(code) {
+    // If 404 or connection issues, try next candidate path
+    const indicative = [404, '404', 'ECONNREFUSED']
+    if (indicative.includes(code)) {
+      this._pathIndex = (this._pathIndex + 1) % this._paths.length
+      this.log.info('Switching events path to', this._paths[this._pathIndex])
+    }
   }
 
   _broadcast(payload) {
