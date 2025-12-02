@@ -1,6 +1,6 @@
 // electron/main.cjs
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
-const { ResolumeTimecodeClient } = require("./resolumeTimecodeClient");
+const { ResolumeTimecodeClient } = require("./resolumeTimecodeClient.cjs");
 let autoUpdater;
 try {
   autoUpdater = require("electron-updater").autoUpdater;
