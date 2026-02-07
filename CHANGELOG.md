@@ -2,6 +2,44 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.2.0] - 2026-02-07
+
+### Added
+- **🔄 Enhanced Auto-Updater System**: Complete rebuild of update functionality
+  - Beautiful modal UI with multiple views (checking, downloading, ready, error)
+  - Real-time download progress bar with speed and size indicators
+  - Release notes display directly in the app
+  - Manual "Check for Updates" button with instant feedback
+  - Update indicator badge in header showing status
+  - Smart error handling with detailed error information
+  - Install now or install later options
+  - View full release notes on GitHub with one click
+  - Automatic checks every 2 hours (production only)
+  - electron-log integration for better debugging
+  - Proper IPC communication between main and renderer
+  - Silent background updates with non-intrusive notifications
+
+### Enhanced
+- **Update UX**: Complete visual overhaul of update system
+- **Error Handling**: Comprehensive error messages and retry options
+- **User Control**: Full manual control over update process
+- **Transparency**: Clear communication of update status at all times
+
+### Technical
+- Rebuilt auto-updater from ground up using electron-updater
+- Added electron-log for production logging
+- Implemented proper IPC handlers for all update operations
+- Created comprehensive CSS styling for update modals
+- Added 6 different update views (checking, available, downloading, ready, up-to-date, error)
+- Integrated GitHub release notes parsing
+- Added formatBytes helper for human-readable file sizes
+
+### Fixed
+- Auto-updater now works reliably in production builds
+- Proper development mode detection (no false update attempts)
+- Update indicator properly shows and hides based on status
+- Download progress accurately tracked and displayed
+
 ## [2.1.0] - 2026-02-07
 
 ### Added

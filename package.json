@@ -1,6 +1,6 @@
 {
   "name": "showcall",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Professional remote controller for Resolume Arena using OSC + REST API",
   "author": "Trevor Marr <trevormarrr@users.noreply.github.com>",
   "license": "MIT",
@@ -131,6 +131,7 @@
     "axios": "^1.6.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.3.9",
     "express": "^4.19.2",
     "node-fetch": "^3.3.2",

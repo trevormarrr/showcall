@@ -1,11 +1,6 @@
 // electron/main.cjs
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
-let autoUpdater;
-try {
-  autoUpdater = require("electron-updater").autoUpdater;
-} catch (e) {
-  console.warn('electron-updater not available in dev:', e.message);
-}
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
@@ -16,6 +11,13 @@ let serverProcess;
 let mainWindow;
 let deckWindow;
 let created = false;
+let updateCheckInterval = null;
+
+// Configure autoUpdater
+autoUpdater.logger = require("electron-log");
+autoUpdater.logger.transports.file.level = "info";
+autoUpdater.autoDownload = false; // Manual control
+autoUpdater.autoInstallOnAppQuit = true;
 
 process.env.ELECTRON_DISABLE_SECURITY_WARNINGS = "true";
 
@@ -216,15 +218,6 @@ ipcMain.handle('close-deck-window', () => {
   }
 });
 
-ipcMain.handle('check-for-updates', () => {
-  if (autoUpdater) {
-    console.log('🔄 Manual update check requested');
-    autoUpdater.checkForUpdatesAndNotify();
-    return true;
-  }
-  return false;
-});
-
 app.whenReady().then(async () => {
   try {
     // Ensure Electron process inherits user .env values (RESOLUME_HOST, ports, etc.)
@@ -232,10 +225,8 @@ app.whenReady().then(async () => {
     await ensureServer();      // <— do not spawn if already running
     await createWindowOnce();
     
-    // Enhanced Auto-updater Setup
-    if (autoUpdater && !process.env.DISABLE_AUTO_UPDATER) {
-      setupAutoUpdater();
-    }
+    // Setup enhanced auto-updater system
+    setupAutoUpdater();
   } catch (e) {
     console.error("Failed to load UI:", e);
     app.quit();
@@ -243,85 +234,215 @@ app.whenReady().then(async () => {
 });
 
 // ---- Enhanced Auto-Updater ----
+// ============================================
+// AUTO-UPDATER SYSTEM (Enhanced)
+// ============================================
+
 function setupAutoUpdater() {
-  console.log('🔄 Setting up auto-updater...');
+  console.log('🔄 Initializing enhanced auto-updater system...');
   
-  // Configure auto-updater
-  autoUpdater.autoDownload = true; // Enable automatic downloads
-  autoUpdater.autoInstallOnAppQuit = true; // Install when app quits
+  // Don't check for updates in development
+  if (!app.isPackaged) {
+    console.log('⚠️ Auto-updater disabled in development mode');
+    return;
+  }
   
-  // Check for updates every 30 minutes
-  autoUpdater.checkForUpdatesAndNotify();
-  setInterval(() => {
-    autoUpdater.checkForUpdatesAndNotify();
-  }, 5 * 60 * 1000); // 5 minutes for testing (was 30 minutes)
+  // Initial check on startup (delayed 5 seconds)
+  setTimeout(() => {
+    console.log('🔍 Performing initial update check...');
+    autoUpdater.checkForUpdates().catch(err => {
+      console.error('❌ Initial update check failed:', err.message);
+    });
+  }, 5000);
   
-  // Event handlers
+  // Check for updates every 2 hours
+  updateCheckInterval = setInterval(() => {
+    console.log('🔍 Scheduled update check...');
+    autoUpdater.checkForUpdates().catch(err => {
+      console.error('❌ Scheduled update check failed:', err.message);
+    });
+  }, 2 * 60 * 60 * 1000);
+  
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+  
   autoUpdater.on('checking-for-update', () => {
     console.log('🔍 Checking for updates...');
+    sendToRenderer('update-checking');
   });
   
   autoUpdater.on('update-available', (info) => {
-    console.log('✅ Update available:', info.version);
-    // Show non-intrusive notification to user
-    if (mainWindow) {
-      mainWindow.webContents.send('update-available', info);
-    }
+    console.log('✅ Update available:', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      size: info.files?.[0]?.size
+    });
+    
+    // Send detailed info to renderer
+    sendToRenderer('update-available', {
+      version: info.version,
+      releaseDate: info.releaseDate,
+      releaseNotes: info.releaseNotes,
+      releaseName: info.releaseName,
+      size: formatBytes(info.files?.[0]?.size || 0)
+    });
   });
   
   autoUpdater.on('update-not-available', (info) => {
     console.log('ℹ️ No updates available. Current version:', info.version);
-    // Send to renderer for manual check feedback
-    if (mainWindow) {
-      mainWindow.webContents.send('update-not-available', info);
-    }
+    sendToRenderer('update-not-available', {
+      version: info.version
+    });
   });
   
-  autoUpdater.on('error', (err) => {
-    console.error('❌ Auto-updater error:', err);
-    // Send error to renderer for user notification
-    if (mainWindow) {
-      mainWindow.webContents.send('update-error', { 
-        message: err.message,
-        type: 'update-check-failed'
-      });
-    }
+  autoUpdater.on('error', (error) => {
+    console.error('❌ Auto-updater error:', error);
+    sendToRenderer('update-error', {
+      message: error.message,
+      stack: error.stack
+    });
   });
   
-  autoUpdater.on('download-progress', (progressObj) => {
-    const logMessage = `📥 Download progress: ${Math.round(progressObj.percent)}% (${progressObj.bytesPerSecond}/s)`;
+  autoUpdater.on('download-progress', (progress) => {
+    const logMessage = `📥 Downloading: ${Math.round(progress.percent)}% ` +
+                      `(${formatBytes(progress.bytesPerSecond)}/s) ` +
+                      `${formatBytes(progress.transferred)}/${formatBytes(progress.total)}`;
     console.log(logMessage);
     
-    // Send progress to renderer
-    if (mainWindow) {
-      mainWindow.webContents.send('download-progress', progressObj);
-    }
+    sendToRenderer('update-download-progress', {
+      percent: Math.round(progress.percent),
+      transferred: formatBytes(progress.transferred),
+      total: formatBytes(progress.total),
+      speed: formatBytes(progress.bytesPerSecond) + '/s'
+    });
   });
   
   autoUpdater.on('update-downloaded', (info) => {
-    console.log('✅ Update downloaded, will install on quit. Version:', info.version);
+    console.log('✅ Update downloaded successfully. Version:', info.version);
     
-    // Notify user that update is ready
-    if (mainWindow) {
-      mainWindow.webContents.send('update-downloaded', info);
-    }
+    sendToRenderer('update-downloaded', {
+      version: info.version,
+      releaseNotes: info.releaseNotes,
+      releaseName: info.releaseName
+    });
     
-    // Show dialog asking if user wants to restart now
+    // Show native dialog
     dialog.showMessageBox(mainWindow, {
       type: 'info',
-      title: 'Update Ready',
-      message: `ShowCall v${info.version} is ready to install.`,
-      detail: 'The application will restart to apply the update.',
+      title: 'Update Ready to Install',
+      message: `ShowCall v${info.version} has been downloaded.`,
+      detail: 'The update will be installed when you close the application, or you can restart now.',
       buttons: ['Restart Now', 'Later'],
       defaultId: 0,
       cancelId: 1
     }).then((result) => {
       if (result.response === 0) {
-        autoUpdater.quitAndInstall();
+        console.log('🔄 User chose to restart now...');
+        autoUpdater.quitAndInstall(false, true);
+      } else {
+        console.log('⏰ User chose to install later');
       }
     });
   });
 }
+
+// ============================================
+// IPC HANDLERS FOR RENDERER
+// ============================================
+
+ipcMain.handle('check-for-updates', async () => {
+  console.log('🔄 Manual update check requested by user');
+  
+  if (!app.isPackaged) {
+    return {
+      success: false,
+      error: 'Updates only work in production builds'
+    };
+  }
+  
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return {
+      success: true,
+      updateInfo: result?.updateInfo
+    };
+  } catch (error) {
+    console.error('❌ Manual update check failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('download-update', async () => {
+  console.log('📥 User requested to download update');
+  
+  if (!app.isPackaged) {
+    return {
+      success: false,
+      error: 'Updates only work in production builds'
+    };
+  }
+  
+  try {
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Download failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+});
+
+ipcMain.handle('install-update', () => {
+  console.log('🔄 User requested to install update now');
+  autoUpdater.quitAndInstall(false, true);
+});
+
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+ipcMain.handle('open-release-notes', (event, version) => {
+  const url = `https://github.com/trevormarrr/showcall/releases/tag/v${version}`;
+  shell.openExternal(url);
+});
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function sendToRenderer(channel, data = {}) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, data);
+  }
+}
+
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+// ============================================
+// CLEANUP
+// ============================================
+
+app.on('before-quit', () => {
+  if (updateCheckInterval) {
+    clearInterval(updateCheckInterval);
+  }
+});
 
 app.on("activate", async () => {
   if (BrowserWindow.getAllWindows().length === 0) {

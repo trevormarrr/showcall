@@ -14,7 +14,7 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.1</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.2</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -196,6 +196,112 @@
     </div>
   </div>
 
+  <!-- Update Modal -->
+  <div id="updateModal" class="modal" style="display: none;">
+    <div class="modal-content update-modal">
+      <div class="modal-header">
+        <h2 id="updateModalTitle">Update Available</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div id="updateContent">
+          <!-- Update Available View -->
+          <div id="updateAvailableView" class="update-view" style="display: none;">
+            <div class="update-icon">📦</div>
+            <h3>ShowCall <span id="updateVersion"></span> is available!</h3>
+            <p class="update-current">You're currently running version <span id="currentVersion"></span></p>
+            
+            <div class="update-info">
+              <div class="update-info-item">
+                <span class="label">Release Date:</span>
+                <span id="updateReleaseDate">—</span>
+              </div>
+              <div class="update-info-item">
+                <span class="label">Download Size:</span>
+                <span id="updateSize">—</span>
+              </div>
+            </div>
+            
+            <div class="update-notes" id="updateNotes" style="display: none;">
+              <h4>What's New:</h4>
+              <div id="updateNotesContent"></div>
+            </div>
+            
+            <div class="update-actions">
+              <button id="downloadUpdateBtn" class="btn-primary">Download Update</button>
+              <button id="viewReleaseNotesBtn" class="btn-secondary">View Full Release Notes</button>
+              <button id="remindLaterBtn" class="btn-secondary">Remind Me Later</button>
+            </div>
+          </div>
+          
+          <!-- Downloading View -->
+          <div id="updateDownloadingView" class="update-view" style="display: none;">
+            <div class="update-icon">⬇️</div>
+            <h3>Downloading Update...</h3>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div id="downloadProgressBar" class="progress-fill"></div>
+              </div>
+              <div class="progress-text">
+                <span id="downloadPercent">0%</span>
+                <span id="downloadSpeed">—</span>
+              </div>
+              <div class="progress-details">
+                <span id="downloadTransferred">0 MB</span> of <span id="downloadTotal">0 MB</span>
+              </div>
+            </div>
+            <p class="update-note">Please keep ShowCall running while the update downloads...</p>
+          </div>
+          
+          <!-- Ready to Install View -->
+          <div id="updateReadyView" class="update-view" style="display: none;">
+            <div class="update-icon">✅</div>
+            <h3>Update Ready to Install!</h3>
+            <p>ShowCall <span id="readyVersion"></span> has been downloaded and is ready to install.</p>
+            <p class="update-note">The app will restart to complete the installation.</p>
+            <div class="update-actions">
+              <button id="installNowBtn" class="btn-primary">Restart & Install Now</button>
+              <button id="installLaterBtn" class="btn-secondary">Install on Next Launch</button>
+            </div>
+          </div>
+          
+          <!-- Checking View -->
+          <div id="updateCheckingView" class="update-view" style="display: none;">
+            <div class="update-icon spinner">🔄</div>
+            <h3>Checking for Updates...</h3>
+            <p>Please wait while we check for the latest version...</p>
+          </div>
+          
+          <!-- No Update View -->
+          <div id="updateNotAvailableView" class="update-view" style="display: none;">
+            <div class="update-icon">✓</div>
+            <h3>You're Up to Date!</h3>
+            <p>ShowCall <span id="noUpdateVersion"></span> is the latest version.</p>
+            <div class="update-actions">
+              <button id="closeNoUpdateBtn" class="btn-primary">OK</button>
+            </div>
+          </div>
+          
+          <!-- Error View -->
+          <div id="updateErrorView" class="update-view" style="display: none;">
+            <div class="update-icon">⚠️</div>
+            <h3>Update Check Failed</h3>
+            <p id="updateErrorMessage">Unable to check for updates. Please try again later.</p>
+            <details class="error-details">
+              <summary>Error Details</summary>
+              <pre id="updateErrorStack"></pre>
+            </details>
+            <div class="update-actions">
+              <button id="retryUpdateBtn" class="btn-primary">Retry</button>
+              <button id="closeErrorBtn" class="btn-secondary">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/app.js"></script>
 </body>
 </html>
+

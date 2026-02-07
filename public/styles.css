@@ -1691,3 +1691,252 @@ textarea {
   font-size: 14px;
 }
 
+/* ===============================================
+   UPDATE MODAL STYLES
+   =============================================== */
+
+.update-modal .modal-content {
+  max-width: 600px;
+  width: 90%;
+}
+
+.update-view {
+  text-align: center;
+  padding: 20px;
+}
+
+.update-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.update-icon.spinner {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.update-view h3 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.update-view p {
+  margin: 8px 0;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.update-current {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.update-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.update-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.update-info-item:last-child {
+  border-bottom: none;
+}
+
+.update-info-item .label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.update-info-item span:last-child {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.update-notes {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: left;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.update-notes h4 {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.update-notes-content {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.update-notes-content ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.update-notes-content li {
+  margin: 6px 0;
+}
+
+.update-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.update-actions button {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+.update-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 16px;
+}
+
+/* Progress Bar */
+.progress-container {
+  margin: 24px 0;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--blue-light));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.progress-details {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Error Details */
+.error-details {
+  margin: 20px 0;
+  text-align: left;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  user-select: none;
+}
+
+.error-details summary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.error-details pre {
+  margin: 8px 0 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--red-light);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Update Indicator (Header Badge) */
+.update-indicator {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--blue);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  animation: pulse 2s infinite;
+}
+
+.update-indicator:hover {
+  background: var(--blue-light);
+  transform: scale(1.05);
+}
+
+.update-indicator.downloading {
+  background: var(--yellow);
+  animation: none;
+}
+
+.update-indicator.ready {
+  background: var(--green);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.update-indicator .update-icon {
+  font-size: 14px;
+}
+
+.update-indicator .update-text {
+  font-size: 12px;
+}
+

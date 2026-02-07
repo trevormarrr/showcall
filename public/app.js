@@ -1739,77 +1739,249 @@ function initPresets() {
 
 
 // ---- Auto-Update Notifications ----
+// ============================================
+// ENHANCED AUTO-UPDATER UI
+// ============================================
+
 function setupUpdateNotifications() {
-  console.log('🔄 Setting up update notifications...');
+  console.log('🔄 Setting up enhanced update notifications...');
   
+  if (!window.electronAPI) {
+    console.log('⚠️ Electron API not available - running in browser mode');
+    return;
+  }
+  
+  const modal = document.getElementById('updateModal');
+  const modalClose = modal?.querySelector('.close');
   const updateIndicator = document.getElementById('updateIndicator');
-  const updateText = updateIndicator?.querySelector('.update-text');
+  
+  // Views
+  const checkingView = document.getElementById('updateCheckingView');
+  const availableView = document.getElementById('updateAvailableView');
+  const downloadingView = document.getElementById('updateDownloadingView');
+  const readyView = document.getElementById('updateReadyView');
+  const notAvailableView = document.getElementById('updateNotAvailableView');
+  const errorView = document.getElementById('updateErrorView');
+  
+  let currentUpdateInfo = null;
+  
+  // Helper to show specific view
+  function showUpdateView(viewId) {
+    [checkingView, availableView, downloadingView, readyView, notAvailableView, errorView].forEach(v => {
+      if (v) v.style.display = 'none';
+    });
+    const view = document.getElementById(viewId);
+    if (view) view.style.display = 'block';
+  }
+  
+  // Helper to open modal
+  function openUpdateModal() {
+    if (modal) modal.style.display = 'flex';
+  }
+  
+  // Helper to close modal
+  function closeUpdateModal() {
+    if (modal) modal.style.display = 'none';
+  }
+  
+  // Close button
+  if (modalClose) {
+    modalClose.onclick = closeUpdateModal;
+  }
+  
+  // Click outside to close
+  if (modal) {
+    modal.onclick = (e) => {
+      if (e.target === modal) closeUpdateModal();
+    };
+  }
+  
+  // Get current version
+  window.electronAPI.getAppVersion().then(version => {
+    const versionElements = document.querySelectorAll('#currentVersion');
+    versionElements.forEach(el => el.textContent = version);
+  });
+  
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+  
+  // Checking for updates
+  window.electronAPI.onUpdateChecking(() => {
+    console.log('🔍 Checking for updates...');
+    showUpdateView('updateCheckingView');
+    openUpdateModal();
+  });
   
   // Update available
   window.electronAPI.onUpdateAvailable((event, info) => {
-    console.log('📦 Update available:', info.version);
-    showNotification(`Update v${info.version} available - downloading...`, 'info', 8000);
+    console.log('📦 Update available:', info);
+    currentUpdateInfo = info;
     
-    // Show persistent indicator
-    if (updateIndicator && updateText) {
-      updateText.textContent = `v${info.version} Downloading...`;
-      updateIndicator.className = 'update-indicator downloading';
-      updateIndicator.style.display = 'block';
-      updateIndicator.title = `Update v${info.version} is downloading`;
+    // Populate UI
+    document.getElementById('updateVersion').textContent = info.version;
+    document.getElementById('updateReleaseDate').textContent = info.releaseDate || 'Unknown';
+    document.getElementById('updateSize').textContent = info.size || 'Unknown';
+    
+    // Show release notes if available
+    const notesSection = document.getElementById('updateNotes');
+    const notesContent = document.getElementById('updateNotesContent');
+    if (info.releaseNotes) {
+      notesContent.innerHTML = marked ? marked.parse(info.releaseNotes) : info.releaseNotes;
+      notesSection.style.display = 'block';
+    } else {
+      notesSection.style.display = 'none';
+    }
+    
+    // Show indicator in header
+    if (updateIndicator) {
+      updateIndicator.querySelector('.update-text').textContent = `v${info.version} Available`;
+      updateIndicator.className = 'update-indicator';
+      updateIndicator.style.display = 'flex';
+      updateIndicator.onclick = () => {
+        showUpdateView('updateAvailableView');
+        openUpdateModal();
+      };
+    }
+    
+    showUpdateView('updateAvailableView');
+    openUpdateModal();
+    showNotification(`Update v${info.version} available!`, 'info', 5000);
+  });
+  
+  // Update not available
+  window.electronAPI.onUpdateNotAvailable((event, info) => {
+    console.log('✅ No updates available');
+    document.getElementById('noUpdateVersion').textContent = info.version;
+    showUpdateView('updateNotAvailableView');
+    // Only show modal if user manually checked
+    if (modal.style.display === 'flex') {
+      showNotification('You\'re running the latest version', 'success', 3000);
     }
   });
   
   // Download progress
-  let lastProgressNotification = 0;
   window.electronAPI.onDownloadProgress((event, progress) => {
-    const percent = Math.round(progress.percent);
+    console.log(`📥 Download progress: ${progress.percent}%`);
     
-    // Update indicator with progress
-    if (updateText) {
-      updateText.textContent = `Downloading ${percent}%`;
-    }
+    // Update progress bar
+    document.getElementById('downloadProgressBar').style.width = progress.percent + '%';
+    document.getElementById('downloadPercent').textContent = progress.percent + '%';
+    document.getElementById('downloadSpeed').textContent = progress.speed;
+    document.getElementById('downloadTransferred').textContent = progress.transferred;
+    document.getElementById('downloadTotal').textContent = progress.total;
     
-    // Only show progress notifications every 25% to avoid spam
-    if (percent >= lastProgressNotification + 25) {
-      showNotification(`Downloading update: ${percent}%`, 'info', 3000);
-      lastProgressNotification = percent;
+    // Update header indicator
+    if (updateIndicator) {
+      updateIndicator.querySelector('.update-text').textContent = `Downloading ${progress.percent}%`;
+      updateIndicator.className = 'update-indicator downloading';
     }
   });
   
-  // Update downloaded and ready
+  // Update downloaded
   window.electronAPI.onUpdateDownloaded((event, info) => {
-    console.log('✅ Update downloaded:', info.version);
-    showNotification(`Update v${info.version} ready! Restart when convenient.`, 'success', 10000);
+    console.log('✅ Update downloaded:', info);
     
-    // Update indicator to ready state
-    if (updateIndicator && updateText) {
-      updateText.textContent = `v${info.version} Ready!`;
+    document.getElementById('readyVersion').textContent = info.version;
+    showUpdateView('updateReadyView');
+    
+    // Update header indicator
+    if (updateIndicator) {
+      updateIndicator.querySelector('.update-text').textContent = `v${info.version} Ready!`;
       updateIndicator.className = 'update-indicator ready';
-      updateIndicator.title = `Update v${info.version} is ready - restart to install`;
-      
-      // Add click to restart functionality
       updateIndicator.onclick = () => {
-        if (confirm(`Restart ShowCall to install update v${info.version}?`)) {
-          // The main process will handle the restart via dialog
-        }
+        showUpdateView('updateReadyView');
+        openUpdateModal();
       };
     }
+    
+    showNotification(`Update v${info.version} is ready to install!`, 'success', 8000);
   });
   
-  // Update errors
+  // Update error
   window.electronAPI.onUpdateError((event, error) => {
-    console.warn('🔄 Update check failed:', error.message);
-    // Don't show error notifications for network issues - just log them
+    console.error('❌ Update error:', error);
+    
+    document.getElementById('updateErrorMessage').textContent = error.message || 'An unknown error occurred';
+    document.getElementById('updateErrorStack').textContent = error.stack || 'No stack trace available';
+    showUpdateView('updateErrorView');
+    
+    // Hide indicator
     if (updateIndicator) {
       updateIndicator.style.display = 'none';
     }
+    
+    showNotification('Update check failed', 'error', 5000);
   });
   
-  // No updates available (for manual check feedback)
-  window.electronAPI.onUpdateNotAvailable((event, info) => {
-    console.log('✅ App is up to date:', info.version);
-    showNotification(`App is up to date (v${info.version})`, 'success', 3000);
+  // ============================================
+  // BUTTON HANDLERS
+  // ============================================
+  
+  // Download update button
+  document.getElementById('downloadUpdateBtn')?.addEventListener('click', async () => {
+    console.log('📥 User initiated download');
+    showUpdateView('updateDownloadingView');
+    
+    const result = await window.electronAPI.downloadUpdate();
+    if (!result.success) {
+      document.getElementById('updateErrorMessage').textContent = result.error;
+      showUpdateView('updateErrorView');
+    }
   });
+  
+  // View release notes button
+  document.getElementById('viewReleaseNotesBtn')?.addEventListener('click', () => {
+    if (currentUpdateInfo?.version) {
+      window.electronAPI.openReleaseNotes(currentUpdateInfo.version);
+    }
+  });
+  
+  // Remind later button
+  document.getElementById('remindLaterBtn')?.addEventListener('click', () => {
+    closeUpdateModal();
+    showNotification('We\'ll remind you later', 'info', 3000);
+  });
+  
+  // Install now button
+  document.getElementById('installNowBtn')?.addEventListener('click', () => {
+    console.log('🔄 User chose to install now');
+    window.electronAPI.installUpdate();
+  });
+  
+  // Install later button
+  document.getElementById('installLaterBtn')?.addEventListener('click', () => {
+    closeUpdateModal();
+    showNotification('Update will install on next launch', 'info', 3000);
+  });
+  
+  // Close no update button
+  document.getElementById('closeNoUpdateBtn')?.addEventListener('click', () => {
+    closeUpdateModal();
+  });
+  
+  // Retry button
+  document.getElementById('retryUpdateBtn')?.addEventListener('click', async () => {
+    showUpdateView('updateCheckingView');
+    await window.electronAPI.checkForUpdates();
+  });
+  
+  // Close error button
+  document.getElementById('closeErrorBtn')?.addEventListener('click', () => {
+    closeUpdateModal();
+  });
+  
+  // Manual check button in header
+  const checkUpdateBtn = document.getElementById('checkUpdateBtn');
+  if (checkUpdateBtn) {
+    checkUpdateBtn.style.display = 'inline-block';
+    checkUpdateBtn.onclick = async () => {
+      console.log('🔄 Manual update check by user');
+      showUpdateView('updateCheckingView');
+      openUpdateModal();
+      await window.electronAPI.checkForUpdates();
+    };
+  }
 }
 
 // Initialize when DOM is ready
