@@ -14,7 +14,7 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.0</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.1</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -123,23 +123,74 @@
 
   <!-- Presets Modal -->
   <div id="presetsModal" class="modal" style="display: none;">
-    <div class="modal-content">
+    <div class="modal-content preset-editor-modal">
       <div class="modal-header">
         <h2>Manage Presets</h2>
         <span class="close">&times;</span>
       </div>
-      <div class="modal-body">
-        <div class="setting-group">
-          <label for="presetsEditor">Presets JSON</label>
-          <textarea id="presetsEditor" style="width:100%; height: 300px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 10px;"></textarea>
-          <small>Tip: Each preset supports: id, name, hotkey, color, macro (array of steps). Step types: trigger {layer,column}, triggerColumn {column}, cut, clear, sleep {ms}.</small>
+      <div class="modal-body preset-editor-body">
+        <!-- Preset List View -->
+        <div id="presetListView" class="preset-list-view">
+          <div class="preset-list-header">
+            <h3>Your Presets</h3>
+            <button id="addPresetBtn" class="btn-primary">+ Add New Preset</button>
+          </div>
+          <div id="presetList" class="preset-list"></div>
         </div>
-        <div class="setting-actions">
-          <button id="savePresets" class="btn-primary">Save Presets</button>
-          <button id="cancelPresets" class="btn-secondary">Cancel</button>
-        </div>
-        <div class="setting-note">
-          <strong>Note:</strong> Invalid JSON will be rejected. After saving, your deck and hotkeys will update immediately.
+
+        <!-- Preset Edit View -->
+        <div id="presetEditView" class="preset-edit-view" style="display: none;">
+          <div class="preset-edit-header">
+            <button id="backToListBtn" class="btn-secondary">← Back to List</button>
+            <h3 id="editPresetTitle">Edit Preset</h3>
+          </div>
+          
+          <div class="preset-edit-form">
+            <div class="form-group">
+              <label for="presetId">Preset ID *</label>
+              <input type="text" id="presetId" placeholder="e.g., walkin, sermon" required>
+              <small>Unique identifier (lowercase, no spaces)</small>
+            </div>
+
+            <div class="form-group">
+              <label for="presetLabel">Display Name *</label>
+              <input type="text" id="presetLabel" placeholder="e.g., Walk-In Scene" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="presetHotkey">Hotkey</label>
+                <input type="text" id="presetHotkey" placeholder="e.g., 1, B" maxlength="1">
+                <small>Single key shortcut</small>
+              </div>
+
+              <div class="form-group">
+                <label for="presetColor">Button Color</label>
+                <input type="color" id="presetColor" value="#0ea5e9">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Macro Steps</label>
+              <div id="macroSteps" class="macro-steps"></div>
+              <div class="macro-add-controls">
+                <select id="stepTypeSelect" class="step-type-select">
+                  <option value="">-- Add Step --</option>
+                  <option value="trigger">Trigger Clip</option>
+                  <option value="triggerColumn">Trigger Column</option>
+                  <option value="cut">Cut to Program</option>
+                  <option value="clear">Clear All</option>
+                  <option value="sleep">Sleep/Wait</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="preset-edit-actions">
+              <button id="savePresetBtn" class="btn-primary">Save Preset</button>
+              <button id="deletePresetBtn" class="btn-danger" style="display: none;">Delete Preset</button>
+              <button id="cancelEditBtn" class="btn-secondary">Cancel</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

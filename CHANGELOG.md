@@ -2,6 +2,31 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.1.0] - 2026-02-07
+
+### Added
+- **🎛️ Visual Preset Editor**: Complete redesign of preset management interface
+  - Intuitive visual interface replacing raw JSON editing
+  - List view showing all presets with color, hotkey, and step count
+  - Drag-and-drop macro step builder with live preview
+  - In-line step editing with validation
+  - Duplicate preset functionality for quick variations
+  - Add/edit/delete presets without touching JSON
+  - Professional form-based workflow with real-time feedback
+  - Visual macro step display with icons and formatted parameters
+  - Safe preset deletion with confirmation
+
+### Enhanced
+- **User Experience**: Operators can now manage presets without technical knowledge
+- **Preset Creation**: Step-by-step visual builder makes complex macros simple
+- **Error Prevention**: Form validation prevents invalid preset configurations
+
+### Technical
+- Migrated from textarea JSON editor to structured form interface
+- Added comprehensive CSS styling for preset editor components
+- Implemented state management for preset editing workflow
+- Enhanced preset save/load with proper validation
+
 ## [2.0.0] - 2025-01-XX
 
 ### Major Release

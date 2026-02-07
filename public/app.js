@@ -1277,54 +1277,466 @@ function initPresets() {
   const btn = document.getElementById('presetsBtn');
   const modal = document.getElementById('presetsModal');
   if (!btn || !modal) return;
+  
   const close = modal.querySelector('.close');
-  const cancel = document.getElementById('cancelPresets');
-  const save = document.getElementById('savePresets');
-  presetsModal = modal;
-  presetsEditor = document.getElementById('presetsEditor');
-
-  const open = async () => {
+  
+  // Views
+  const listView = document.getElementById('presetListView');
+  const editView = document.getElementById('presetEditView');
+  const presetList = document.getElementById('presetList');
+  
+  // List View Controls
+  const addPresetBtn = document.getElementById('addPresetBtn');
+  
+  // Edit View Controls
+  const backToListBtn = document.getElementById('backToListBtn');
+  const editPresetTitle = document.getElementById('editPresetTitle');
+  const presetIdInput = document.getElementById('presetId');
+  const presetLabelInput = document.getElementById('presetLabel');
+  const presetHotkeyInput = document.getElementById('presetHotkey');
+  const presetColorInput = document.getElementById('presetColor');
+  const macroStepsContainer = document.getElementById('macroSteps');
+  const stepTypeSelect = document.getElementById('stepTypeSelect');
+  const savePresetBtn = document.getElementById('savePresetBtn');
+  const deletePresetBtn = document.getElementById('deletePresetBtn');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
+  
+  let currentPresets = [];
+  let editingPresetIndex = -1;
+  let currentMacroSteps = [];
+  
+  // Open modal and show list view
+  const openModal = async () => {
     try {
-      const json = await fetch('/api/presets').then(r => r.json());
-      presetsEditor.value = JSON.stringify(json, null, 2);
+      const data = await fetch('/api/presets').then(r => r.json());
+      currentPresets = data.presets || [];
+      renderPresetList();
+      showListView();
       modal.style.display = 'flex';
     } catch (e) {
       showNotification('Failed to load presets', 'error');
     }
   };
-
-  const closeModal = () => modal.style.display = 'none';
-
-  btn.onclick = open;
-  close.onclick = closeModal;
-  cancel.onclick = closeModal;
-  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
-
-  save.onclick = async () => {
+  
+  // Close modal
+  const closeModal = () => {
+    modal.style.display = 'none';
+    showListView();
+  };
+  
+  // Show list view
+  const showListView = () => {
+    listView.style.display = 'block';
+    editView.style.display = 'none';
+  };
+  
+  // Show edit view
+  const showEditView = () => {
+    listView.style.display = 'none';
+    editView.style.display = 'block';
+  };
+  
+  // Render preset list
+  const renderPresetList = () => {
+    if (currentPresets.length === 0) {
+      presetList.innerHTML = `
+        <div class="preset-list-empty">
+          <h4>No Presets Yet</h4>
+          <p>Click "Add New Preset" to create your first preset</p>
+        </div>
+      `;
+      return;
+    }
+    
+    presetList.innerHTML = '';
+    currentPresets.forEach((preset, index) => {
+      const item = document.createElement('div');
+      item.className = 'preset-item';
+      item.innerHTML = `
+        <div class="preset-item-info">
+          <div class="preset-item-color" style="background-color: ${preset.color || '#0ea5e9'}"></div>
+          <div class="preset-item-details">
+            <div class="preset-item-name">${preset.label || preset.id}</div>
+            <div class="preset-item-meta">
+              <span>🔑 ID: ${preset.id}</span>
+              ${preset.hotkey ? `<span>⌨️ Key: ${preset.hotkey.toUpperCase()}</span>` : ''}
+              <span>📋 ${preset.macro?.length || 0} steps</span>
+            </div>
+          </div>
+        </div>
+        <div class="preset-item-actions">
+          <button class="preset-item-edit" data-index="${index}">Edit</button>
+          <button class="preset-item-duplicate" data-index="${index}">Duplicate</button>
+        </div>
+      `;
+      presetList.appendChild(item);
+    });
+    
+    // Attach event listeners
+    presetList.querySelectorAll('.preset-item-edit').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        editPreset(parseInt(btn.dataset.index));
+      };
+    });
+    
+    presetList.querySelectorAll('.preset-item-duplicate').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        duplicatePreset(parseInt(btn.dataset.index));
+      };
+    });
+  };
+  
+  // Add new preset
+  const addNewPreset = () => {
+    editingPresetIndex = -1;
+    editPresetTitle.textContent = 'Add New Preset';
+    deletePresetBtn.style.display = 'none';
+    
+    // Clear form
+    presetIdInput.value = '';
+    presetLabelInput.value = '';
+    presetHotkeyInput.value = '';
+    presetColorInput.value = '#0ea5e9';
+    currentMacroSteps = [];
+    renderMacroSteps();
+    
+    showEditView();
+  };
+  
+  // Edit existing preset
+  const editPreset = (index) => {
+    editingPresetIndex = index;
+    const preset = currentPresets[index];
+    
+    editPresetTitle.textContent = 'Edit Preset';
+    deletePresetBtn.style.display = 'block';
+    
+    // Populate form
+    presetIdInput.value = preset.id;
+    presetLabelInput.value = preset.label || '';
+    presetHotkeyInput.value = preset.hotkey || '';
+    presetColorInput.value = preset.color || '#0ea5e9';
+    currentMacroSteps = JSON.parse(JSON.stringify(preset.macro || []));
+    renderMacroSteps();
+    
+    showEditView();
+  };
+  
+  // Duplicate preset
+  const duplicatePreset = (index) => {
+    const original = currentPresets[index];
+    const duplicate = JSON.parse(JSON.stringify(original));
+    duplicate.id = `${original.id}_copy`;
+    duplicate.label = `${original.label} (Copy)`;
+    duplicate.hotkey = '';
+    
+    currentPresets.push(duplicate);
+    renderPresetList();
+    showNotification('Preset duplicated', 'success');
+  };
+  
+  // Render macro steps
+  const renderMacroSteps = () => {
+    if (currentMacroSteps.length === 0) {
+      macroStepsContainer.innerHTML = '<div class="macro-steps-empty">No steps yet. Add steps using the dropdown below.</div>';
+      return;
+    }
+    
+    macroStepsContainer.innerHTML = '';
+    currentMacroSteps.forEach((step, index) => {
+      const stepEl = createMacroStepElement(step, index);
+      macroStepsContainer.appendChild(stepEl);
+    });
+  };
+  
+  // Create macro step element
+  const createMacroStepElement = (step, index) => {
+    const stepEl = document.createElement('div');
+    stepEl.className = 'macro-step';
+    stepEl.dataset.index = index;
+    
+    const { icon, typeLabel, params } = formatStepDisplay(step);
+    
+    stepEl.innerHTML = `
+      <div class="macro-step-drag">☰</div>
+      <div class="macro-step-icon">${icon}</div>
+      <div class="macro-step-content">
+        <div class="macro-step-type">${typeLabel}</div>
+        <div class="macro-step-params">${params}</div>
+      </div>
+      <div class="macro-step-actions">
+        <button class="macro-step-edit" data-index="${index}">Edit</button>
+        <button class="macro-step-delete" data-index="${index}">×</button>
+      </div>
+    `;
+    
+    // Edit step
+    stepEl.querySelector('.macro-step-edit').onclick = (e) => {
+      e.stopPropagation();
+      editMacroStep(index);
+    };
+    
+    // Delete step
+    stepEl.querySelector('.macro-step-delete').onclick = (e) => {
+      e.stopPropagation();
+      deleteMacroStep(index);
+    };
+    
+    return stepEl;
+  };
+  
+  // Format step display
+  const formatStepDisplay = (step) => {
+    const icons = {
+      trigger: '🎬',
+      triggerColumn: '📊',
+      cut: '✂️',
+      clear: '🧹',
+      sleep: '⏱️'
+    };
+    
+    let params = '';
+    let typeLabel = step.type.charAt(0).toUpperCase() + step.type.slice(1);
+    
+    switch (step.type) {
+      case 'trigger':
+        params = `Layer ${step.layer}, Column ${step.column}`;
+        break;
+      case 'triggerColumn':
+        params = `Column ${step.column}`;
+        break;
+      case 'sleep':
+        params = `Wait ${step.ms}ms`;
+        break;
+      case 'cut':
+        params = 'Preview → Program';
+        break;
+      case 'clear':
+        params = 'Clear all layers';
+        break;
+    }
+    
+    return {
+      icon: icons[step.type] || '📝',
+      typeLabel,
+      params
+    };
+  };
+  
+  // Add macro step
+  const addMacroStep = (type) => {
+    let newStep = { type };
+    
+    switch (type) {
+      case 'trigger':
+        newStep.layer = 1;
+        newStep.column = 1;
+        break;
+      case 'triggerColumn':
+        newStep.column = 1;
+        break;
+      case 'sleep':
+        newStep.ms = 200;
+        break;
+    }
+    
+    currentMacroSteps.push(newStep);
+    renderMacroSteps();
+  };
+  
+  // Edit macro step
+  const editMacroStep = (index) => {
+    const step = currentMacroSteps[index];
+    const stepEl = macroStepsContainer.querySelector(`[data-index="${index}"]`);
+    
+    // Create inline edit form
+    const formEl = document.createElement('div');
+    formEl.className = 'step-edit-form';
+    
+    switch (step.type) {
+      case 'trigger':
+        formEl.innerHTML = `
+          <label>Layer: <input type="number" id="editLayer" value="${step.layer}" min="1"></label>
+          <label>Column: <input type="number" id="editColumn" value="${step.column}" min="1"></label>
+          <div class="step-edit-actions">
+            <button class="btn-primary" id="saveStepEdit">Save</button>
+            <button class="btn-secondary" id="cancelStepEdit">Cancel</button>
+          </div>
+        `;
+        break;
+      case 'triggerColumn':
+        formEl.innerHTML = `
+          <label>Column: <input type="number" id="editColumn" value="${step.column}" min="1"></label>
+          <div class="step-edit-actions">
+            <button class="btn-primary" id="saveStepEdit">Save</button>
+            <button class="btn-secondary" id="cancelStepEdit">Cancel</button>
+          </div>
+        `;
+        break;
+      case 'sleep':
+        formEl.innerHTML = `
+          <label>Wait Time (ms): <input type="number" id="editMs" value="${step.ms}" min="0" step="50"></label>
+          <div class="step-edit-actions">
+            <button class="btn-primary" id="saveStepEdit">Save</button>
+            <button class="btn-secondary" id="cancelStepEdit">Cancel</button>
+          </div>
+        `;
+        break;
+      default:
+        return; // No params to edit
+    }
+    
+    stepEl.appendChild(formEl);
+    
+    formEl.querySelector('#saveStepEdit').onclick = () => {
+      if (step.type === 'trigger') {
+        step.layer = parseInt(formEl.querySelector('#editLayer').value);
+        step.column = parseInt(formEl.querySelector('#editColumn').value);
+      } else if (step.type === 'triggerColumn') {
+        step.column = parseInt(formEl.querySelector('#editColumn').value);
+      } else if (step.type === 'sleep') {
+        step.ms = parseInt(formEl.querySelector('#editMs').value);
+      }
+      renderMacroSteps();
+    };
+    
+    formEl.querySelector('#cancelStepEdit').onclick = () => {
+      renderMacroSteps();
+    };
+  };
+  
+  // Delete macro step
+  const deleteMacroStep = (index) => {
+    currentMacroSteps.splice(index, 1);
+    renderMacroSteps();
+  };
+  
+  // Save preset
+  const savePreset = async () => {
+    const id = presetIdInput.value.trim();
+    const label = presetLabelInput.value.trim();
+    const hotkey = presetHotkeyInput.value.trim();
+    const color = presetColorInput.value;
+    
+    if (!id || !label) {
+      showNotification('ID and Label are required', 'error');
+      return;
+    }
+    
+    // Check for duplicate ID (except when editing)
+    const duplicateIndex = currentPresets.findIndex((p, i) => p.id === id && i !== editingPresetIndex);
+    if (duplicateIndex !== -1) {
+      showNotification('Preset ID already exists', 'error');
+      return;
+    }
+    
+    const preset = {
+      id,
+      label,
+      hotkey: hotkey || undefined,
+      color,
+      macro: currentMacroSteps
+    };
+    
+    if (editingPresetIndex === -1) {
+      // Add new
+      currentPresets.push(preset);
+    } else {
+      // Update existing
+      currentPresets[editingPresetIndex] = preset;
+    }
+    
+    // Save to server
     try {
-      const data = JSON.parse(presetsEditor.value);
+      const data = { presets: currentPresets };
       const resp = await fetch('/api/presets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+      
       if (!resp.ok) throw new Error('Failed to save');
-      showNotification('Presets saved', 'success');
-      closeModal();
-      // Refresh local CFG + UI
+      
+      showNotification('Preset saved successfully', 'success');
+      
+      // Refresh UI
       CFG = data;
       buildQuickCues(CFG);
       buildDeck(CFG);
-      // Re-register hotkeys map
+      
+      // Re-register hotkeys
       deckByKey.clear();
       (CFG.presets || []).forEach(p => {
         if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
       });
+      
+      renderPresetList();
+      showListView();
     } catch (e) {
-      showNotification('Invalid JSON or save failed', 'error');
+      showNotification('Failed to save preset', 'error');
+    }
+  };
+  
+  // Delete preset
+  const deletePreset = async () => {
+    if (editingPresetIndex === -1) return;
+    
+    if (!confirm('Are you sure you want to delete this preset?')) return;
+    
+    currentPresets.splice(editingPresetIndex, 1);
+    
+    // Save to server
+    try {
+      const data = { presets: currentPresets };
+      const resp = await fetch('/api/presets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!resp.ok) throw new Error('Failed to save');
+      
+      showNotification('Preset deleted', 'success');
+      
+      // Refresh UI
+      CFG = data;
+      buildQuickCues(CFG);
+      buildDeck(CFG);
+      
+      deckByKey.clear();
+      (CFG.presets || []).forEach(p => {
+        if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+      });
+      
+      renderPresetList();
+      showListView();
+    } catch (e) {
+      showNotification('Failed to delete preset', 'error');
+    }
+  };
+  
+  // Event listeners
+  btn.onclick = openModal;
+  close.onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  
+  addPresetBtn.onclick = addNewPreset;
+  backToListBtn.onclick = showListView;
+  cancelEditBtn.onclick = showListView;
+  savePresetBtn.onclick = savePreset;
+  deletePresetBtn.onclick = deletePreset;
+  
+  stepTypeSelect.onchange = (e) => {
+    const type = e.target.value;
+    if (type) {
+      addMacroStep(type);
+      e.target.value = '';
     }
   };
 }
+
 
 // ---- Auto-Update Notifications ----
 function setupUpdateNotifications() {
