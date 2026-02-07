@@ -102,11 +102,12 @@
       "icon": "build/showcall_icon.icns",
       "backgroundColor": "#0b0f14",
       "iconSize": 100,
-      "format": "UDZO",
       "window": {
         "width": 600,
         "height": 400
-      }
+      },
+      "sign": false,
+      "writeUpdateInfo": true
     },
     "nsis": {
       "oneClick": false,

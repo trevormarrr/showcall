@@ -32,12 +32,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Clean DMG mounts (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Unmount any existing ShowCall volumes
+          for vol in /Volumes/ShowCall*; do
+            if [ -d "$vol" ]; then
+              echo "Unmounting $vol"
+              hdiutil detach "$vol" -force || true
+            fi
+          done
+
       - name: Build app (macOS)
         if: matrix.os == 'macos-latest'
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+          DEBUG: electron-builder
 
       - name: Build app (Linux)
         if: matrix.os == 'ubuntu-latest'
