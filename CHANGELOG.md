@@ -14,7 +14,9 @@ All notable changes to ShowCall will be documented in this file.
   - Added debug logging for electron-builder
 - **🔄 Auto-Updater Metadata**: Fixed missing `.yml` update metadata files in releases
   - Added `hardenedRuntime: false`, `gatekeeperAssess: false`, and `notarize: false` to mac config
-  - Updated artifact uploads to include `.yml` and `.blockmap` files
+  - Updated artifact uploads to include specific metadata files per platform
+  - macOS: `latest-mac.yml`, Linux: `latest-linux.yml`, Windows: `latest.yml`
+  - Prevents upload of debug/builder files that don't belong in releases
   - Ensures auto-updater can properly check for updates
 - **📱 Version Display**: Updated UI to show correct v2.2.1 version number
 - **Code Quality**: Removed duplicate button initialization code for cleaner implementation

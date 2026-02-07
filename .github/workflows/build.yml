@@ -73,7 +73,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
-            dist/*.yml
+            dist/latest-mac.yml
             dist/*.blockmap
 
       - name: Upload artifacts (Linux)
@@ -84,7 +84,7 @@ jobs:
           path: |
             dist/*.AppImage
             dist/*.deb
-            dist/*.yml
+            dist/latest-linux.yml
 
       - name: Upload artifacts (Windows)
         if: matrix.os == 'windows-latest'
@@ -93,7 +93,7 @@ jobs:
           name: windows-build
           path: |
             dist/*.exe
-            dist/*.yml
+            dist/latest.yml
 
   release:
     name: Create Release
