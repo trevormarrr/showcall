@@ -88,7 +88,8 @@
       "contents": [
         {
           "x": 130,
-          "y": 220
+          "y": 220,
+          "type": "file"
         },
         {
           "x": 410,
@@ -101,7 +102,7 @@
       "icon": "build/showcall_icon.icns",
       "backgroundColor": "#0b0f14",
       "iconSize": 100,
-      "format": "ULFO",
+      "format": "UDZO",
       "window": {
         "width": 600,
         "height": 400

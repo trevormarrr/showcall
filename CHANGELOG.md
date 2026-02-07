@@ -6,12 +6,16 @@ All notable changes to ShowCall will be documented in this file.
 
 ### Fixed
 - **🐛 Update Button Visibility**: Fixed duplicate `init()` function that was preventing the "Check Updates" button from appearing in the UI
+- **🔧 DMG Build**: Fixed GitHub Actions build failure due to DMG symlink permissions error
+  - Added explicit `type: "file"` to DMG contents configuration
+  - Changed DMG format from ULFO to UDZO for better compatibility
 - **Code Quality**: Removed duplicate button initialization code for cleaner implementation
 - **UI Consistency**: Ensured update modal and button work correctly on first launch
 
 ### Technical
 - Removed duplicate `init()` function at line 1244 that was overwriting the correct initialization
 - Consolidated update button setup into single location within `setupUpdateNotifications()`
+- Fixed electron-builder DMG configuration for GitHub Actions compatibility
 - Improved code maintainability and reduced potential for conflicts
 
 ## [2.2.0] - 2026-02-07
