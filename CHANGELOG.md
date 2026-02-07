@@ -2,6 +2,18 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.2.1] - 2026-02-07
+
+### Fixed
+- **🐛 Update Button Visibility**: Fixed duplicate `init()` function that was preventing the "Check Updates" button from appearing in the UI
+- **Code Quality**: Removed duplicate button initialization code for cleaner implementation
+- **UI Consistency**: Ensured update modal and button work correctly on first launch
+
+### Technical
+- Removed duplicate `init()` function at line 1244 that was overwriting the correct initialization
+- Consolidated update button setup into single location within `setupUpdateNotifications()`
+- Improved code maintainability and reduced potential for conflicts
+
 ## [2.2.0] - 2026-02-07
 
 ### Added

@@ -38,28 +38,6 @@ async function init() {
     // Setup auto-updater notifications (Electron only)
     if (window.electronAPI) {
       setupUpdateNotifications();
-      
-      // Show manual update check button
-      const checkUpdateBtn = document.getElementById('checkUpdateBtn');
-      if (checkUpdateBtn) {
-        checkUpdateBtn.style.display = 'block';
-        checkUpdateBtn.addEventListener('click', async () => {
-          checkUpdateBtn.textContent = '🔄 Checking...';
-          checkUpdateBtn.disabled = true;
-          
-          try {
-            await window.electronAPI.checkForUpdates();
-            showNotification('Checking for updates...', 'info', 3000);
-          } catch (e) {
-            showNotification('Update check failed', 'error', 3000);
-          }
-          
-          setTimeout(() => {
-            checkUpdateBtn.textContent = '🔄 Check Updates';
-            checkUpdateBtn.disabled = false;
-          }, 3000);
-        });
-      }
     } else {
       // In web mode, show a demo update indicator after 10 seconds
       setTimeout(() => {
@@ -1239,38 +1217,6 @@ async function saveSettings() {
     showNotification('Failed to save settings', 'error');
   }
 }
-
-// Initialize the application
-async function init() {
-  try {
-    // Load config for presets only
-    CFG = await fetch("/api/presets").then(r => r.json());
-    gridEl = document.getElementById("grid");
-    
-    // Build UI elements
-    buildQuickCues(CFG);
-    buildDeck(CFG);
-    addDebugControls();
-    initSettings(); // Initialize settings modal
-    initPresets(); // Initialize presets editor
-    
-    document.addEventListener("keydown", onHotkey);
-    
-    // Check connection and load composition structure
-    await checkConnection();
-    await loadComposition();
-    setupStatusStream();
-    
-    // Refresh composition every 10 seconds
-    setInterval(loadComposition, 10000);
-    
-    console.log("🎬 ShowCall initialized");
-  } catch (error) {
-    console.error("❌ Init failed:", error);
-    showNotification("Failed to initialize", "error");
-  }
-}
-init();
 
 // Presets editor
 function initPresets() {
