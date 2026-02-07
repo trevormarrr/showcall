@@ -67,7 +67,10 @@
         }
       ],
       "category": "public.app-category.video",
-      "icon": "build/showcall_icon.icns"
+      "icon": "build/showcall_icon.icns",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "notarize": false
     },
     "win": {
       "target": [

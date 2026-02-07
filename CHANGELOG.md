@@ -12,6 +12,11 @@ All notable changes to ShowCall will be documented in this file.
   - Added `sign: false` and `writeUpdateInfo: true` for CI compatibility
   - Added DMG mount cleanup step in GitHub Actions workflow
   - Added debug logging for electron-builder
+- **🔄 Auto-Updater Metadata**: Fixed missing `.yml` update metadata files in releases
+  - Added `hardenedRuntime: false`, `gatekeeperAssess: false`, and `notarize: false` to mac config
+  - Updated artifact uploads to include `.yml` and `.blockmap` files
+  - Ensures auto-updater can properly check for updates
+- **📱 Version Display**: Updated UI to show correct v2.2.1 version number
 - **Code Quality**: Removed duplicate button initialization code for cleaner implementation
 - **UI Consistency**: Ensured update modal and button work correctly on first launch
 
@@ -20,6 +25,7 @@ All notable changes to ShowCall will be documented in this file.
 - Consolidated update button setup into single location within `setupUpdateNotifications()`
 - Fixed electron-builder DMG configuration for GitHub Actions compatibility
 - Added pre-build cleanup script to unmount stale DMG volumes
+- Enhanced GitHub Actions to upload update metadata files
 - Improved code maintainability and reduced potential for conflicts
 
 ## [2.2.0] - 2026-02-07
