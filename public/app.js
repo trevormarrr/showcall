@@ -1773,7 +1773,8 @@ function setupUpdateNotifications() {
     const notesSection = document.getElementById('updateNotes');
     const notesContent = document.getElementById('updateNotesContent');
     if (info.releaseNotes) {
-      notesContent.innerHTML = marked ? marked.parse(info.releaseNotes) : info.releaseNotes;
+      // Release notes come as HTML from GitHub, no need to parse
+      notesContent.innerHTML = info.releaseNotes;
       notesSection.style.display = 'block';
     } else {
       notesSection.style.display = 'none';

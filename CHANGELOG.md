@@ -2,6 +2,14 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.3.1] - 2026-02-15
+
+### Fixed
+- **🐛 Auto-Updater**: Fixed "marked is not defined" error when checking for updates
+  - Removed dependency on `marked` library for parsing release notes
+  - Release notes are now displayed directly as HTML from GitHub
+  - Resolves console error when clicking "Check for Updates" button
+
 ## [2.3.0] - 2026-02-14
 
 ### Added
