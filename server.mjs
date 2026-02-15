@@ -750,6 +750,23 @@ async function initializeApp() {
         }));
       }
       
+      // Send current presets list
+      (async () => {
+        try {
+          if (fs.existsSync(USER_PRESETS_PATH)) {
+            const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
+            const presetsData = JSON.parse(json);
+            ws.send(JSON.stringify({
+              type: 'presets_updated',
+              data: presetsData.presets || []
+            }));
+            console.log('🎛️ Sent presets to new Companion client');
+          }
+        } catch (e) {
+          console.error('Failed to send presets to Companion:', e.message);
+        }
+      })();
+      
       ws.on('message', async (message) => {
         try {
           const command = JSON.parse(message.toString());
@@ -779,19 +796,31 @@ async function initializeApp() {
                 // Direct macro execution
                 result = await executeMacro(command.macro);
               } else if (command.macroId) {
-                // Look up macro by ID from config
+                // Look up macro by ID from user presets first, then fall back to config.json
                 try {
-                  const configPath = path.join(import.meta.dirname, 'public', 'config.json');
-                  const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-                  const preset = configData.presets?.find(p => p.id === command.macroId);
+                  let preset = null;
+                  
+                  // Try user presets first
+                  if (fs.existsSync(USER_PRESETS_PATH)) {
+                    const presetsData = JSON.parse(fs.readFileSync(USER_PRESETS_PATH, 'utf8'));
+                    preset = presetsData.presets?.find(p => p.id === command.macroId);
+                  }
+                  
+                  // Fall back to config.json if not found
+                  if (!preset) {
+                    const configPath = path.join(import.meta.dirname, 'public', 'config.json');
+                    const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                    preset = configData.presets?.find(p => p.id === command.macroId);
+                  }
                   
                   if (preset && preset.macro) {
+                    console.log(`🎯 Executing preset: ${preset.label || preset.id}`);
                     result = await executeMacro(preset.macro);
                   } else {
-                    result = { ok: false, error: `Macro '${command.macroId}' not found` };
+                    result = { ok: false, error: `Preset '${command.macroId}' not found` };
                   }
                 } catch (error) {
-                  result = { ok: false, error: `Failed to load macro: ${error.message}` };
+                  result = { ok: false, error: `Failed to load preset: ${error.message}` };
                 }
               } else {
                 result = { ok: false, error: 'No macro or macroId provided' };
