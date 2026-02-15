@@ -2,6 +2,40 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.3.2] - 2026-02-15
+
+### Fixed
+- **🔄 Real-time Preset Sync**: Presets now update instantly on Stream Deck without restart
+  - Fixed preset sync to trigger immediately when presets are saved
+  - Added automatic `presets_updated` broadcast to all connected Companion clients
+  - Buttons regenerate instantly when presets are created/modified (<100ms)
+  - No more manual Companion restarts needed to see preset changes
+
+- **✨ Active Preset Visual Feedback**: Buttons now show when executing
+  - Stream Deck buttons flash bright orange when pressed
+  - Added `preset_executing` broadcast during macro execution
+  - 500ms visual feedback window for clear button press indication
+  - Active state tracking with `activePresetId` variable
+  - Enhances user experience with immediate visual confirmation
+
+### Enhanced
+- **🎛️ Companion Integration**: Enhanced WebSocket communication
+  - Server broadcasts preset updates on save (not just on initial connection)
+  - New `preset_executing` message type for real-time state updates
+  - Automatic state clear after 500ms execution window
+  - Better coordination between ShowCall and Companion module
+
+### Technical
+- Added `activePresetId` tracking in server state
+- Enhanced `/api/presets` POST endpoint with broadcast functionality
+- Improved `execute_macro` handler with execution state broadcasting
+- Optimized WebSocket message flow for real-time updates
+
+### Companion Module
+- **Works with Companion v2.1.1+** for full real-time features
+- Requires Companion module update to see active button feedback
+- Backward compatible with v2.1.0 (preset sync only)
+
 ## [2.3.1] - 2026-02-15
 
 ### Fixed

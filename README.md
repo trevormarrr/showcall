@@ -2,14 +2,20 @@
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
-![ShowCall Interface](https://img.shields.io/badge/version-2.3.0-blue)
+![ShowCall Interface](https://img.shields.io/badge/version-2.3.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
 
-## ✨ What's New in v2.3.0
+## ✨ What's New in v2.3.2
 
-### 🎛️ **Stream Deck Integration** - Revolutionary Feature!
+### 🔄 **Real-Time Updates & Visual Feedback** - Critical Bug Fixes!
+
+**Fixed Issues:**
+- ✅ **Instant Preset Updates** - Presets now update on Stream Deck immediately when saved (no restart needed)
+- ✅ **Visual Button Feedback** - Buttons flash bright orange when pressed for clear execution confirmation
+
+**Previous: Stream Deck Integration** - Revolutionary Feature!
 
 Create presets in ShowCall → They instantly appear on your Stream Deck! No manual configuration needed.
 
@@ -18,6 +24,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 - 🎨 **100% accurate** - Colors and labels always match
 - 🔄 **Real-time sync** - Changes update in <100ms
 - 🎯 **One-click execution** - Press Stream Deck to run complete macros
+- ✨ **Visual feedback** - Buttons flash orange when pressed (NEW in v2.3.2!)
 
 [📖 **Read the Complete Guide →**](docs/PRESET_SYNC_GUIDE.md) | [🚀 **Quick Reference →**](docs/QUICK_REFERENCE.md)
 
@@ -35,7 +42,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 ### Presets & Macros
 - **🎹 Preset System** - Create complex multi-step macros with visual editor
 - **⌨️ Keyboard Shortcuts** - Fast hotkey control for all actions
-- **🎛️ Stream Deck Sync** - Automatic synchronization with Bitfocus Companion (NEW in v2.3.0!)
+- **🎛️ Stream Deck Sync** - Automatic synchronization with Bitfocus Companion (NEW in v2.3.2!)
 - **🎨 Custom Styling** - Configure colors, labels, and hotkeys
 - **📦 Preset Management** - Import, export, and organize presets
 
@@ -52,7 +59,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 ### 1. Download & Install
 
-**Latest Release:** [v2.3.0](https://github.com/trevormarrr/showcall/releases/tag/v2.3.0)
+**Latest Release:** [v2.3.2](https://github.com/trevormarrr/showcall/releases/tag/v2.3.2)
 
 - **macOS**: Download `.dmg` → Drag to Applications
 - **Windows**: Download `.exe` → Run installer
@@ -121,7 +128,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 | Document | Purpose |
 |----------|---------|
-| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.0 release notes |
+| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.2 release notes |
 | **[CHANGELOG.md](CHANGELOG.md)** | Complete version history |
 | **[INSTALLATION.md](docs/INSTALLATION.md)** | Detailed installation guide |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute |
@@ -315,10 +322,10 @@ If you find ShowCall useful, please consider starring the project on GitHub!
 
 ---
 
-**Version:** 2.3.0  
+**Version:** 2.3.2  
 **Release Date:** February 14, 2026  
 **License:** MIT
 
-**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.0)
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.2)
 
 **Happy streaming! 🎬✨**

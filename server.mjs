@@ -120,6 +120,7 @@ const CONNECTION_CHECK_INTERVAL = 3000;
 // Companion WebSocket clients
 const companionClients = new Set();
 let lastStatusState = null;
+let activePresetId = null; // Track currently executing preset
 
 // OSC Setup
 let oscPort = null;
@@ -513,6 +514,26 @@ app.post('/api/presets', async (req, res) => {
     const data = req.body;
     if (!data || typeof data !== 'object') return res.status(400).json({ ok: false, error: 'Invalid JSON' });
     await fs.promises.writeFile(USER_PRESETS_PATH, JSON.stringify(data, null, 2));
+    
+    // Broadcast updated presets to all connected Companion clients
+    const message = JSON.stringify({
+      type: 'presets_updated',
+      data: data.presets || [],
+      timestamp: Date.now()
+    });
+    
+    companionClients.forEach(client => {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        try {
+          client.send(message);
+          console.log('🎛️ Broadcasted preset update to Companion client');
+        } catch (error) {
+          console.error('🎛️ Failed to send preset update to Companion:', error);
+          companionClients.delete(client);
+        }
+      }
+    });
+    
     res.json({ ok: true });
   } catch (e) {
     console.error('Failed to save presets:', e.message);
@@ -815,7 +836,49 @@ async function initializeApp() {
                   
                   if (preset && preset.macro) {
                     console.log(`🎯 Executing preset: ${preset.label || preset.id}`);
+                    
+                    // Update active preset and broadcast to Companion
+                    activePresetId = command.macroId;
+                    const presetMessage = JSON.stringify({
+                      type: 'preset_executing',
+                      data: {
+                        presetId: command.macroId,
+                        label: preset.label || preset.id
+                      },
+                      timestamp: Date.now()
+                    });
+                    
+                    companionClients.forEach(client => {
+                      if (client.readyState === 1) {
+                        try {
+                          client.send(presetMessage);
+                        } catch (error) {
+                          console.error('🎛️ Failed to send preset execution state:', error);
+                        }
+                      }
+                    });
+                    
                     result = await executeMacro(preset.macro);
+                    
+                    // Clear active preset after short delay (allow visual feedback)
+                    setTimeout(() => {
+                      activePresetId = null;
+                      const clearMessage = JSON.stringify({
+                        type: 'preset_executing',
+                        data: { presetId: null },
+                        timestamp: Date.now()
+                      });
+                      companionClients.forEach(client => {
+                        if (client.readyState === 1) {
+                          try {
+                            client.send(clearMessage);
+                          } catch (error) {
+                            // Silently ignore errors on cleanup
+                          }
+                        }
+                      });
+                    }, 500); // 500ms visual feedback
+                    
                   } else {
                     result = { ok: false, error: `Preset '${command.macroId}' not found` };
                   }

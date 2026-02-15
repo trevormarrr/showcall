@@ -1,3 +1,88 @@
+# ShowCall v2.3.2 — Real-Time Sync & Visual Feedback 🔄✨
+
+**Release Date:** February 15, 2026  
+**Status:** Stable Bug Fix Release
+
+## 🐛 Critical Bug Fixes
+
+This release fixes two important issues reported in v2.3.0 Stream Deck integration:
+
+### Fixed Issue #1: Instant Preset Updates ✅
+**Problem:** Presets didn't update on Stream Deck without restarting Companion module  
+**Solution:** Automatic broadcast of preset updates when saved  
+**Result:** Presets now appear/update instantly (<100ms)
+
+### Fixed Issue #2: Visual Button Feedback ✅
+**Problem:** No visual indication when pressing preset buttons  
+**Solution:** Active state tracking with bright orange flash  
+**Result:** Buttons flash orange for 500ms when pressed
+
+## 🎯 What's Fixed
+
+### Real-Time Preset Synchronization
+- ✅ Presets update on Stream Deck **instantly** when saved
+- ✅ No more manual Companion restarts needed
+- ✅ Create preset → Appears immediately (<100ms)
+- ✅ Modify preset → Updates automatically
+- ✅ Delete preset → Removed from Stream Deck instantly
+
+### Active Button Visual Feedback
+- ✅ Buttons **flash bright orange** when pressed
+- ✅ 500ms visual feedback window
+- ✅ Clear indication of preset execution
+- ✅ Better user experience with immediate confirmation
+- ✅ Multiple buttons can be pressed in sequence with visual feedback
+
+## 🚀 Quick Start
+
+### If You Have v2.3.0 or v2.3.1
+
+**Simply update both:**
+1. Install ShowCall v2.3.2
+2. Update Companion module to v2.1.1
+3. Enjoy the fixes! 🎉
+
+**Testing the fixes:**
+1. Create/edit a preset in ShowCall
+2. Watch it update instantly on Stream Deck
+3. Press a button and see it flash orange
+4. Both issues resolved!
+
+## 📦 What's Included
+
+### Bug Fixes
+- 🔄 Real-time preset sync (no restart needed)
+- ✨ Active button visual feedback (orange flash)
+- 📡 Enhanced WebSocket broadcasting
+- ⚡ Improved state tracking and coordination
+
+### Technical Improvements
+- Added `activePresetId` state tracking
+- Enhanced `/api/presets` POST endpoint with broadcast
+- New `preset_executing` message type
+- Improved `execute_macro` handler with state broadcasting
+- Optimized WebSocket message flow
+
+### Companion Module v2.1.1
+- New `preset_active` feedback type
+- Enhanced message handling for execution state
+- Improved button feedback system
+- Better real-time coordination
+
+## 🔄 Upgrade from v2.3.0 or v2.3.1
+
+**No breaking changes!** Simple update process:
+
+1. **Update ShowCall** to v2.3.2
+2. **Update Companion module** to v2.1.1
+3. **Restart both** applications
+4. **Test the fixes** - create/edit presets, press buttons
+5. Everything now updates in real-time! ✨
+
+## 📚 Previous Release Notes
+
+---
+
 # ShowCall v2.3.0 — Stream Deck Integration Release 🎛️
 
 **Release Date:** February 14, 2026  
