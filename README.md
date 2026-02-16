@@ -2,20 +2,37 @@
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
-![ShowCall Interface](https://img.shields.io/badge/version-2.3.2-blue)
+![ShowCall Interface](https://img.shields.io/badge/version-2.3.4-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Code Signing](https://img.shields.io/badge/code%20signing-enabled-success)
 
 A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
 
-## ✨ What's New in v2.3.2
+## ✨ What's New in v2.3.4
 
-### 🔄 **Real-Time Updates & Visual Feedback** - Critical Bug Fixes!
+### � **Code Signing & Notarization** - Professional Security!
+
+**All macOS builds are now properly signed and notarized:**
+
+- ✅ **No More Security Warnings** - Opens directly, no "damaged" or "unverified developer" errors
+- ✅ **Apple Notarized** - Scanned and approved by Apple for safe distribution
+- ✅ **Auto-Updater Fixed** - Seamless in-app updates work perfectly (manual install of v2.3.4 required once)
+- ✅ **Enhanced Security** - Hardened Runtime and proper entitlements enabled
+- ✅ **Professional Distribution** - Same trust level as major commercial applications
+
+**⚠️ Upgrading from v2.3.2 or earlier?** You must manually download v2.3.4 once. After that, all future updates work automatically through the built-in updater!
+
+[📖 **Read Release Notes →**](RELEASE_NOTES.md) | [🔐 **Code Signing Details →**](docs/CODE_SIGNING.md)
+
+---
+
+### 🔄 **Previous: Real-Time Updates & Visual Feedback** (v2.3.2)
 
 **Fixed Issues:**
 - ✅ **Instant Preset Updates** - Presets now update on Stream Deck immediately when saved (no restart needed)
 - ✅ **Visual Button Feedback** - Buttons flash bright orange when pressed for clear execution confirmation
 
-**Previous: Stream Deck Integration** - Revolutionary Feature!
+### 🎛️ **Stream Deck Integration** - Revolutionary Feature!
 
 Create presets in ShowCall → They instantly appear on your Stream Deck! No manual configuration needed.
 
@@ -24,7 +41,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 - 🎨 **100% accurate** - Colors and labels always match
 - 🔄 **Real-time sync** - Changes update in <100ms
 - 🎯 **One-click execution** - Press Stream Deck to run complete macros
-- ✨ **Visual feedback** - Buttons flash orange when pressed (NEW in v2.3.2!)
+- ✨ **Visual feedback** - Buttons flash orange when pressed
 
 [📖 **Read the Complete Guide →**](docs/PRESET_SYNC_GUIDE.md) | [🚀 **Quick Reference →**](docs/QUICK_REFERENCE.md)
 
@@ -59,11 +76,13 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 ### 1. Download & Install
 
-**Latest Release:** [v2.3.2](https://github.com/trevormarrr/showcall/releases/tag/v2.3.2)
+**Latest Release:** [v2.3.4](https://github.com/trevormarrr/showcall/releases/tag/v2.3.4) 🔐 **Now with Code Signing!**
 
-- **macOS**: Download `.dmg` → Drag to Applications
+- **macOS**: Download `.dmg` → Drag to Applications → No security warnings!
 - **Windows**: Download `.exe` → Run installer
 - **Linux**: Download `.AppImage` → Make executable and run
+
+**⚠️ Updating from v2.3.2 or earlier?** Manual install required (one-time only). See [Release Notes](RELEASE_NOTES.md) for details.
 
 ### 2. Setup Resolume
 

@@ -2,6 +2,45 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.3.4] - 2026-02-16
+
+### 🔐 Security & Stability
+
+- **Code Signing & Notarization**: All macOS builds are now properly signed and notarized with Apple
+  - Eliminates "damaged" or "unverified developer" warnings on macOS
+  - Passes Gatekeeper without user workarounds
+  - Professional distribution ready for all users
+  
+- **Auto-Updater Fixed**: Resolved code signature validation issues
+  - Properly signed updates enable seamless auto-updating
+  - Users on v2.3.3 or earlier: Manual download of v2.3.4 required (one-time only)
+  - All future updates (v2.3.5+) will auto-update seamlessly
+  - No more "code signature validation failed" errors
+
+### 📚 Documentation
+
+- Added comprehensive code signing setup guides
+- Added GitHub Actions signing configuration documentation
+- Improved installation and security documentation
+
+### 🔧 Technical
+
+- Enabled `hardenedRuntime` for enhanced macOS security
+- Configured notarization with Apple Developer credentials
+- Updated GitHub Actions workflow for automatic signing
+- Added entitlements for proper macOS app behavior
+
+### ⚠️ Important Note for Existing Users
+
+If you're updating from v2.3.2 or earlier, you must **manually download and install v2.3.4**. This is a one-time requirement due to the transition from unsigned to signed builds. After installing v2.3.4, all future updates will work automatically through the built-in updater.
+
+## [2.3.3] - 2026-02-16
+
+### Internal
+
+- Initial code signing configuration (incomplete)
+- Team ID integration for notarization
+
 ## [2.3.2] - 2026-02-15
 
 ### Fixed
