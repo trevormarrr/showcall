@@ -1,216 +1,430 @@
-# ShowCall v2.3.4 — Code Signing & Auto-Updater Fix 🔐✨# ShowCall v2.3.2 — Real-Time Sync & Visual Feedback 🔄✨
+# ShowCall v2.3.5 — Maintenance & Consistency Release 🔧# ShowCall v2.3.4 — Code Signing & Auto-Updater Fix 🔐✨# ShowCall v2.3.2 — Real-Time Sync & Visual Feedback 🔄✨
 
 
+
+**Release Date:** February 16, 2026  
+
+**Status:** Stable Maintenance Release
 
 **Release Date:** February 16, 2026  **Release Date:** February 15, 2026  
 
+## 🎯 What's in This Release
+
 **Status:** Stable Security & Stability Release**Status:** Stable Bug Fix Release
 
+This is a **maintenance release** focused on version consistency and documentation improvements. All features from v2.3.4 are included and working perfectly!
 
+
+
+### 🔧 Updates in v2.3.5
 
 ## 🎯 What's New## 🐛 Critical Bug Fixes
 
+**Version Consistency:**
+
+- ✅ Updated UI version display to v2.3.5
+
+- ✅ Synchronized all documentation version references
+
+- ✅ Updated README download linksThis release focuses on **security, trust, and seamless updates** for all macOS users.This release fixes two important issues reported in v2.3.0 Stream Deck integration:
+
+- ✅ Aligned CHANGELOG entries
 
 
-This release focuses on **security, trust, and seamless updates** for all macOS users.This release fixes two important issues reported in v2.3.0 Stream Deck integration:
+
+**Why This Matters:**
+
+- Ensures users see consistent version numbers across the app### 🔐 Full Code Signing & Notarization### Fixed Issue #1: Instant Preset Updates ✅
+
+- Prevents confusion when checking "About" or documentation
+
+- Makes support and troubleshooting easier**Problem:** Presets didn't update on Stream Deck without restarting Companion module  
 
 
 
-### 🔐 Full Code Signing & Notarization### Fixed Issue #1: Instant Preset Updates ✅
+---**All macOS builds are now properly signed and notarized with Apple:****Solution:** Automatic broadcast of preset updates when saved  
 
-**Problem:** Presets didn't update on Stream Deck without restarting Companion module  
 
-**All macOS builds are now properly signed and notarized with Apple:****Solution:** Automatic broadcast of preset updates when saved  
 
-**Result:** Presets now appear/update instantly (<100ms)
+## ✨ All Features Included (from v2.3.4)**Result:** Presets now appear/update instantly (<100ms)
 
-✅ **No More Security Warnings**
 
-- Eliminates "ShowCall is damaged" errors### Fixed Issue #2: Visual Button Feedback ✅
 
-- No more "unverified developer" warnings**Problem:** No visual indication when pressing preset buttons  
+### 🔐 Full Code Signing & Notarization✅ **No More Security Warnings**
 
-- Opens directly without Gatekeeper bypasses**Solution:** Active state tracking with bright orange flash  
+
+
+**All macOS builds are properly signed and notarized:**- Eliminates "ShowCall is damaged" errors### Fixed Issue #2: Visual Button Feedback ✅
+
+
+
+✅ **No Security Warnings**- No more "unverified developer" warnings**Problem:** No visual indication when pressing preset buttons  
+
+- Opens directly without "damaged" or "unverified developer" errors
+
+- Passes macOS Gatekeeper automatically- Opens directly without Gatekeeper bypasses**Solution:** Active state tracking with bright orange flash  
+
+- Professional installation experience
 
 - Professional, trusted installation experience**Result:** Buttons flash orange for 500ms when pressed
 
+✅ **Apple Notarized**
+
+- Scanned and approved by Apple
+
+- Enterprise-ready distribution
+
+- Same trust level as major commercial apps✅ **Apple Notarization**## 🎯 What's Fixed
 
 
-✅ **Apple Notarization**## 🎯 What's Fixed
 
-- Apps are scanned and approved by Apple
+✅ **Enhanced Security**- Apps are scanned and approved by Apple
 
-- Passes macOS security checks automatically### Real-Time Preset Synchronization
+- Hardened Runtime enabled
+
+- Code signature verification at every launch- Passes macOS security checks automatically### Real-Time Preset Synchronization
+
+- Protected against tampering
 
 - Professional distribution standard met- ✅ Presets update on Stream Deck **instantly** when saved
 
+### 🔄 Auto-Updater Working Perfectly
+
 - ✅ No more manual Companion restarts needed
 
-✅ **Enhanced Security**- ✅ Create preset → Appears immediately (<100ms)
+✅ **Seamless Updates**
 
-- Hardened Runtime enabled for better protection- ✅ Modify preset → Updates automatically
+- In-app update notifications✅ **Enhanced Security**- ✅ Create preset → Appears immediately (<100ms)
+
+- One-click update installation
+
+- Progress tracking and download management- Hardened Runtime enabled for better protection- ✅ Modify preset → Updates automatically
+
+- No more manual downloads needed!
 
 - Proper entitlements configured- ✅ Delete preset → Removed from Stream Deck instantly
 
-- Code signature verification at every launch
+✅ **Code Signature Validation**
 
-### Active Button Visual Feedback
+- All updates properly signed- Code signature verification at every launch
 
-### 🔄 Auto-Updater Fixed- ✅ Buttons **flash bright orange** when pressed
+- Secure update chain from v2.3.4+
 
-- ✅ 500ms visual feedback window
+- Automatic validation before installation### Active Button Visual Feedback
 
-**Seamless updates are here!**- ✅ Clear indication of preset execution
 
-- ✅ Better user experience with immediate confirmation
 
-✅ **Fixed Code Signature Validation**- ✅ Multiple buttons can be pressed in sequence with visual feedback
+### 🎛️ Stream Deck Integration### 🔄 Auto-Updater Fixed- ✅ Buttons **flash bright orange** when pressed
 
-- Resolved "code failed to satisfy specified code requirement(s)" error
+
+
+✅ **Preset Synchronization**- ✅ 500ms visual feedback window
+
+- Create presets → Instant appearance on Stream Deck
+
+- Real-time updates (<100ms)**Seamless updates are here!**- ✅ Clear indication of preset execution
+
+- Zero manual button configuration
+
+- Colors and labels always match- ✅ Better user experience with immediate confirmation
+
+
+
+✅ **Visual Feedback**✅ **Fixed Code Signature Validation**- ✅ Multiple buttons can be pressed in sequence with visual feedback
+
+- Buttons flash orange when pressed
+
+- 500ms visual confirmation window- Resolved "code failed to satisfy specified code requirement(s)" error
+
+- Clear execution indication
 
 - Auto-updater now works reliably for signed builds## 🚀 Quick Start
 
+### 🎯 Core Features
+
 - One-time manual installation required (see below)
 
-### If You Have v2.3.0 or v2.3.1
+✅ **OSC Control & REST Monitoring**
 
-✅ **Future-Proof Updates**
+- Lightning-fast clip triggering### If You Have v2.3.0 or v2.3.1
 
-- All releases from v2.3.4 forward will auto-update seamlessly**Simply update both:**
+- Real-time composition monitoring
 
-- No more manual downloads needed after v2.3.41. Install ShowCall v2.3.2
+- Auto-discovery of Resolume structure✅ **Future-Proof Updates**
+
+
+
+✅ **Preset Macros**- All releases from v2.3.4 forward will auto-update seamlessly**Simply update both:**
+
+- Multi-step automation sequences
+
+- Keyboard hotkey support- No more manual downloads needed after v2.3.41. Install ShowCall v2.3.2
+
+- Import/export functionality
 
 - In-app update notifications work perfectly2. Update Companion module to v2.1.1
 
+---
+
 3. Enjoy the fixes! 🎉
+
+## 📥 Download & Installation
 
 ## ⚠️ Important: One-Time Manual Installation Required
 
+### Fresh Installation
+
 **Testing the fixes:**
+
+**Download the appropriate version:**
 
 ### If You're Using v2.3.2 or Earlier1. Create/edit a preset in ShowCall
 
-2. Watch it update instantly on Stream Deck
+- **macOS (Apple Silicon):** [ShowCall-2.3.5-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5-mac-arm64.dmg)
 
-Because previous versions were **unsigned**, the auto-updater cannot validate the transition to signed builds.3. Press a button and see it flash orange
+- **macOS (Intel):** [ShowCall-2.3.5-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5-mac-x64.dmg)2. Watch it update instantly on Stream Deck
 
-4. Both issues resolved!
+- **Windows:** [ShowCall-Setup-2.3.5.exe](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-Setup-2.3.5.exe)
 
-**You must manually download and install v2.3.4:**
+- **Linux:** [ShowCall-2.3.5.AppImage](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5.AppImage)Because previous versions were **unsigned**, the auto-updater cannot validate the transition to signed builds.3. Press a button and see it flash orange
 
-## 📦 What's Included
 
-1. **Download** the latest release:
 
-   - [ShowCall-2.3.4-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-arm64.dmg) (Apple Silicon)### Bug Fixes
+### Updating from v2.3.44. Both issues resolved!
 
-   - [ShowCall-2.3.4-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-x64.dmg) (Intel)- 🔄 Real-time preset sync (no restart needed)
 
-- ✨ Active button visual feedback (orange flash)
 
-2. **Install** by dragging to Applications folder- 📡 Enhanced WebSocket broadcasting
+✅ **Auto-update available!** Just click "Update" when prompted in the app.**You must manually download and install v2.3.4:**
 
-- ⚡ Improved state tracking and coordination
 
-3. **Enjoy** - All future updates will work automatically! 🎉
 
-### Technical Improvements
+### Updating from v2.3.2 or Earlier## 📦 What's Included
 
-### If You're Using v2.3.3- Added `activePresetId` state tracking
+
+
+⚠️ **One-time manual installation required:**1. **Download** the latest release:
+
+
+
+1. Download the appropriate installer above   - [ShowCall-2.3.4-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-arm64.dmg) (Apple Silicon)### Bug Fixes
+
+2. Install by dragging to Applications (macOS) or running installer (Windows)
+
+3. All future updates will work automatically! 🎉   - [ShowCall-2.3.4-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-x64.dmg) (Intel)- 🔄 Real-time preset sync (no restart needed)
+
+
+
+**Why?** Previous versions were unsigned, so the auto-updater can't validate the transition to signed builds. This is a security feature, not a bug!- ✨ Active button visual feedback (orange flash)
+
+
+
+---2. **Install** by dragging to Applications folder- 📡 Enhanced WebSocket broadcasting
+
+
+
+## 🚀 What This Release Means- ⚡ Improved state tracking and coordination
+
+
+
+### For All Users3. **Enjoy** - All future updates will work automatically! 🎉
+
+
+
+- ✅ **Trusted Application** - No security warnings or workarounds### Technical Improvements
+
+- ✅ **Seamless Updates** - One-click updates from v2.3.4+
+
+- ✅ **Version Clarity** - Consistent version numbers everywhere### If You're Using v2.3.3- Added `activePresetId` state tracking
+
+- ✅ **Professional Experience** - Enterprise-grade reliability
 
 - Enhanced `/api/presets` POST endpoint with broadcast
 
+### For macOS Users
+
 You can update through the auto-updater OR manually install. Either works!- New `preset_executing` message type
 
-- Improved `execute_macro` handler with state broadcasting
+- ✅ **Code Signed** - Developer ID Application: Offroadin' LLC (KHG523256M)
 
-## 🚀 What This Means for You- Optimized WebSocket message flow
+- ✅ **Notarized** - Approved by Apple's notary service- Improved `execute_macro` handler with state broadcasting
+
+- ✅ **Hardened Runtime** - Enhanced security and stability
+
+- ✅ **Gatekeeper Approved** - Opens without warnings## 🚀 What This Means for You- Optimized WebSocket message flow
 
 
 
-### Immediate Benefits### Companion Module v2.1.1
+### Verify the Code Signature (macOS)
 
-- New `preset_active` feedback type
+
+
+```bash### Immediate Benefits### Companion Module v2.1.1
+
+codesign -dvv /Applications/ShowCall.app
+
+spctl -a -vv /Applications/ShowCall.app- New `preset_active` feedback type
+
+```
 
 - ✅ **Trusted App** - macOS recognizes ShowCall as a verified developer app- Enhanced message handling for execution state
 
-- ✅ **Clean Installation** - No security warnings or workarounds needed- Improved button feedback system
+You should see:
 
-- ✅ **Auto-Updates Work** - Future versions update seamlessly in-app- Better real-time coordination
+```- ✅ **Clean Installation** - No security warnings or workarounds needed- Improved button feedback system
+
+Developer ID Application: Offroadin' LLC (KHG523256M)
+
+Status: accepted- ✅ **Auto-Updates Work** - Future versions update seamlessly in-app- Better real-time coordination
+
+```
 
 - ✅ **Professional Experience** - Same trust level as major commercial apps
 
+---
+
 ## 🔄 Upgrade from v2.3.0 or v2.3.1
+
+## 📋 Complete Feature List
 
 ### Long-Term Benefits
 
-**No breaking changes!** Simple update process:
+### Control & Monitoring
 
-- 🔐 **Better Security** - Code signing ensures app hasn't been tampered with
+- ⚡ OSC control (UDP port 7000)**No breaking changes!** Simple update process:
 
-- 🎯 **Easier Sharing** - Send download links to colleagues without installation instructions1. **Update ShowCall** to v2.3.2
+- 📊 REST API monitoring (port 8080)
 
-- ⚡ **Faster Updates** - No more manual downloads for new releases2. **Update Companion module** to v2.1.1
+- 🔌 Auto-discovery of Resolume composition- 🔐 **Better Security** - Code signing ensures app hasn't been tampered with
 
-- 📦 **Reliability** - Signed builds are more stable and predictable3. **Restart both** applications
+- 🎯 Visual clip grid with live states
 
-4. **Test the fixes** - create/edit presets, press buttons
+- 💻 Cross-platform (macOS, Windows, Linux)- 🎯 **Easier Sharing** - Send download links to colleagues without installation instructions1. **Update ShowCall** to v2.3.2
+
+
+
+### Presets & Automation- ⚡ **Faster Updates** - No more manual downloads for new releases2. **Update Companion module** to v2.1.1
+
+- 🎹 Multi-step macro sequences
+
+- ⌨️ Keyboard hotkey support- 📦 **Reliability** - Signed builds are more stable and predictable3. **Restart both** applications
+
+- 🎛️ Stream Deck automatic sync
+
+- 🎨 Custom colors and labels4. **Test the fixes** - create/edit presets, press buttons
+
+- 📦 Import/export presets
 
 ## 📋 Technical Details5. Everything now updates in real-time! ✨
 
+### Interface & UX
 
+- 🪟 Pop-out preset deck window
 
-### Code Signing Configuration## 📚 Previous Release Notes
+- 🎬 Quick actions (Cut, Clear, etc.)
 
+- ⚙️ Settings modal for configuration### Code Signing Configuration## 📚 Previous Release Notes
 
+- 🔄 In-app auto-updater
 
-- **Developer ID Application** certificate from Apple---
-
-- **Notarization** via Apple's notary service
-
-- **Hardened Runtime** enabled for enhanced security# ShowCall v2.3.0 — Stream Deck Integration Release 🎛️
-
-- **Entitlements** configured for proper macOS integration
-
-**Release Date:** February 14, 2026  
-
-### Build Process**Status:** Stable Release
+- ✨ Visual button feedback
 
 
 
-- All macOS builds automatically signed via GitHub Actions## 🎉 Major Feature: Automatic Stream Deck Preset Sync
+### Integration- **Developer ID Application** certificate from Apple---
 
-- DMG and ZIP formats both signed and notarized
+- 📡 WebSocket API for real-time communication
 
-- Update manifest (`latest-mac.yml`) properly configuredThis release introduces **revolutionary automatic preset synchronization** between ShowCall and Stream Deck via Bitfocus Companion. No more manual button configuration!
+- 🎛️ Bitfocus Companion module support- **Notarization** via Apple's notary service
 
-- Code signature embedded in app bundle
+- 🔗 REST API for external control
 
-### ✨ What's New
+- 📊 SSE status streaming- **Hardened Runtime** enabled for enhanced security# ShowCall v2.3.0 — Stream Deck Integration Release 🎛️
 
-### Verification
 
-#### Automatic Preset Synchronization
 
-You can verify the code signature yourself:- **Create presets in ShowCall** → Instantly appear on Stream Deck
+---- **Entitlements** configured for proper macOS integration
 
-- **Edit presets** → Buttons update automatically in real-time  
 
-```bash- **Delete presets** → Buttons removed automatically
 
-codesign -dvv /Applications/ShowCall.app- **Zero configuration** required for Stream Deck setup
+## 📚 Documentation**Release Date:** February 14, 2026  
 
-spctl -a -vv /Applications/ShowCall.app
 
-```#### Smart Button Styling
 
-- Buttons automatically use colors defined in ShowCall
+- [Quick Start Guide](https://github.com/trevormarrr/showcall#quick-start)### Build Process**Status:** Stable Release
 
-You should see:- Text color optimized for readability based on background
+- [Stream Deck Setup](docs/PRESET_SYNC_GUIDE.md)
 
-- Developer ID Application: Offroadin' LLC (KHG523256M)- Button labels match preset names exactly
+- [Code Signing Details](docs/CODE_SIGNING.md)
+
+- [API Reference](docs/QUICK_REFERENCE.md)
+
+- [Troubleshooting](docs/INSTALLATION.md)- All macOS builds automatically signed via GitHub Actions## 🎉 Major Feature: Automatic Stream Deck Preset Sync
+
+
+
+---- DMG and ZIP formats both signed and notarized
+
+
+
+## 🔄 Version History- Update manifest (`latest-mac.yml`) properly configuredThis release introduces **revolutionary automatic preset synchronization** between ShowCall and Stream Deck via Bitfocus Companion. No more manual button configuration!
+
+
+
+- **v2.3.5** (Feb 16, 2026) - Maintenance release, version consistency- Code signature embedded in app bundle
+
+- **v2.3.4** (Feb 16, 2026) - Code signing and notarization
+
+- **v2.3.3** (Feb 16, 2026) - Initial signing configuration### ✨ What's New
+
+- **v2.3.2** (Feb 15, 2026) - Real-time preset sync fixes
+
+- **v2.3.0** (Feb 14, 2026) - Stream Deck integration### Verification
+
+
+
+---#### Automatic Preset Synchronization
+
+
+
+## 🙏 Thank You!You can verify the code signature yourself:- **Create presets in ShowCall** → Instantly appear on Stream Deck
+
+
+
+Thank you for using ShowCall! This maintenance release ensures a consistent, professional experience across all platforms.- **Edit presets** → Buttons update automatically in real-time  
+
+
+
+### What's Next?```bash- **Delete presets** → Buttons removed automatically
+
+
+
+**Planned for v2.4.0:**codesign -dvv /Applications/ShowCall.app- **Zero configuration** required for Stream Deck setup
+
+- Preset thumbnails and icons
+
+- Execution history trackingspctl -a -vv /Applications/ShowCall.app
+
+- Enhanced Stream Deck feedback
+
+- Additional preset actions```#### Smart Button Styling
+
+
+
+---- Buttons automatically use colors defined in ShowCall
+
+
+
+**Questions or Issues?**You should see:- Text color optimized for readability based on background
+
+- [Open an Issue](https://github.com/trevormarrr/showcall/issues)
+
+- [Read the Docs](docs/README.md)- Developer ID Application: Offroadin' LLC (KHG523256M)- Button labels match preset names exactly
+
+- [Check Discussions](https://github.com/trevormarrr/showcall/discussions)
 
 - Status: accepted- Connection status feedback built into every button
+
+**Enjoy seamless, professional Resolume control!** 🎬✨
 
 - Origin: Developer ID Application: Offroadin' LLC (KHG523256M)
 

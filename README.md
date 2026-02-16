@@ -1,4 +1,29 @@
-# ShowCall - Resolume Arena Controller
+# Sh![ShowCall Interface](https://img.shields.io/badge/version-2.3.5-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Code Signing](https://img.shields.io/badge/code%20signing-enabled-success)
+
+A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
+
+## ✨ What's New in v2.3.5
+
+### 🔧 **Maintenance Release** - Version Consistency!
+
+**Updates:**
+- ✅ **Version Display Synchronized** - All UI elements now show v2.3.5
+- ✅ **Documentation Updated** - README and release notes aligned with current version
+- ✅ **Link Updates** - All download links point to latest release
+
+**All v2.3.4 Features Included:**
+- 🔐 **Full Code Signing & Notarization** - No security warnings on macOS
+- 🔄 **Auto-Updater Working** - Seamless updates from v2.3.4+
+- 🎛️ **Stream Deck Sync** - Instant preset synchronization
+- ✨ **Visual Feedback** - Button press indicators
+
+[📖 **Read Release Notes →**](RELEASE_NOTES.md) | [🔐 **Code Signing Details →**](docs/CODE_SIGNING.md)
+
+---
+
+### 🔐 **v2.3.4: Code Signing & Notarization**Resolume Arena Controller
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
@@ -76,13 +101,13 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 ### 1. Download & Install
 
-**Latest Release:** [v2.3.4](https://github.com/trevormarrr/showcall/releases/tag/v2.3.4) 🔐 **Now with Code Signing!**
+**Latest Release:** [v2.3.5](https://github.com/trevormarrr/showcall/releases/tag/v2.3.5) 🔐 **Signed & Notarized!**
 
 - **macOS**: Download `.dmg` → Drag to Applications → No security warnings!
 - **Windows**: Download `.exe` → Run installer
 - **Linux**: Download `.AppImage` → Make executable and run
 
-**⚠️ Updating from v2.3.2 or earlier?** Manual install required (one-time only). See [Release Notes](RELEASE_NOTES.md) for details.
+**⚠️ Updating from v2.3.2 or earlier?** Manual install required (one-time only). Auto-updates work seamlessly after v2.3.4+!
 
 ### 2. Setup Resolume
 
@@ -147,7 +172,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 | Document | Purpose |
 |----------|---------|
-| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.2 release notes |
+| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.5 release notes |
 | **[CHANGELOG.md](CHANGELOG.md)** | Complete version history |
 | **[INSTALLATION.md](docs/INSTALLATION.md)** | Detailed installation guide |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute |
@@ -341,10 +366,10 @@ If you find ShowCall useful, please consider starring the project on GitHub!
 
 ---
 
-**Version:** 2.3.2  
-**Release Date:** February 14, 2026  
+**Version:** 2.3.5  
+**Release Date:** February 16, 2026  
 **License:** MIT
 
-**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.2)
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.5)
 
 **Happy streaming! 🎬✨**

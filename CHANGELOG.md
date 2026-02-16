@@ -2,6 +2,34 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.3.5] - 2026-02-16
+
+### 🎯 Maintenance Release
+
+- **Version Consistency**: Updated all version numbers across UI and documentation
+  - Updated HTML interface version display to v2.3.5
+  - Synchronized README.md with latest version references
+  - Updated all documentation links to point to v2.3.5
+  
+- **Documentation Improvements**: 
+  - Clarified auto-updater requirements in README
+  - Enhanced release notes formatting
+  - Updated quick reference links
+
+### Technical
+
+- All macOS builds continue to be signed and notarized
+- Auto-updater working seamlessly from v2.3.4+
+- GitHub Actions automatically signs all releases
+
+### Note
+
+This is a maintenance release to ensure version consistency across the application. All features from v2.3.4 are included:
+- ✅ Full code signing and notarization
+- ✅ Auto-updater functionality
+- ✅ Stream Deck preset sync
+- ✅ Real-time updates and visual feedback
+
 ## [2.3.4] - 2026-02-16
 
 ### 🔐 Security & Stability
