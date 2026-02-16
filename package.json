@@ -68,9 +68,13 @@
       ],
       "category": "public.app-category.video",
       "icon": "build/showcall_icon.icns",
-      "hardenedRuntime": false,
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
-      "notarize": false
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": {
+        "teamId": "KHG523256M"
+      }
     },
     "win": {
       "target": [
@@ -109,7 +113,7 @@
         "width": 600,
         "height": 400
       },
-      "sign": false,
+      "sign": true,
       "writeUpdateInfo": true
     },
     "nsis": {
