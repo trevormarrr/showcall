@@ -6,48 +6,25 @@
 1. Go to [Releases](https://github.com/trevormarrr/showcall/releases)
 2. Download the appropriate file for your Mac:
    - **Apple Silicon (M1/M2/M3/M4)**: `ShowCall-X.X.X-arm64.dmg`
-   - **Intel**: `ShowCall-X.X.X.dmg` (universal)
+   - **Intel**: `ShowCall-X.X.X.dmg` or `ShowCall-X.X.X-x64.dmg`
 
 ### Install
 
 1. **Open the DMG file**
 2. **Drag ShowCall to Applications folder** (shown in the installer window)
 3. **Eject the DMG** after copying
+4. **Open ShowCall** from Applications folder
 
-### First Launch - Security Warning
+### First Launch
 
-⚠️ **You may see: "ShowCall is damaged and can't be opened"**
+**For signed versions (v2.3.3+):**
+- Just double-click to open - no security warnings!
+- Auto-updates will work automatically
 
-This is NOT a virus! The app is unsigned because we don't have an Apple Developer certificate yet. macOS blocks all unsigned apps by default.
-
-#### Fix Option 1: Remove Quarantine (Recommended)
-Open Terminal and run:
-```bash
-xattr -cr /Applications/ShowCall.app
-```
-
-Then open ShowCall normally from Applications.
-
-#### Fix Option 2: Right-Click Open
-1. Go to Applications folder
-2. **Right-click** (or Control+click) on ShowCall.app
-3. Select **"Open"**
-4. Click **"Open"** in the dialog
-5. This permanently allows the app
-
-#### Fix Option 3: System Settings
-1. Try to open ShowCall (it will be blocked)
-2. Go to **System Settings → Privacy & Security**
-3. Scroll down to see **"ShowCall was blocked"**
-4. Click **"Open Anyway"**
-5. Try opening again and click **"Open"**
-
-### Why This Happens
-
-- ShowCall is open-source and free
-- Apple code-signing requires a $99/year Developer account
-- The app is safe - you can review the source code
-- This is a common issue for open-source macOS apps
+**For older unsigned versions:**
+- macOS may show "damaged" or security warning
+- This is NOT a virus - it's because older versions weren't code-signed
+- **Solution:** Download the latest version (signed & notarized)
 
 ### Verify the App is Safe
 

@@ -6,6 +6,11 @@ dist
 .env.local
 .env.production
 
+# Code signing secrets
+github-secrets-summary.txt
+*.p12
+*.cer
+
 # Dev notes (not needed in repo)
 FIXED.md
 OSC_WORKING.md

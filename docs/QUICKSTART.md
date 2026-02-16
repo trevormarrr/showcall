@@ -6,14 +6,16 @@ Get up and running with ShowCall in 5 minutes!
 
 ### Download
 Go to [Releases](https://github.com/trevormarrr/showcall/releases) and download for your platform:
-- **macOS**: Download `.dmg` file
+- **macOS**: Download `.dmg` file (Apple Silicon or Intel)
 - **Windows**: Download `.exe` installer  
 - **Linux**: Download `.AppImage`
 
 ### Install
-- **macOS**: Open DMG → Drag ShowCall to Applications
+- **macOS**: Open DMG → Drag ShowCall to Applications → Double-click to open
 - **Windows**: Run installer → Follow prompts
 - **Linux**: `chmod +x ShowCall*.AppImage` then run
+
+**Note:** Versions 2.3.3+ are properly signed - no security warnings!
 
 ## Step 2: Setup Resolume (2 min)
 
@@ -31,16 +33,23 @@ Go to [Releases](https://github.com/trevormarrr/showcall/releases) and download 
 
 ## Step 3: Configure ShowCall (1 min)
 
-1. **Launch ShowCall** for the first time
-2. **Quit the app** (it creates the `.env` file)
-3. **Find the .env file**:
-   - macOS: Right-click app → Show Package Contents → `.env`
-   - Or check your home directory
-4. **Edit .env** with your Resolume IP:
+ShowCall creates a `.env` file on first launch. You can:
+
+**Option 1: Edit via UI (Easiest)**
+1. Launch ShowCall
+2. Look for connection status in top-right
+3. If Resolume isn't detected, update the Resolume IP in the UI
+
+**Option 2: Edit .env file**
+1. Launch ShowCall once (creates `.env`)
+2. Find `.env` in the app directory
+3. Edit `RESOLUME_HOST` to your Resolume computer's IP:
    ```bash
-   RESOLUME_HOST=YOUR_RESOLUME_IP_HERE
+   RESOLUME_HOST=10.1.110.146  # Replace with your IP
+   RESOLUME_REST_PORT=8080
+   RESOLUME_OSC_PORT=7000
    ```
-5. **Save and close**
+4. Save and restart ShowCall
 
 ## Step 4: Run! (30 sec)
 
