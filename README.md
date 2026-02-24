@@ -1,4 +1,8 @@
-# Sh![ShowCall Interface](https://img.shields.io/badge/version-2.3.5-blue)
+# ShowCall - Resolume Arena Controller
+
+> Professional remote controller for Resolume Arena using OSC + REST API
+
+![ShowCall Interface](https://img.shields.io/badge/version-2.3.5-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Code Signing](https://img.shields.io/badge/code%20signing-enabled-success)
 

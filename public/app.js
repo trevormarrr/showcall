@@ -702,7 +702,12 @@ function buildGridFromComposition(comp) {
   const displayLayers = gridView.expandedLayers ? totalLayers : Math.min(gridView.maxLayers, totalLayers);
   const displayColumns = gridView.expandedColumns ? totalColumns : Math.min(gridView.maxColumns, totalColumns);
   
-  container.style.gridTemplateColumns = `160px repeat(${displayColumns}, minmax(100px, 1fr))`;
+  // Use fixed widths when expanded to ensure all columns are visible with scroll
+  if (gridView.expandedColumns) {
+    container.style.gridTemplateColumns = `160px repeat(${displayColumns}, 120px)`;
+  } else {
+    container.style.gridTemplateColumns = `160px repeat(${displayColumns}, minmax(100px, 1fr))`;
+  }
 
   // Header row with column numbers and expand button
   const cornerCell = hdrCell("");
