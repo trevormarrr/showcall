@@ -1,229 +1,456 @@
-# ShowCall v2.3.5 — Maintenance & Consistency Release 🔧# ShowCall v2.3.4 — Code Signing & Auto-Updater Fix 🔐✨# ShowCall v2.3.2 — Real-Time Sync & Visual Feedback 🔄✨
+# ShowCall v2.3.6 — Grid Scrolling Improvement 🎯# ShowCall v2.3.5 — Maintenance & Consistency Release 🔧# ShowCall v2.3.4 — Code Signing & Auto-Updater Fix 🔐✨# ShowCall v2.3.2 — Real-Time Sync & Visual Feedback 🔄✨
 
 
+
+**Release Date:** February 24, 2026  
+
+**Status:** Stable Feature Release
 
 **Release Date:** February 16, 2026  
 
+## 🎯 What's New in v2.3.6
+
 **Status:** Stable Maintenance Release
+
+### ✨ Horizontal Grid Scrolling
 
 **Release Date:** February 16, 2026  **Release Date:** February 15, 2026  
 
+**Finally fixed!** The column grid now scrolls horizontally so you can see ALL your columns, even if you have 20, 30, or 40+ columns in your Resolume composition.
+
 ## 🎯 What's in This Release
 
-**Status:** Stable Security & Stability Release**Status:** Stable Bug Fix Release
+**Before:**
 
-This is a **maintenance release** focused on version consistency and documentation improvements. All features from v2.3.4 are included and working perfectly!
+- Clicking expand (▶) only showed about half the columns**Status:** Stable Security & Stability Release**Status:** Stable Bug Fix Release
+
+- Columns were compressed and hard to read
+
+- Many columns were completely hiddenThis is a **maintenance release** focused on version consistency and documentation improvements. All features from v2.3.4 are included and working perfectly!
 
 
 
-### 🔧 Updates in v2.3.5
+**After:**
 
-## 🎯 What's New## 🐛 Critical Bug Fixes
+- ✅ All columns visible via horizontal scroll
+
+- ✅ Smooth scrolling with mouse wheel or trackpad### 🔧 Updates in v2.3.5
+
+- ✅ Custom styled scrollbar (blue accent, 10px height)
+
+- ✅ Fixed 120px column widths for consistency## 🎯 What's New## 🐛 Critical Bug Fixes
+
+- ✅ Layer labels stay fixed on the left
 
 **Version Consistency:**
 
+### How to Use
+
 - ✅ Updated UI version display to v2.3.5
 
-- ✅ Synchronized all documentation version references
+1. Open ShowCall and connect to Resolume
 
-- ✅ Updated README download linksThis release focuses on **security, trust, and seamless updates** for all macOS users.This release fixes two important issues reported in v2.3.0 Stream Deck integration:
+2. Click the **▶ button** in the top-left of the grid- ✅ Synchronized all documentation version references
+
+3. All columns are now visible!
+
+4. Scroll horizontally to navigate through all columns- ✅ Updated README download linksThis release focuses on **security, trust, and seamless updates** for all macOS users.This release fixes two important issues reported in v2.3.0 Stream Deck integration:
+
+5. Layer labels remain fixed for easy reference
 
 - ✅ Aligned CHANGELOG entries
 
+---
 
+
+
+## ✨ All Features from v2.3.5 Included
 
 **Why This Matters:**
 
-- Ensures users see consistent version numbers across the app### 🔐 Full Code Signing & Notarization### Fixed Issue #1: Instant Preset Updates ✅
+### 🔐 Code Signing & Notarization
 
-- Prevents confusion when checking "About" or documentation
+- ✅ Fully signed macOS builds (no security warnings)- Ensures users see consistent version numbers across the app### 🔐 Full Code Signing & Notarization### Fixed Issue #1: Instant Preset Updates ✅
 
-- Makes support and troubleshooting easier**Problem:** Presets didn't update on Stream Deck without restarting Companion module  
+- ✅ Apple notarized and approved
+
+- ✅ Professional installation experience- Prevents confusion when checking "About" or documentation
 
 
+
+### 🔄 Auto-Updater- Makes support and troubleshooting easier**Problem:** Presets didn't update on Stream Deck without restarting Companion module  
+
+- ✅ Seamless in-app updates from v2.3.4+
+
+- ✅ One-click update installation
+
+- ✅ Secure code signature validation
 
 ---**All macOS builds are now properly signed and notarized with Apple:****Solution:** Automatic broadcast of preset updates when saved  
 
+### 🎛️ Stream Deck Integration
+
+- ✅ Instant preset synchronization
+
+- ✅ Visual button feedback (orange flash)
+
+- ✅ Zero manual configuration## ✨ All Features Included (from v2.3.4)**Result:** Presets now appear/update instantly (<100ms)
+
+- ✅ Real-time updates (<100ms)
 
 
-## ✨ All Features Included (from v2.3.4)**Result:** Presets now appear/update instantly (<100ms)
-
-
-
-### 🔐 Full Code Signing & Notarization✅ **No More Security Warnings**
-
-
-
-**All macOS builds are properly signed and notarized:**- Eliminates "ShowCall is damaged" errors### Fixed Issue #2: Visual Button Feedback ✅
-
-
-
-✅ **No Security Warnings**- No more "unverified developer" warnings**Problem:** No visual indication when pressing preset buttons  
-
-- Opens directly without "damaged" or "unverified developer" errors
-
-- Passes macOS Gatekeeper automatically- Opens directly without Gatekeeper bypasses**Solution:** Active state tracking with bright orange flash  
-
-- Professional installation experience
-
-- Professional, trusted installation experience**Result:** Buttons flash orange for 500ms when pressed
-
-✅ **Apple Notarized**
-
-- Scanned and approved by Apple
-
-- Enterprise-ready distribution
-
-- Same trust level as major commercial apps✅ **Apple Notarization**## 🎯 What's Fixed
-
-
-
-✅ **Enhanced Security**- Apps are scanned and approved by Apple
-
-- Hardened Runtime enabled
-
-- Code signature verification at every launch- Passes macOS security checks automatically### Real-Time Preset Synchronization
-
-- Protected against tampering
-
-- Professional distribution standard met- ✅ Presets update on Stream Deck **instantly** when saved
-
-### 🔄 Auto-Updater Working Perfectly
-
-- ✅ No more manual Companion restarts needed
-
-✅ **Seamless Updates**
-
-- In-app update notifications✅ **Enhanced Security**- ✅ Create preset → Appears immediately (<100ms)
-
-- One-click update installation
-
-- Progress tracking and download management- Hardened Runtime enabled for better protection- ✅ Modify preset → Updates automatically
-
-- No more manual downloads needed!
-
-- Proper entitlements configured- ✅ Delete preset → Removed from Stream Deck instantly
-
-✅ **Code Signature Validation**
-
-- All updates properly signed- Code signature verification at every launch
-
-- Secure update chain from v2.3.4+
-
-- Automatic validation before installation### Active Button Visual Feedback
-
-
-
-### 🎛️ Stream Deck Integration### 🔄 Auto-Updater Fixed- ✅ Buttons **flash bright orange** when pressed
-
-
-
-✅ **Preset Synchronization**- ✅ 500ms visual feedback window
-
-- Create presets → Instant appearance on Stream Deck
-
-- Real-time updates (<100ms)**Seamless updates are here!**- ✅ Clear indication of preset execution
-
-- Zero manual button configuration
-
-- Colors and labels always match- ✅ Better user experience with immediate confirmation
-
-
-
-✅ **Visual Feedback**✅ **Fixed Code Signature Validation**- ✅ Multiple buttons can be pressed in sequence with visual feedback
-
-- Buttons flash orange when pressed
-
-- 500ms visual confirmation window- Resolved "code failed to satisfy specified code requirement(s)" error
-
-- Clear execution indication
-
-- Auto-updater now works reliably for signed builds## 🚀 Quick Start
 
 ### 🎯 Core Features
 
-- One-time manual installation required (see below)
+- ⚡ OSC control (UDP port 7000)### 🔐 Full Code Signing & Notarization✅ **No More Security Warnings**
 
-✅ **OSC Control & REST Monitoring**
+- 📊 REST API monitoring (port 8080)
 
-- Lightning-fast clip triggering### If You Have v2.3.0 or v2.3.1
+- 🔌 Auto-discovery of Resolume composition
 
-- Real-time composition monitoring
+- 🎯 Visual clip grid with live states
 
-- Auto-discovery of Resolume structure✅ **Future-Proof Updates**
+- 💻 Cross-platform (macOS, Windows, Linux)**All macOS builds are properly signed and notarized:**- Eliminates "ShowCall is damaged" errors### Fixed Issue #2: Visual Button Feedback ✅
 
 
-
-✅ **Preset Macros**- All releases from v2.3.4 forward will auto-update seamlessly**Simply update both:**
-
-- Multi-step automation sequences
-
-- Keyboard hotkey support- No more manual downloads needed after v2.3.41. Install ShowCall v2.3.2
-
-- Import/export functionality
-
-- In-app update notifications work perfectly2. Update Companion module to v2.1.1
 
 ---
 
-3. Enjoy the fixes! 🎉
 
-## 📥 Download & Installation
 
-## ⚠️ Important: One-Time Manual Installation Required
+## 📥 Download & Installation✅ **No Security Warnings**- No more "unverified developer" warnings**Problem:** No visual indication when pressing preset buttons  
 
-### Fresh Installation
+
+
+### Fresh Installation- Opens directly without "damaged" or "unverified developer" errors
+
+
+
+**Download the appropriate version for your platform:**- Passes macOS Gatekeeper automatically- Opens directly without Gatekeeper bypasses**Solution:** Active state tracking with bright orange flash  
+
+
+
+- **macOS (Apple Silicon):** [ShowCall-2.3.6-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.6/ShowCall-2.3.6-mac-arm64.dmg)- Professional installation experience
+
+- **macOS (Intel):** [ShowCall-2.3.6-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.6/ShowCall-2.3.6-mac-x64.dmg)
+
+- **Windows:** [ShowCall-Setup-2.3.6.exe](https://github.com/trevormarrr/showcall/releases/download/v2.3.6/ShowCall-Setup-2.3.6.exe)- Professional, trusted installation experience**Result:** Buttons flash orange for 500ms when pressed
+
+- **Linux:** [ShowCall-2.3.6.AppImage](https://github.com/trevormarrr/showcall/releases/download/v2.3.6/ShowCall-2.3.6.AppImage)
+
+✅ **Apple Notarized**
+
+### Updating from Previous Versions
+
+- Scanned and approved by Apple
+
+✅ **From v2.3.4, v2.3.5:** Auto-update available in-app! Just click "Update" when prompted.
+
+- Enterprise-ready distribution
+
+⚠️ **From v2.3.2 or earlier:** One-time manual download required. After installing v2.3.6, all future updates will work automatically through the built-in updater.
+
+- Same trust level as major commercial apps✅ **Apple Notarization**## 🎯 What's Fixed
+
+---
+
+
+
+## 🎨 Technical Details
+
+✅ **Enhanced Security**- Apps are scanned and approved by Apple
+
+### Grid Scrolling Implementation
+
+- Hardened Runtime enabled
+
+**CSS Changes:**
+
+```css- Code signature verification at every launch- Passes macOS security checks automatically### Real-Time Preset Synchronization
+
+#grid {
+
+  overflow-x: auto;      /* Enable horizontal scrolling */- Protected against tampering
+
+  overflow-y: hidden;    /* Prevent vertical scroll */
+
+  scrollbar-width: thin; /* Firefox */- Professional distribution standard met- ✅ Presets update on Stream Deck **instantly** when saved
+
+  scrollbar-color: rgba(125, 211, 252, 0.5) rgba(255, 255, 255, 0.1);
+
+}### 🔄 Auto-Updater Working Perfectly
+
+
+
+/* Custom webkit scrollbar */- ✅ No more manual Companion restarts needed
+
+#grid::-webkit-scrollbar {
+
+  height: 10px;✅ **Seamless Updates**
+
+}
+
+- In-app update notifications✅ **Enhanced Security**- ✅ Create preset → Appears immediately (<100ms)
+
+#grid::-webkit-scrollbar-thumb {
+
+  background: rgba(125, 211, 252, 0.5);- One-click update installation
+
+  border-radius: 5px;
+
+}- Progress tracking and download management- Hardened Runtime enabled for better protection- ✅ Modify preset → Updates automatically
+
+```
+
+- No more manual downloads needed!
+
+**JavaScript Logic:**
+
+```javascript- Proper entitlements configured- ✅ Delete preset → Removed from Stream Deck instantly
+
+// Fixed widths when expanded for consistent scrolling
+
+if (gridView.expandedColumns) {✅ **Code Signature Validation**
+
+  container.style.gridTemplateColumns = `160px repeat(${displayColumns}, 120px)`;
+
+} else {- All updates properly signed- Code signature verification at every launch
+
+  container.style.gridTemplateColumns = `160px repeat(${displayColumns}, minmax(100px, 1fr))`;
+
+}- Secure update chain from v2.3.4+
+
+```
+
+- Automatic validation before installation### Active Button Visual Feedback
+
+### Browser Support
+
+
+
+✅ **Scrollbar styling works on:**
+
+- Chrome/Edge (webkit scrollbar)### 🎛️ Stream Deck Integration### 🔄 Auto-Updater Fixed- ✅ Buttons **flash bright orange** when pressed
+
+- Firefox (scrollbar-width/scrollbar-color)
+
+- Safari (webkit scrollbar)
+
+
+
+---✅ **Preset Synchronization**- ✅ 500ms visual feedback window
+
+
+
+## 🚀 What This Means for You- Create presets → Instant appearance on Stream Deck
+
+
+
+### For Users with Many Columns- Real-time updates (<100ms)**Seamless updates are here!**- ✅ Clear indication of preset execution
+
+
+
+If you have compositions with 20+ columns:- Zero manual button configuration
+
+- ✅ No more hidden columns
+
+- ✅ All columns accessible via smooth scroll- Colors and labels always match- ✅ Better user experience with immediate confirmation
+
+- ✅ Easy navigation with mouse wheel
+
+- ✅ Visual consistency with fixed widths
+
+
+
+### For Stream Deck Users✅ **Visual Feedback**✅ **Fixed Code Signature Validation**- ✅ Multiple buttons can be pressed in sequence with visual feedback
+
+
+
+- ✅ Full grid visibility helps with preset creation- Buttons flash orange when pressed
+
+- ✅ See all available clips at a glance
+
+- ✅ Better understanding of composition structure- 500ms visual confirmation window- Resolved "code failed to satisfy specified code requirement(s)" error
+
+
+
+### For Live Productions- Clear execution indication
+
+
+
+- ✅ Quick access to all columns during shows- Auto-updater now works reliably for signed builds## 🚀 Quick Start
+
+- ✅ Smooth scrolling doesn't interrupt workflow
+
+- ✅ Layer labels always visible for reference### 🎯 Core Features
+
+
+
+---- One-time manual installation required (see below)
+
+
+
+## 📋 Complete Feature List✅ **OSC Control & REST Monitoring**
+
+
+
+### Control & Monitoring- Lightning-fast clip triggering### If You Have v2.3.0 or v2.3.1
+
+- ⚡ Lightning-fast OSC control (<1ms latency)
+
+- 📊 Real-time REST API monitoring- Real-time composition monitoring
+
+- 🔌 Automatic Resolume composition discovery
+
+- 🎯 Visual clip grid with live program/preview states- Auto-discovery of Resolume structure✅ **Future-Proof Updates**
+
+- 💻 Cross-platform support (macOS, Windows, Linux)
+
+
+
+### Grid & Navigation
+
+- 🖱️ **Horizontal scrolling for all columns** (NEW!)✅ **Preset Macros**- All releases from v2.3.4 forward will auto-update seamlessly**Simply update both:**
+
+- 📏 Fixed column widths when expanded
+
+- 🎨 Custom styled scrollbar- Multi-step automation sequences
+
+- 🔄 Expand/collapse layers and columns
+
+- 🏷️ Fixed layer labels for easy reference- Keyboard hotkey support- No more manual downloads needed after v2.3.41. Install ShowCall v2.3.2
+
+
+
+### Presets & Automation- Import/export functionality
+
+- 🎹 Multi-step macro sequences
+
+- ⌨️ Keyboard hotkey support (1-9, A-Z)- In-app update notifications work perfectly2. Update Companion module to v2.1.1
+
+- 🎛️ Automatic Stream Deck synchronization
+
+- 🎨 Custom colors and labels---
+
+- 📦 Import/export preset functionality
+
+- ✨ Visual button feedback (orange flash)3. Enjoy the fixes! 🎉
+
+
+
+### Interface & UX## 📥 Download & Installation
+
+- 🪟 Pop-out preset deck window
+
+- 🎬 Quick actions (Cut, Clear, Trigger Column)## ⚠️ Important: One-Time Manual Installation Required
+
+- ⚙️ Settings modal for easy configuration
+
+- 🔄 In-app auto-updater with progress tracking### Fresh Installation
+
+- 📱 Responsive design
 
 **Testing the fixes:**
 
-**Download the appropriate version:**
+### Security & Updates
 
-### If You're Using v2.3.2 or Earlier1. Create/edit a preset in ShowCall
+- 🔐 Code signed and notarized (macOS)**Download the appropriate version:**
+
+- 🔒 Hardened Runtime enabled
+
+- 🔄 Seamless auto-updates from v2.3.4+### If You're Using v2.3.2 or Earlier1. Create/edit a preset in ShowCall
+
+- ✅ No security warnings on any platform
 
 - **macOS (Apple Silicon):** [ShowCall-2.3.5-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5-mac-arm64.dmg)
 
+---
+
 - **macOS (Intel):** [ShowCall-2.3.5-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5-mac-x64.dmg)2. Watch it update instantly on Stream Deck
+
+## 📚 Documentation
 
 - **Windows:** [ShowCall-Setup-2.3.5.exe](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-Setup-2.3.5.exe)
 
-- **Linux:** [ShowCall-2.3.5.AppImage](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5.AppImage)Because previous versions were **unsigned**, the auto-updater cannot validate the transition to signed builds.3. Press a button and see it flash orange
+- [Quick Start Guide](https://github.com/trevormarrr/showcall#quick-start)
 
+- [Stream Deck Setup](docs/PRESET_SYNC_GUIDE.md)- **Linux:** [ShowCall-2.3.5.AppImage](https://github.com/trevormarrr/showcall/releases/download/v2.3.5/ShowCall-2.3.5.AppImage)Because previous versions were **unsigned**, the auto-updater cannot validate the transition to signed builds.3. Press a button and see it flash orange
 
+- [Code Signing Details](docs/CODE_SIGNING.md)
+
+- [API Reference](docs/QUICK_REFERENCE.md)
+
+- [Troubleshooting](docs/INSTALLATION.md)
 
 ### Updating from v2.3.44. Both issues resolved!
 
+---
 
+
+
+## 🔄 Version History
 
 ✅ **Auto-update available!** Just click "Update" when prompted in the app.**You must manually download and install v2.3.4:**
 
+- **v2.3.6** (Feb 24, 2026) - Grid horizontal scrolling
 
+- **v2.3.5** (Feb 16, 2026) - Maintenance release, version consistency
 
-### Updating from v2.3.2 or Earlier## 📦 What's Included
+- **v2.3.4** (Feb 16, 2026) - Code signing and notarization
 
+- **v2.3.3** (Feb 16, 2026) - Initial signing configuration### Updating from v2.3.2 or Earlier## 📦 What's Included
 
+- **v2.3.2** (Feb 15, 2026) - Real-time preset sync fixes
 
-⚠️ **One-time manual installation required:**1. **Download** the latest release:
-
-
-
-1. Download the appropriate installer above   - [ShowCall-2.3.4-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-arm64.dmg) (Apple Silicon)### Bug Fixes
-
-2. Install by dragging to Applications (macOS) or running installer (Windows)
-
-3. All future updates will work automatically! 🎉   - [ShowCall-2.3.4-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-x64.dmg) (Intel)- 🔄 Real-time preset sync (no restart needed)
+- **v2.3.0** (Feb 14, 2026) - Stream Deck integration
 
 
 
-**Why?** Previous versions were unsigned, so the auto-updater can't validate the transition to signed builds. This is a security feature, not a bug!- ✨ Active button visual feedback (orange flash)
+---⚠️ **One-time manual installation required:**1. **Download** the latest release:
 
 
+
+## 🙏 Thank You!
+
+
+
+This release improves the grid experience for users with large Resolume compositions. We hope the horizontal scrolling makes your workflow even smoother!1. Download the appropriate installer above   - [ShowCall-2.3.4-mac-arm64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-arm64.dmg) (Apple Silicon)### Bug Fixes
+
+
+
+### What's Next?2. Install by dragging to Applications (macOS) or running installer (Windows)
+
+
+
+**Planned for future releases:**3. All future updates will work automatically! 🎉   - [ShowCall-2.3.4-mac-x64.dmg](https://github.com/trevormarrr/showcall/releases/download/v2.3.4/ShowCall-2.3.4-mac-x64.dmg) (Intel)- 🔄 Real-time preset sync (no restart needed)
+
+- Preset thumbnails and icons
+
+- Execution history tracking
+
+- Enhanced Stream Deck feedback
+
+- Additional preset actions**Why?** Previous versions were unsigned, so the auto-updater can't validate the transition to signed builds. This is a security feature, not a bug!- ✨ Active button visual feedback (orange flash)
+
+- Grid search/filter functionality
+
+
+
+---
 
 ---2. **Install** by dragging to Applications folder- 📡 Enhanced WebSocket broadcasting
 
+**Questions or Issues?**
+
+- [Open an Issue](https://github.com/trevormarrr/showcall/issues)
+
+- [Read the Docs](docs/README.md)
+
+- [Check Discussions](https://github.com/trevormarrr/showcall/discussions)## 🚀 What This Release Means- ⚡ Improved state tracking and coordination
 
 
-## 🚀 What This Release Means- ⚡ Improved state tracking and coordination
 
+**Enjoy seamless, professional Resolume control with full grid visibility!** 🎬✨
 
 
 ### For All Users3. **Enjoy** - All future updates will work automatically! 🎉

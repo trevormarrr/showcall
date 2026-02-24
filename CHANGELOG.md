@@ -2,6 +2,29 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.3.6] - 2026-02-24
+
+### ✨ Improved
+
+- **Horizontal Scrolling for Column Grid**: Added horizontal scroll bar to view all columns
+  - Grid now scrolls horizontally when columns are expanded
+  - Fixed issue where only half of columns were visible with many columns
+  - Custom styled scrollbar with blue accent color matching UI theme
+  - Fixed 120px column width when expanded for consistent scrolling
+  - Smooth scrolling experience with mouse wheel and trackpad
+  - Layer labels remain fixed on the left for easy reference
+
+### 🔧 Technical
+
+- Changed `#grid` overflow from `hidden` to `overflow-x: auto`
+- Added custom scrollbar styling for webkit and Firefox browsers
+- Updated grid template to use fixed widths when expanded
+- Added `min-width: min-content` to grid container
+
+### Note
+
+This release focuses on improving the grid UI for compositions with many columns (20+). All features from v2.3.5 are included and working perfectly.
+
 ## [2.3.5] - 2026-02-16
 
 ### 🎯 Maintenance Release

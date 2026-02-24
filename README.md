@@ -2,15 +2,31 @@
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
-![ShowCall Interface](https://img.shields.io/badge/version-2.3.5-blue)
+![ShowCall Interface](https://img.shields.io/badge/version-2.3.6-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Code Signing](https://img.shields.io/badge/code%20signing-enabled-success)
 
 A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
 
-## ✨ What's New in v2.3.5
+## ✨ What's New in v2.3.6
 
-### 🔧 **Maintenance Release** - Version Consistency!
+### 🎯 **Grid Horizontal Scrolling** - Finally Fixed!
+
+**The grid now scrolls horizontally so you can see ALL your columns!**
+
+- ✅ **All Columns Visible** - No more hidden columns with 20+ column compositions
+- ✅ **Smooth Scrolling** - Mouse wheel and trackpad navigation
+- ✅ **Custom Scrollbar** - Blue accent styling matching the UI theme
+- ✅ **Fixed Widths** - Consistent 120px columns when expanded
+- ✅ **Layer Labels Fixed** - Always visible on the left for easy reference
+
+**How to use:** Click the **▶ button** in the grid's top-left corner to expand all columns, then scroll horizontally!
+
+[📖 **Read Release Notes →**](RELEASE_NOTES.md) | [🔐 **Code Signing Details →**](docs/CODE_SIGNING.md)
+
+---
+
+### 🔧 **Previous: Maintenance Release** (v2.3.5)
 
 **Updates:**
 - ✅ **Version Display Synchronized** - All UI elements now show v2.3.5
@@ -105,7 +121,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 ### 1. Download & Install
 
-**Latest Release:** [v2.3.5](https://github.com/trevormarrr/showcall/releases/tag/v2.3.5) 🔐 **Signed & Notarized!**
+**Latest Release:** [v2.3.6](https://github.com/trevormarrr/showcall/releases/tag/v2.3.6) 🎯 **Grid Scrolling!**
 
 - **macOS**: Download `.dmg` → Drag to Applications → No security warnings!
 - **Windows**: Download `.exe` → Run installer
@@ -176,7 +192,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 | Document | Purpose |
 |----------|---------|
-| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.5 release notes |
+| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.6 release notes |
 | **[CHANGELOG.md](CHANGELOG.md)** | Complete version history |
 | **[INSTALLATION.md](docs/INSTALLATION.md)** | Detailed installation guide |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute |
@@ -370,10 +386,10 @@ If you find ShowCall useful, please consider starring the project on GitHub!
 
 ---
 
-**Version:** 2.3.5  
-**Release Date:** February 16, 2026  
+**Version:** 2.3.6  
+**Release Date:** February 24, 2026  
 **License:** MIT
 
-**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.5)
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.3.6)
 
 **Happy streaming! 🎬✨**
