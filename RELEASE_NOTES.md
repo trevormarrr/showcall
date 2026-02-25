@@ -1,18 +1,44 @@
-# ShowCall v2.4.1 Release Notes
+# ShowCall v2.4.2 Release Notes
 
-## 🐛 Bug Fix Release
+## 🎨 UI Enhancement Release
 
-This is a minor patch release to fix version display inconsistencies in the v2.4.0 release.
+This release focuses on improving the Cue Stack UI for better readability and usability with large cue lists.
 
-### What's Fixed
+### What's New
 
-- ✅ **UI Version Display** - Header now correctly shows v2.4.1
-- ✅ **Documentation Sync** - All version references updated across files
-- ✅ **Package Version** - package.json synchronized with release
+- ✅ **Taller Cue Items** - 50% larger cue items (72px min-height) for much better readability
+- ✅ **Enhanced Scrollbar** - Always visible, polished scrollbar with beautiful gradient effects
+- ✅ **Better Spacing** - Increased padding (18px/20px) and gaps (10px) throughout
+- ✅ **Larger Elements** - Bigger cue numbers (40px), text sizes, and color indicators
+- ✅ **Smooth Auto-Centering** - Active cue smoothly scrolls to center of viewport
+- ✅ **Improved Container** - Expanded to 65vh with 350px minimum height
 
-### All v2.4.0 Features Included
+### Why This Update?
 
-This release includes all the major features from v2.4.0:
+When working with 10+ cues, the previous UI felt cramped. This update makes everything more spacious and easier to read at a glance, especially during live shows.
+
+### Visual Improvements
+
+**Scrollbar:**
+- Width: 10px → 12px
+- Always visible (not just on hover)
+- Cyan/blue gradient with glow effects
+- Dark track with subtle borders
+- Enhanced hover and active states
+
+**Cue Items:**
+- Padding: 12px/16px → 18px/20px
+- Minimum height: 72px (consistent sizing)
+- Gap between items: 8px → 10px
+- Side indicator: 4px → 5px width
+
+**Typography & Elements:**
+- Cue numbers: 32px → 40px (font 14px → 16px)
+- Labels: 14px → 15px
+- Details: 12px → 13px
+- Color dots: 10px → 12px
+
+### All v2.4 Features Included
 
 ## 🎭 Cue Stack System - Sequential Show Control
 
@@ -51,7 +77,7 @@ Cue 6: Closing
 ## 📦 Installation
 
 ### macOS
-Download \`ShowCall-2.4.1-arm64.dmg\` for Apple Silicon or \`ShowCall-2.4.1.dmg\` for Intel Macs.
+Download `ShowCall-2.4.2-arm64.dmg` for Apple Silicon or `ShowCall-2.4.2.dmg` for Intel Macs.
 
 ### Auto-Update
 If you're on v2.3.4 or later, the app will automatically notify you of this update.

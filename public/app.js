@@ -2445,6 +2445,36 @@ function initCueStack() {
       const nextCueNum = cueStack.currentIndex + 1;
       cueProgressText.textContent = `Ready: Cue ${nextCueNum} of ${cueStack.cues.length - 1}`;
     }
+    
+    // Auto-scroll to keep current cue centered vertically
+    scrollToCurrentCue();
+  }
+  
+  // Smooth scroll to center the current cue in the viewport
+  function scrollToCurrentCue() {
+    // Wait for DOM to update
+    setTimeout(() => {
+      const activeItem = cueStackList.querySelector('.cue-item.active');
+      if (activeItem) {
+        const listHeight = cueStackList.clientHeight;
+        const itemTop = activeItem.offsetTop;
+        const itemHeight = activeItem.clientHeight;
+        
+        // Calculate scroll position to center the item
+        const scrollTo = itemTop - (listHeight / 2) + (itemHeight / 2);
+        
+        cueStackList.scrollTo({
+          top: scrollTo,
+          behavior: 'smooth'
+        });
+      } else if (cueStack.currentIndex === -1) {
+        // If in standby, scroll to top to show Cue 0 (next)
+        cueStackList.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+    }, 50);
   }
   
   // Execute next cue

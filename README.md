@@ -1,4 +1,28 @@
-# ShowCall - Resolume Arena Controller
+# Sh![ShowCall Interface](https://img.shields.io/badge/version-2.4.2-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Code Signing](https://img.sh### 1. Download & Install
+
+**Latest Release:** [v2.4.2](https://github.com/trevormarrr/showcall/releases/tag/v2.4.2) 🎨 **Enhanced Cue Stack UI!**
+
+- **macOS**: Download `.dmg` → Drag to Applications → No security warnings!
+- **Windows**: Download `.exe` → Run installer
+- **Linux**: Download `.AppImage` → Make executable and runo/badge/code%20signing-enabled-success)
+
+A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
+
+## ✨ What's New in v2.4.2
+
+### 🎨 **UI Enhancement Release**
+
+- ✅ **Taller Cue Items** - 50% larger cue items (72px min-height) for better readability
+- ✅ **Enhanced Scrollbar** - Always visible polished scrollbar with gradient effects
+- ✅ **Better Spacing** - Increased padding and gaps throughout cue stack
+- ✅ **Larger Elements** - Bigger cue numbers (40px), text, and color dots
+- ✅ **Auto-Centering** - Active cue smoothly scrolls to center of viewport
+
+**Previous v2.4 Features:**
+
+### 🎭 **Cue Stack System** - Sequential Show Control!e Arena Controller
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
@@ -217,7 +241,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 | Document | Purpose |
 |----------|---------|
-| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.4.1 release notes |
+| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.4.2 release notes |
 | **[CHANGELOG.md](CHANGELOG.md)** | Complete version history |
 | **[INSTALLATION.md](docs/INSTALLATION.md)** | Detailed installation guide |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute |
@@ -411,10 +435,10 @@ If you find ShowCall useful, please consider starring the project on GitHub!
 
 ---
 
-**Version:** 2.4.1  
+**Version:** 2.4.2  
 **Release Date:** February 25, 2026  
 **License:** MIT
 
-**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.4.1)
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.4.2)
 
 **Happy streaming! 🎬✨**

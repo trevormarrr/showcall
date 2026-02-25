@@ -2,6 +2,31 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.4.2] - 2026-02-25
+
+### 🎨 UI Enhancements
+
+- **Taller Cue Items**: Increased cue item height to 72px minimum (50% larger) for better readability
+- **Enhanced Scrollbar**: Always-visible polished scrollbar with gradient effects and glow
+- **Better Spacing**: Increased padding (18px/20px) and gaps (10px) throughout cue stack
+- **Larger Elements**: 
+  - Cue numbers increased to 40px (from 32px)
+  - Font sizes increased across labels and details
+  - Color dots increased to 12px (from 10px)
+  - Side indicators increased to 5px (from 4px)
+- **Improved Scrolling**: 
+  - Container height expanded to 65vh with 350px minimum
+  - Active cue auto-centers in viewport with smooth animation
+  - Scrollbar width increased to 12px with enhanced styling
+- **Visual Polish**: Better contrast, borders, and hover effects throughout
+
+### Technical Details
+
+- Updated `cuestack.css` scrollbar styling with gradients
+- Modified `.cue-item` padding and minimum height
+- Enhanced `.cue-number`, `.cue-label`, and `.cue-details` sizing
+- Improved `scrollToCurrentCue()` function for better centering
+
 ## [2.4.1] - 2026-02-25
 
 ### 🐛 Fixes
