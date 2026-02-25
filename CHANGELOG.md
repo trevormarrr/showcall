@@ -2,6 +2,18 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.4.1] - 2026-02-25
+
+### 🐛 Fixes
+
+- Fixed version display in UI header (now correctly shows v2.4.1)
+- Updated all version references across documentation
+- Synchronized package.json, README, and HTML version numbers
+
+### Note
+
+This is a minor patch release to fix version display inconsistencies. All features from v2.4.0 are included and working perfectly.
+
 ## [2.4.0] - 2026-02-25
 
 ### 🎭 NEW: Cue Stack System - Sequential Show Control
