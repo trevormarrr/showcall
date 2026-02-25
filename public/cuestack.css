@@ -1,0 +1,418 @@
+/* Cue Stack Styles */
+
+#cueStackSection {
+  margin: 32px 0;
+}
+
+#cueStackSection h2 {
+  margin: 24px 0 12px;
+  opacity: 0.9;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cuestack-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+}
+
+.cuestack-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cuestack-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cuestack-status {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green);
+  font-weight: 600;
+}
+
+.cuestack-status.active {
+  background: rgba(34, 197, 94, 0.2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.cuestack-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.cuestack-btn {
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%);
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  color: var(--accent-light);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cuestack-btn:hover {
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
+  border-color: rgba(125, 211, 252, 0.5);
+  transform: translateY(-1px);
+}
+
+.cuestack-btn:active {
+  transform: translateY(0);
+}
+
+.cuestack-btn.primary {
+  background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+  border-color: #0ea5e9;
+  color: white;
+  font-size: 14px;
+  padding: 10px 20px;
+}
+
+.cuestack-btn.primary:hover {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+}
+
+.cuestack-btn.danger {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--red);
+}
+
+.cuestack-btn.danger:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.cuestack-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.cuestack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.cuestack-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cuestack-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.cuestack-list::-webkit-scrollbar-thumb {
+  background: rgba(125, 211, 252, 0.3);
+  border-radius: 4px;
+}
+
+.cuestack-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 211, 252, 0.5);
+}
+
+.cue-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.cue-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.cue-item::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.cue-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(125, 211, 252, 0.3);
+  transform: translateX(2px);
+}
+
+.cue-item.active {
+  background: rgba(125, 211, 252, 0.15);
+  border-color: rgba(125, 211, 252, 0.5);
+  box-shadow: 0 0 20px rgba(125, 211, 252, 0.2), inset 0 0 20px rgba(125, 211, 252, 0.05);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.cue-item.active::before {
+  background: var(--accent-light);
+  box-shadow: 0 0 10px var(--accent-light);
+}
+
+.cue-item.active::after {
+  content: '▶ CURRENT';
+  background: rgba(125, 211, 252, 0.3);
+  color: var(--accent-light);
+  opacity: 1;
+  animation: blink-current 1.5s ease-in-out infinite;
+}
+
+.cue-item.next {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.cue-item.next::before {
+  background: rgba(251, 191, 36, 0.6);
+}
+
+.cue-item.next::after {
+  content: '→ NEXT';
+  background: rgba(251, 191, 36, 0.2);
+  color: rgb(251, 191, 36);
+  opacity: 1;
+}
+
+.cue-item.completed {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+  opacity: 0.4;
+}
+
+.cue-item.completed .cue-number {
+  background: rgba(34, 197, 94, 0.3);
+  color: var(--green);
+}
+
+.cue-item.completed .cue-label {
+  text-decoration: line-through;
+}
+
+.cue-item.completed::after {
+  content: '✓';
+  color: var(--green);
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(125, 211, 252, 0.2), inset 0 0 20px rgba(125, 211, 252, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(125, 211, 252, 0.3), inset 0 0 30px rgba(125, 211, 252, 0.08);
+  }
+}
+
+@keyframes blink-current {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.cue-number {
+  background: rgba(125, 211, 252, 0.2);
+  color: var(--accent-light);
+  min-width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  position: relative;
+}
+
+.cue-item.active .cue-number {
+  background: var(--accent-light);
+  color: var(--bg-dark);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.cue-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cue-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.cue-details {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cue-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cue-actions {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.cue-item:hover .cue-actions {
+  opacity: 1;
+}
+
+.cue-action-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: all var(--transition-fast);
+}
+
+.cue-action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.cuestack-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 12px;
+}
+
+.cuestack-progress {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.cuestack-progress-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 4px;
+}
+
+.cuestack-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cuestack-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0ea5e9 0%, #22c55e 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Empty state */
+.cuestack-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cuestack-empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+.cuestack-empty-text {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Animation for active cue */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Keyboard shortcut hint */
+.cuestack-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
+}
+
+.cuestack-hint kbd {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 11px;
+}

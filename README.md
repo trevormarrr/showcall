@@ -2,38 +2,52 @@
 
 > Professional remote controller for Resolume Arena using OSC + REST API
 
-![ShowCall Interface](https://img.shields.io/badge/version-2.3.6-blue)
+![ShowCall Interface](https://img.shields.io/badge/version-2.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Code Signing](https://img.shields.io/badge/code%20signing-enabled-success)
 
-A professional Electron-based controller for Resolume Arena using **OSC for control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
+A professional Electron-based controller for Resolume Arena us## ⭐ Star History
 
-## ✨ What's New in v2.3.6
-
-### 🎯 **Grid Horizontal Scrolling** - Finally Fixed!
-
-**The grid now scrolls horizontally so you can see ALL your columns!**
-
-- ✅ **All Columns Visible** - No more hidden columns with 20+ column compositions
-- ✅ **Smooth Scrolling** - Mouse wheel and trackpad navigation
-- ✅ **Custom Scrollbar** - Blue accent styling matching the UI theme
-- ✅ **Fixed Widths** - Consistent 120px columns when expanded
-- ✅ **Layer Labels Fixed** - Always visible on the left for easy reference
-
-**How to use:** Click the **▶ button** in the grid's top-left corner to expand all columns, then scroll horizontally!
-
-[📖 **Read Release Notes →**](RELEASE_NOTES.md) | [🔐 **Code Signing Details →**](docs/CODE_SIGNING.md)
+If you find ShowCall useful, please consider starring the project on GitHub!
 
 ---
 
-### 🔧 **Previous: Maintenance Release** (v2.3.5)
+**Version:** 2.4.0  
+**Release Date:** February 25, 2026  
+**License:** MIT
+
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.4.0)
+
+**Happy streaming! 🎬✨** control** and **REST API for monitoring** - the complete way to control Resolume from any computer on your network.
+
+## ✨ What's New in v2.4.0
+
+### � **Cue Stack System** - Sequential Show Control!
+
+**Professional theatrical-style cue stack for running shows cue by cue!**
+
+- ✅ **Theatrical Numbering** - Cue 0 (Standby), Cue 1, 2, 3... like professional lighting consoles
+- ✅ **Visual Indicators** - Cyan glow (active), yellow tint (next), faded (completed)
+- ✅ **Keyboard Shortcuts** - Space=GO, R=Reset, 1-9=Fire cues directly
+- ✅ **Preset & Custom Cues** - Add presets or build custom cues with visual editor
+- ✅ **Drag & Drop** - Easily reorder cues in management modal
+- ✅ **Progress Tracking** - Visual progress bar and status indicators
+- ✅ **Auto Standby** - Every show starts with Cue 0 automatically
+
+**Perfect for:** Worship services, concerts, theatre productions, corporate events, and any sequential programming!
+
+[📖 **Read Full Release Notes →**](RELEASE_NOTES.md) | [🎭 **Cue Stack Guide →**](docs/QUICK_REFERENCE.md)
+
+---
+
+### 🎯 **Previous: Grid Horizontal Scrolling** (v2.3.6)
 
 **Updates:**
-- ✅ **Version Display Synchronized** - All UI elements now show v2.3.5
-- ✅ **Documentation Updated** - README and release notes aligned with current version
-- ✅ **Link Updates** - All download links point to latest release
+- ✅ **All Columns Visible** - No more hidden columns with 20+ column compositions
+- ✅ **Smooth Scrolling** - Mouse wheel and trackpad navigation
+- ✅ **Custom Scrollbar** - Blue accent styling matching the UI theme
 
-**All v2.3.4 Features Included:**
+**All Previous Features Included:**
 - 🔐 **Full Code Signing & Notarization** - No security warnings on macOS
 - 🔄 **Auto-Updater Working** - Seamless updates from v2.3.4+
 - 🎛️ **Stream Deck Sync** - Instant preset synchronization
@@ -121,7 +135,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 ### 1. Download & Install
 
-**Latest Release:** [v2.3.6](https://github.com/trevormarrr/showcall/releases/tag/v2.3.6) 🎯 **Grid Scrolling!**
+**Latest Release:** [v2.4.0](https://github.com/trevormarrr/showcall/releases/tag/v2.4.0) � **Cue Stack System!**
 
 - **macOS**: Download `.dmg` → Drag to Applications → No security warnings!
 - **Windows**: Download `.exe` → Run installer
@@ -192,7 +206,7 @@ Create presets in ShowCall → They instantly appear on your Stream Deck! No man
 
 | Document | Purpose |
 |----------|---------|
-| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.3.6 release notes |
+| **[RELEASE_NOTES.md](RELEASE_NOTES.md)** | v2.4.0 release notes |
 | **[CHANGELOG.md](CHANGELOG.md)** | Complete version history |
 | **[INSTALLATION.md](docs/INSTALLATION.md)** | Detailed installation guide |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute |

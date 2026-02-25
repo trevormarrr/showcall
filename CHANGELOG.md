@@ -2,6 +2,59 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.4.0] - 2026-02-25
+
+### 🎭 NEW: Cue Stack System - Sequential Show Control
+
+Professional theatrical-style cue stack for running shows cue by cue. Perfect for worship services, live events, and sequential programming.
+
+**Core Features:**
+- **0-based Theatrical Numbering**: Cue 0 (Standby), Cue 1, Cue 2... just like professional lighting consoles
+- **Auto Standby Cue**: Every show automatically starts with Cue 0 as a pre-show standby position
+- **Sequential Execution**: Press GO to advance through your show cue-by-cue
+- **Visual State Indicators**:
+  - 🟦 **Cyan glow**: Currently active/running cue
+  - 🟨 **Yellow tint**: Next cue ready to execute
+  - ⚫ **Faded/strikethrough**: Completed cues
+- **Keyboard Shortcuts**:
+  - `Space` = GO (advance to next cue)
+  - `R` = Reset to standby position
+  - `1-9` = Fire cues 0-8 directly
+  - `0` = Fire cue 9 directly
+
+**Cue Types:**
+- **Preset Cues**: Add any existing preset to your cue stack
+- **Custom Cues**: Build cues with visual action editor (trigger, triggerColumn, cut, clear, sleep)
+- **Drag & Drop Reordering**: Easily rearrange cues in the management modal
+
+**Management Features:**
+- **Save/Load**: Cue stacks persist across sessions
+- **Named Shows**: Give each cue stack a descriptive name
+- **Progress Tracking**: Visual progress bar and status indicators
+- **Jump to Cue**: Skip to any cue or execute specific cues directly
+- **Missing Preset Detection**: Warnings for broken preset references
+
+**Use Cases:**
+- Sunday morning worship services
+- Multi-song concerts
+- Theatre shows with scene transitions
+- Corporate presentations
+- Any event requiring sequential control
+
+### 🐛 Fixes
+
+- Fixed cue stack visual state synchronization
+- Improved preset ID validation and error messages
+- Fixed currentIndex tracking for proper active cue display
+- Removed redundant "Custom Cue" label from cue display
+
+### 🔧 Technical
+
+- Implemented theatrical cue index system (currentIndex = -1 for standby)
+- Added backward compatibility for old saved cue stacks
+- Enhanced logging for cue execution debugging
+- Improved localStorage persistence for cue stack state
+
 ## [2.3.6] - 2026-02-24
 
 ### ✨ Improved

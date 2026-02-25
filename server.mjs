@@ -454,10 +454,13 @@ async function executeMacro(steps) {
 
 app.post("/api/macro", async (req, res) => {
   const { macro = [], id, name } = req.body;
+  console.log(`📥 Received macro request: ${name} (${id})`);
+  console.log(`📋 Macro steps:`, JSON.stringify(macro, null, 2));
   if (!Array.isArray(macro) || macro.length === 0) {
     return res.status(400).json({ ok: false, error: "Invalid macro" });
   }
   const results = await executeMacro(macro);
+  console.log(`✅ Macro execution complete:`, JSON.stringify(results, null, 2));
   res.json({ ok: true, id, name, results, totalSteps: macro.length });
 });
 

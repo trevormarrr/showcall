@@ -948,6 +948,7 @@ async function firePreset(preset) {
   
   try {
     console.log(`🎯 Firing preset: ${preset.label}`);
+    console.log(`📋 Preset macro:`, JSON.stringify(preset.macro, null, 2));
     
     const response = await fetch("/api/macro", {
       method: "POST",
@@ -963,6 +964,7 @@ async function firePreset(preset) {
     
     if (result.ok) {
       console.log(`✅ Preset "${preset.label}" executed`);
+      console.log(`📊 Results:`, result.results);
       showNotification(`"${preset.label}" executed`, "success");
     } else {
       console.error(`Preset failed:`, result.error);
@@ -2194,14 +2196,1029 @@ function initWorkingVideo() {
   console.log('Working video init complete!');
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CUE STACK SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+
+let cueStack = {
+  name: "My Show",
+  cues: [],
+  currentIndex: -1  // Start at -1 (before cue 0/standby)
+};
+
+function initCueStack() {
+  // Load cue stack from localStorage
+  const saved = localStorage.getItem('showcall_cuestack');
+  if (saved) {
+    try {
+      cueStack = JSON.parse(saved);
+      // Ensure currentIndex is -1 if never advanced, for backward compatibility
+      if (cueStack.currentIndex === undefined || cueStack.currentIndex === 0) {
+        cueStack.currentIndex = -1;
+      }
+      
+      // Ensure every cue stack has a Cue 0 (Standby) at the beginning
+      if (!cueStack.cues || cueStack.cues.length === 0) {
+        cueStack.cues = [
+          {
+            custom: {
+              label: "Standby",
+              color: "#6b7280",
+              actions: [] // Does nothing - just a starting point
+            }
+          }
+        ];
+        saveCueStackState();
+      } else {
+        // Check if first cue is the standby cue - if not, prepend it
+        const firstCue = cueStack.cues[0];
+        const isStandbyCue = firstCue?.custom?.label === "Standby" && 
+                            (!firstCue.custom.actions || firstCue.custom.actions.length === 0);
+        
+        if (!isStandbyCue) {
+          // Prepend Cue 0 to existing cue stack
+          cueStack.cues.unshift({
+            custom: {
+              label: "Standby",
+              color: "#6b7280",
+              actions: []
+            }
+          });
+          // Adjust currentIndex since we inserted a cue at the beginning
+          if (cueStack.currentIndex >= 0) {
+            cueStack.currentIndex++;
+          }
+          saveCueStackState();
+          console.log('🎭 Added Cue 0 (Standby) to existing cue stack');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load cue stack:', e);
+      // Create default with Cue 0
+      cueStack.cues = [
+        {
+          custom: {
+            label: "Standby",
+            color: "#6b7280",
+            actions: []
+          }
+        }
+      ];
+      saveCueStackState();
+    }
+  } else {
+    // No saved cue stack - create default with Cue 0 (Standby)
+    cueStack.cues = [
+      {
+        custom: {
+          label: "Standby",
+          color: "#6b7280",
+          actions: []
+        }
+      }
+    ];
+    saveCueStackState();
+  }
+  
+  // Elements
+  const cueStackList = document.getElementById('cueStackList');
+  const executeNextCueBtn = document.getElementById('executeNextCueBtn');
+  const resetCueStackBtn = document.getElementById('resetCueStackBtn');
+  const manageCuesBtn = document.getElementById('manageCuesBtn');
+  const cueStackNameEl = document.getElementById('cueStackName');
+  const cueStackStatus = document.getElementById('cueStackStatus');
+  const cueProgressText = document.getElementById('cueProgressText');
+  const cueProgressFill = document.getElementById('cueProgressFill');
+  
+  // Modal elements
+  const modal = document.getElementById('cueStackModal');
+  const closeModal = document.getElementById('closeCueStackModal');
+  const cueStackNameInput = document.getElementById('cueStackNameInput');
+  const availablePresetsList = document.getElementById('availablePresetsList');
+  const cueStackBuilderList = document.getElementById('cueStackBuilderList');
+  const saveCueStackBtn = document.getElementById('saveCueStackBtn');
+  const cancelCueStackBtn = document.getElementById('cancelCueStackBtn');
+  const clearCueStackBtn = document.getElementById('clearCueStackBtn');
+  
+  // Render the cue stack list
+  function renderCueStack() {
+    if (!cueStack.cues || cueStack.cues.length === 0) {
+      cueStackList.innerHTML = `
+        <div class="cuestack-empty">
+          <div class="cuestack-empty-icon">🎭</div>
+          <div class="cuestack-empty-text">No cues in the stack yet.</div>
+          <button onclick="document.getElementById('manageCuesBtn').click()" class="cuestack-btn primary">
+            + Add Cues
+          </button>
+        </div>
+      `;
+      executeNextCueBtn.disabled = true;
+      resetCueStackBtn.disabled = true;
+      cueStackStatus.textContent = 'Empty';
+      cueStackStatus.className = 'cuestack-status';
+      cueProgressText.textContent = 'No cues in stack';
+      cueProgressFill.style.width = '0%';
+      return;
+    }
+    
+    cueStackList.innerHTML = '';
+    cueStack.cues.forEach((cue, index) => {
+      // Support both preset-based and custom cues
+      let preset = null;
+      let isCustom = false;
+      
+      if (cue.presetId) {
+        preset = CFG.presets?.find(p => p.id === cue.presetId);
+        if (!preset) return; // Skip if preset not found
+      } else if (cue.custom) {
+        isCustom = true;
+      }
+      
+      const cueItem = document.createElement('div');
+      cueItem.className = 'cue-item';
+      
+      // Visual state logic:
+      // - currentIndex = -1: Nothing executed yet (all cues waiting)
+      // - currentIndex = 0: Cue 0 was executed and is ACTIVE, Cue 1 is NEXT
+      // - currentIndex = 1: Cue 0 completed, Cue 1 is ACTIVE, Cue 2 is NEXT
+      // Active = the cue that was just executed (currentIndex)
+      // Next = the cue that will execute on next GO (currentIndex + 1)
+      // Completed = all cues before currentIndex
+      
+      if (cueStack.currentIndex === -1) {
+        // Before show starts - Cue 0 is next, nothing active
+        if (index === 0) {
+          cueItem.classList.add('next');
+        }
+      } else {
+        // Show is running
+        if (index === cueStack.currentIndex) {
+          cueItem.classList.add('active'); // Currently running cue
+        } else if (index === cueStack.currentIndex + 1) {
+          cueItem.classList.add('next'); // Next cue to execute
+        } else if (index < cueStack.currentIndex) {
+          cueItem.classList.add('completed'); // Already executed
+        }
+      }
+      
+      // Keyboard shortcuts: 1-9 trigger cues 0-8, 0 triggers cue 9
+      const hotkeyNum = index < 9 ? (index + 1) : (index === 9 ? 0 : null);
+      const hotkeyBadge = hotkeyNum !== null 
+        ? `<div style="min-width: 24px; height: 24px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: rgb(251, 191, 36); flex-shrink: 0;">${hotkeyNum}</div>` 
+        : '<div style="min-width: 24px;"></div>'; // Spacer for alignment
+      
+      // Cue number is 0-based (0, 1, 2, 3...)
+      const cueNumber = index;
+      
+      if (isCustom) {
+        cueItem.innerHTML = `
+          ${hotkeyBadge}
+          <div class="cue-number">${cueNumber}</div>
+          <div class="cue-content">
+            <div class="cue-label">${cue.custom.label}</div>
+            <div class="cue-details">
+              <span class="cue-color-dot" style="background-color: ${cue.custom.color || '#7dd3fc'}"></span>
+              <span>${cue.custom.actions?.length || 0} actions</span>
+            </div>
+          </div>
+          <div class="cue-actions">
+            <button class="cue-action-btn" onclick="jumpToCue(${index})" title="Jump to this cue">
+              ↻ Jump
+            </button>
+            <button class="cue-action-btn" onclick="executeSpecificCue(${index})" title="Execute this cue">
+              ▶ Go
+            </button>
+          </div>
+        `;
+      } else {
+        cueItem.innerHTML = `
+          ${hotkeyBadge}
+          <div class="cue-number">${cueNumber}</div>
+          <div class="cue-content">
+            <div class="cue-label">${preset.label}</div>
+            <div class="cue-details">
+              <span class="cue-color-dot" style="background-color: ${preset.color}"></span>
+              <span>${preset.macro?.length || 0} steps</span>
+              ${preset.hotkey ? `<span>Preset Hotkey: <kbd>${preset.hotkey}</kbd></span>` : ''}
+            </div>
+          </div>
+          <div class="cue-actions">
+            <button class="cue-action-btn" onclick="jumpToCue(${index})" title="Jump to this cue">
+              ↻ Jump
+            </button>
+            <button class="cue-action-btn" onclick="executeSpecificCue(${index})" title="Execute this cue">
+              ▶ Go
+            </button>
+          </div>
+        `;
+      }
+      
+      cueStackList.appendChild(cueItem);
+    });
+    
+    // Update UI state
+    cueStackNameEl.textContent = cueStack.name || 'My Show';
+    executeNextCueBtn.disabled = cueStack.currentIndex >= cueStack.cues.length;
+    resetCueStackBtn.disabled = false;
+    
+    // Update status
+    if (cueStack.currentIndex >= cueStack.cues.length) {
+      cueStackStatus.textContent = 'Complete';
+      cueStackStatus.className = 'cuestack-status';
+    } else {
+      cueStackStatus.textContent = 'Ready';
+      cueStackStatus.className = 'cuestack-status active';
+    }
+    
+    // Update progress
+    const progress = cueStack.cues.length > 0 
+      ? ((cueStack.currentIndex + 1) / cueStack.cues.length) * 100 
+      : 0;
+    cueProgressFill.style.width = `${progress}%`;
+    
+    // Show which cue is NEXT to execute (0-based numbering)
+    if (cueStack.currentIndex >= cueStack.cues.length) {
+      cueProgressText.textContent = `Complete - ${cueStack.cues.length} of ${cueStack.cues.length} cues executed`;
+    } else if (cueStack.currentIndex === -1) {
+      cueProgressText.textContent = `Ready: Press GO to start with Cue 0`;
+    } else {
+      const nextCueNum = cueStack.currentIndex + 1;
+      cueProgressText.textContent = `Ready: Cue ${nextCueNum} of ${cueStack.cues.length - 1}`;
+    }
+  }
+  
+  // Execute next cue
+  async function executeNextCue() {
+    // Increment to next cue first
+    cueStack.currentIndex++;
+    
+    if (cueStack.currentIndex >= cueStack.cues.length) {
+      cueStack.currentIndex = cueStack.cues.length; // Cap at length
+      showNotification('No more cues in the stack', 'info');
+      renderCueStack();
+      return;
+    }
+    
+    const cue = cueStack.cues[cueStack.currentIndex];
+    const cueNumber = cueStack.currentIndex; // 0-based cue number
+    
+    console.log(`🎬 GO button pressed - executing cue at index: ${cueStack.currentIndex}`);
+    console.log(`📦 Cue data:`, JSON.stringify(cue, null, 2));
+    
+    try {
+      // Handle custom cues
+      if (cue.custom) {
+        console.log(`🎬 GO: Executing cue #${cueNumber} - ${cue.custom.label}`);
+        showNotification(`GO: Cue #${cueNumber} - ${cue.custom.label}`, 'info');
+        await executeCustomCue(cue.custom);
+      } 
+      // Handle preset-based cues
+      else if (cue.presetId) {
+        const preset = CFG.presets?.find(p => p.id === cue.presetId);
+        console.log(`🔍 Looking for preset with ID: ${cue.presetId}`);
+        console.log(`📚 Available presets:`, CFG.presets?.map(p => ({ id: p.id, label: p.label })));
+        console.log(`✅ Found preset:`, preset ? { id: preset.id, label: preset.label, macroLength: preset.macro?.length } : 'NOT FOUND');
+        
+        if (!preset) {
+          showNotification(`Preset not found: ${cue.presetId}`, 'error');
+          return;
+        }
+        console.log(`🎬 GO: Executing cue #${cueNumber} - ${preset.label}`);
+        showNotification(`GO: Cue #${cueNumber} - ${preset.label}`, 'info');
+        await firePreset(preset);
+      }
+      
+      // After execution, save and render
+      saveCueStackState();
+      renderCueStack();
+      
+      if (cueStack.currentIndex >= cueStack.cues.length - 1) {
+        showNotification('🎉 Cue stack complete!', 'success');
+      }
+    } catch (error) {
+      console.error('Failed to execute cue:', error);
+      showNotification(`Failed to execute cue: ${error.message}`, 'error');
+    }
+  }
+  
+  // Execute custom cue actions
+  async function executeCustomCue(custom) {
+    if (!custom.actions || custom.actions.length === 0) {
+      showNotification('Custom cue has no actions', 'warning');
+      return;
+    }
+    
+    // Execute each action like a macro step
+    for (const action of custom.actions) {
+      try {
+        switch (action.type) {
+          case 'trigger':
+            await fetch('/api/trigger', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ layer: action.layer, column: action.column })
+            });
+            break;
+          
+          case 'triggerColumn':
+            await fetch('/api/triggerColumn', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ column: action.column })
+            });
+            break;
+          
+          case 'cut':
+            await fetch('/api/cut', { method: 'POST' });
+            break;
+          
+          case 'clear':
+            await fetch('/api/clear', { method: 'POST' });
+            break;
+          
+          case 'sleep':
+            await new Promise(resolve => setTimeout(resolve, action.ms));
+            break;
+        }
+      } catch (error) {
+        console.error(`Failed to execute custom action:`, action, error);
+        throw error;
+      }
+    }
+  }
+  
+  // Reset cue stack
+  function resetCueStack() {
+    if (cueStack.currentIndex === -1) return;
+    
+    if (confirm('Reset cue stack to the beginning?')) {
+      cueStack.currentIndex = -1;
+      saveCueStackState();
+      renderCueStack();
+      showNotification('Cue stack reset to standby', 'info');
+    }
+  }
+  
+  // Jump to specific cue
+  window.jumpToCue = function(index) {
+    if (confirm(`Jump to cue ${index}?`)) {
+      cueStack.currentIndex = index;
+      saveCueStackState();
+      renderCueStack();
+      showNotification(`Jumped to cue ${index}`, 'info');
+    }
+  };
+  
+  // Execute specific cue
+  window.executeSpecificCue = async function(index) {
+    const cue = cueStack.cues[index];
+    
+    if (!cue) {
+      showNotification('Cue not found', 'error');
+      return;
+    }
+    
+    try {
+      if (cue.custom) {
+        console.log(`🎬 Executing custom cue ${index} directly: ${cue.custom.label}`);
+        await executeCustomCue(cue.custom);
+        showNotification(`Executed: ${cue.custom.label}`, 'success');
+      } else if (cue.presetId) {
+        const preset = CFG.presets?.find(p => p.id === cue.presetId);
+        if (!preset) {
+          showNotification('Preset not found', 'error');
+          return;
+        }
+        console.log(`🎬 Executing cue ${index} directly: ${preset.label}`);
+        await firePreset(preset);
+        showNotification(`Executed: ${preset.label}`, 'success');
+      }
+    } catch (error) {
+      showNotification(`Failed: ${error.message}`, 'error');
+    }
+  };
+  
+  // Save cue stack state to localStorage
+  function saveCueStackState() {
+    try {
+      localStorage.setItem('showcall_cuestack', JSON.stringify(cueStack));
+    } catch (e) {
+      console.error('Failed to save cue stack:', e);
+    }
+  }
+  
+  // Open management modal
+  function openManagementModal() {
+    cueStackNameInput.value = cueStack.name || 'My Show';
+    renderAvailablePresets();
+    renderCueStackBuilder();
+    modal.style.display = 'flex';
+  }
+  
+  // Close modal
+  function closeManagementModal() {
+    modal.style.display = 'none';
+  }
+  
+  // Render available presets
+  function renderAvailablePresets() {
+    availablePresetsList.innerHTML = '';
+    
+    if (!CFG.presets || CFG.presets.length === 0) {
+      availablePresetsList.innerHTML = '<div style="padding: 12px; opacity: 0.6;">No presets available. Create presets first!</div>';
+      return;
+    }
+    
+    CFG.presets.forEach(preset => {
+      const presetItem = document.createElement('div');
+      presetItem.className = 'preset-selector-item';
+      presetItem.style.cssText = `
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s ease;
+      `;
+      
+      presetItem.innerHTML = `
+        <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${preset.color}"></div>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; font-size: 13px;">${preset.label}</div>
+          <div style="font-size: 11px; opacity: 0.6;">${preset.macro?.length || 0} steps${preset.hotkey ? ` • Hotkey: ${preset.hotkey}` : ''}</div>
+        </div>
+        <button style="background: rgba(125,211,252,0.2); border: 1px solid rgba(125,211,252,0.3); color: var(--accent-light); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+          + Add
+        </button>
+      `;
+      
+      presetItem.querySelector('button').onclick = (e) => {
+        e.stopPropagation();
+        addPresetToCueStack(preset.id);
+      };
+      
+      presetItem.onmouseenter = () => {
+        presetItem.style.background = 'rgba(255,255,255,0.08)';
+        presetItem.style.borderColor = 'rgba(125,211,252,0.3)';
+      };
+      
+      presetItem.onmouseleave = () => {
+        presetItem.style.background = 'rgba(255,255,255,0.05)';
+        presetItem.style.borderColor = 'rgba(255,255,255,0.1)';
+      };
+      
+      availablePresetsList.appendChild(presetItem);
+    });
+  }
+  
+  // Add preset to cue stack
+  function addPresetToCueStack(presetId) {
+    const preset = CFG.presets?.find(p => p.id === presetId);
+    console.log(`➕ Adding preset to cue stack: ID="${presetId}", Label="${preset?.label}"`);
+    cueStack.cues.push({ presetId });
+    renderCueStackBuilder();
+    showNotification(`Cue added: ${preset?.label || presetId}`, 'success');
+  }
+  
+  // Render cue stack builder
+  function renderCueStackBuilder() {
+    cueStackBuilderList.innerHTML = '';
+    
+    if (cueStack.cues.length === 0) {
+      cueStackBuilderList.innerHTML = '<div style="padding: 24px; text-align: center; opacity: 0.5;">No cues yet. Add presets from above.</div>';
+      return;
+    }
+    
+    cueStack.cues.forEach((cue, index) => {
+      const cueItem = document.createElement('div');
+      cueItem.style.cssText = `
+        padding: 10px 12px;
+        margin-bottom: 6px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: move;
+      `;
+      cueItem.draggable = true;
+      cueItem.dataset.index = index;
+      
+      let label, color, isMissing = false;
+      
+      // Handle custom cues
+      if (cue.custom) {
+        label = cue.custom.label || 'Custom Cue';
+        color = cue.custom.color || '#8b5cf6';
+      } 
+      // Handle preset-based cues
+      else if (cue.presetId) {
+        const preset = CFG.presets?.find(p => p.id === cue.presetId);
+        if (preset) {
+          label = preset.label;
+          color = preset.color;
+        } else {
+          label = `⚠️ Missing Preset (ID: ${cue.presetId})`;
+          color = '#ef4444';
+          isMissing = true;
+        }
+      } else {
+        label = '⚠️ Invalid Cue';
+        color = '#ef4444';
+        isMissing = true;
+      }
+      
+      cueItem.innerHTML = `
+        <div style="opacity: 0.5; cursor: move;">☰</div>
+        <div style="min-width: 24px; height: 24px; border-radius: 50%; background: rgba(125,211,252,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--accent-light);">
+          ${index}
+        </div>
+        <div style="width: 10px; height: 10px; border-radius: 50%; background-color: ${color}"></div>
+        <div style="flex: 1; font-weight: 600; font-size: 13px; ${isMissing ? 'opacity: 0.6;' : ''}">${label}</div>
+        <button class="remove-cue-btn" data-index="${index}" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3); color: var(--red); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
+          Remove
+        </button>
+      `;
+      
+      // Drag and drop handlers
+      cueItem.addEventListener('dragstart', handleDragStart);
+      cueItem.addEventListener('dragover', handleDragOver);
+      cueItem.addEventListener('drop', handleDrop);
+      cueItem.addEventListener('dragend', handleDragEnd);
+      
+      cueStackBuilderList.appendChild(cueItem);
+    });
+    
+    // Attach remove handlers
+    document.querySelectorAll('.remove-cue-btn').forEach(btn => {
+      btn.onclick = () => {
+        const index = parseInt(btn.dataset.index);
+        cueStack.cues.splice(index, 1);
+        renderCueStackBuilder();
+        showNotification('Cue removed', 'info');
+      };
+    });
+  }
+  
+  // Drag and drop functionality
+  let draggedElement = null;
+  
+  function handleDragStart(e) {
+    draggedElement = this;
+    this.style.opacity = '0.4';
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  
+  function handleDragOver(e) {
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+  }
+  
+  function handleDrop(e) {
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+    
+    if (draggedElement !== this) {
+      const fromIndex = parseInt(draggedElement.dataset.index);
+      const toIndex = parseInt(this.dataset.index);
+      
+      // Reorder the cues array
+      const [movedCue] = cueStack.cues.splice(fromIndex, 1);
+      cueStack.cues.splice(toIndex, 0, movedCue);
+      
+      renderCueStackBuilder();
+    }
+    
+    return false;
+  }
+  
+  function handleDragEnd(e) {
+    this.style.opacity = '1';
+    draggedElement = null;
+  }
+  
+  // Save cue stack
+  function saveCueStackFromModal() {
+    cueStack.name = cueStackNameInput.value.trim() || 'My Show';
+    saveCueStackState();
+    renderCueStack();
+    closeManagementModal();
+    showNotification('Cue stack saved', 'success');
+  }
+  
+  // Clear cue stack
+  function clearCueStackFromModal() {
+    if (confirm('Clear the entire cue stack?')) {
+      // Always create a new Cue 0 (Standby) when clearing
+      cueStack.cues = [
+        {
+          custom: {
+            label: "Standby",
+            color: "#6b7280",
+            actions: [] // Does nothing - just a starting point
+          }
+        }
+      ];
+      cueStack.currentIndex = -1;
+      renderCueStackBuilder();
+      showNotification('Cue stack cleared - Cue 0 (Standby) created', 'info');
+    }
+  }
+  
+  // Event listeners
+  executeNextCueBtn.onclick = executeNextCue;
+  resetCueStackBtn.onclick = resetCueStack;
+  manageCuesBtn.onclick = openManagementModal;
+  closeModal.onclick = closeManagementModal;
+  cancelCueStackBtn.onclick = closeManagementModal;
+  saveCueStackBtn.onclick = saveCueStackFromModal;
+  clearCueStackBtn.onclick = clearCueStackFromModal;
+  
+  modal.onclick = (e) => {
+    if (e.target === modal) closeManagementModal();
+  };
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Don't interfere with inputs or other modals
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (document.getElementById('settingsModal').style.display === 'flex') return;
+    if (document.getElementById('presetsModal').style.display === 'flex') return;
+    if (document.getElementById('updateModal').style.display === 'flex') return;
+    if (modal.style.display === 'flex') return;
+    
+    // Space = Execute next cue
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      if (!executeNextCueBtn.disabled) {
+        executeNextCue();
+      }
+    }
+    
+    // R = Reset cue stack
+    if (e.code === 'KeyR' && !e.repeat && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      resetCueStack();
+    }
+    
+    // Number keys 1-9 and 0 = Execute specific cues
+    // 1-9 triggers cues 1-9, 0 triggers cue 10
+    if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      let cueIndex = -1;
+      
+      // Check for Digit keys (1-9, 0)
+      if (e.code >= 'Digit1' && e.code <= 'Digit9') {
+        cueIndex = parseInt(e.code.replace('Digit', '')) - 1; // 0-indexed
+      } else if (e.code === 'Digit0') {
+        cueIndex = 9; // 10th cue (0-indexed)
+      }
+      // Also check numpad keys
+      else if (e.code >= 'Numpad1' && e.code <= 'Numpad9') {
+        cueIndex = parseInt(e.code.replace('Numpad', '')) - 1;
+      } else if (e.code === 'Numpad0') {
+        cueIndex = 9;
+      }
+      
+      // Execute the cue if it exists
+      if (cueIndex >= 0 && cueIndex < cueStack.cues.length) {
+        e.preventDefault();
+        console.log(`🎹 Keyboard shortcut: Executing cue ${cueIndex + 1}`);
+        window.executeSpecificCue(cueIndex);
+      }
+    }
+  });
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CUSTOM CUE BUILDER
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const customCueModal = document.getElementById('customCueModal');
+  const closeCustomCueModal = document.getElementById('closeCustomCueModal');
+  const addCustomCueBtn = document.getElementById('addCustomCueBtn');
+  const cancelCustomCueBtn = document.getElementById('cancelCustomCueBtn');
+  const saveCustomCueBtn = document.getElementById('saveCustomCueBtn');
+  const customCueLabel = document.getElementById('customCueLabel');
+  const customCueColor = document.getElementById('customCueColor');
+  const customCueActionsList = document.getElementById('customCueActionsList');
+  const addActionBtn = document.getElementById('addActionBtn');
+  
+  let customCueActions = [];
+  
+  // Open custom cue modal
+  addCustomCueBtn.onclick = () => {
+    customCueLabel.value = '';
+    customCueColor.value = '#7dd3fc';
+    customCueActions = [];
+    renderCustomCueActions();
+    customCueModal.style.display = 'flex';
+  };
+  
+  // Close custom cue modal
+  const closeCustomModal = () => {
+    customCueModal.style.display = 'none';
+  };
+  
+  closeCustomCueModal.onclick = closeCustomModal;
+  cancelCustomCueBtn.onclick = closeCustomModal;
+  customCueModal.onclick = (e) => {
+    if (e.target === customCueModal) closeCustomModal();
+  };
+  
+  // Show action type selector dropdown
+  addActionBtn.onclick = () => {
+    // Create a temporary dropdown to select action type
+    const dropdown = document.createElement('select');
+    dropdown.style.cssText = `
+      width: 100%;
+      padding: 8px;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(125, 211, 252, 0.5);
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+      margin-top: 8px;
+    `;
+    
+    dropdown.innerHTML = `
+      <option value="">Select Action Type...</option>
+      <option value="trigger">🎬 Trigger Clip (Layer + Column)</option>
+      <option value="triggerColumn">📊 Trigger Column</option>
+      <option value="cut">✂️ Cut to Program</option>
+      <option value="clear">🧹 Clear All Layers</option>
+      <option value="sleep">⏱️ Wait / Delay</option>
+    `;
+    
+    dropdown.onchange = () => {
+      if (dropdown.value) {
+        addCustomAction(dropdown.value);
+        dropdown.remove();
+      }
+    };
+    
+    addActionBtn.after(dropdown);
+    dropdown.focus();
+  };
+  
+  // Add custom action based on type
+  function addCustomAction(type) {
+    let newAction = { type };
+    
+    switch (type) {
+      case 'trigger':
+        newAction.layer = 1;
+        newAction.column = 1;
+        break;
+      case 'triggerColumn':
+        newAction.column = 1;
+        break;
+      case 'sleep':
+        newAction.ms = 200;
+        break;
+    }
+    
+    customCueActions.push(newAction);
+    renderCustomCueActions();
+  }
+  
+  // Render custom cue actions (visual builder like presets)
+  function renderCustomCueActions() {
+    if (customCueActions.length === 0) {
+      customCueActionsList.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.5;">No actions yet. Click "+ Add Action" below.</div>';
+      return;
+    }
+    
+    customCueActionsList.innerHTML = '';
+    customCueActions.forEach((action, index) => {
+      const actionEl = createCustomActionElement(action, index);
+      customCueActionsList.appendChild(actionEl);
+    });
+  }
+  
+  // Create custom action element (similar to macro step)
+  function createCustomActionElement(action, index) {
+    const actionEl = document.createElement('div');
+    actionEl.className = 'macro-step'; // Reuse macro-step styling
+    actionEl.dataset.index = index;
+    actionEl.style.cssText = `
+      padding: 12px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    `;
+    
+    const { icon, typeLabel, params } = formatCustomActionDisplay(action);
+    
+    actionEl.innerHTML = `
+      <div style="opacity: 0.5; cursor: move;">☰</div>
+      <div style="font-size: 20px;">${icon}</div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; font-size: 13px; color: var(--accent-light);">${typeLabel}</div>
+        <div style="font-size: 12px; opacity: 0.7;">${params}</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="action-edit-btn" data-index="${index}" style="background: rgba(125, 211, 252, 0.2); border: 1px solid rgba(125, 211, 252, 0.3); color: var(--accent-light); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">Edit</button>
+        <button class="action-delete-btn" data-index="${index}" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--red); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">×</button>
+      </div>
+    `;
+    
+    // Edit action
+    actionEl.querySelector('.action-edit-btn').onclick = (e) => {
+      e.stopPropagation();
+      editCustomAction(index);
+    };
+    
+    // Delete action
+    actionEl.querySelector('.action-delete-btn').onclick = (e) => {
+      e.stopPropagation();
+      customCueActions.splice(index, 1);
+      renderCustomCueActions();
+    };
+    
+    return actionEl;
+  }
+  
+  // Format custom action display
+  function formatCustomActionDisplay(action) {
+    const icons = {
+      trigger: '🎬',
+      triggerColumn: '📊',
+      cut: '✂️',
+      clear: '🧹',
+      sleep: '⏱️'
+    };
+    
+    let params = '';
+    let typeLabel = action.type.charAt(0).toUpperCase() + action.type.slice(1).replace(/([A-Z])/g, ' $1');
+    
+    switch (action.type) {
+      case 'trigger':
+        params = `Layer ${action.layer}, Column ${action.column}`;
+        break;
+      case 'triggerColumn':
+        params = `Column ${action.column}`;
+        break;
+      case 'sleep':
+        params = `Wait ${action.ms}ms`;
+        break;
+      case 'cut':
+        params = 'Preview → Program';
+        break;
+      case 'clear':
+        params = 'Clear all layers';
+        break;
+    }
+    
+    return {
+      icon: icons[action.type] || '📝',
+      typeLabel,
+      params
+    };
+  }
+  
+  // Edit custom action inline
+  function editCustomAction(index) {
+    const action = customCueActions[index];
+    const actionEl = customCueActionsList.querySelector(`[data-index="${index}"]`);
+    
+    // Create inline edit form
+    const formEl = document.createElement('div');
+    formEl.style.cssText = `
+      padding: 12px;
+      margin-top: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(125, 211, 252, 0.3);
+      border-radius: 6px;
+    `;
+    
+    switch (action.type) {
+      case 'trigger':
+        formEl.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div>
+              <label style="font-size: 11px; opacity: 0.8; display: block; margin-bottom: 4px;">Layer:</label>
+              <input type="number" id="editActionLayer" value="${action.layer}" min="1" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 13px;">
+            </div>
+            <div>
+              <label style="font-size: 11px; opacity: 0.8; display: block; margin-bottom: 4px;">Column:</label>
+              <input type="number" id="editActionColumn" value="${action.column}" min="1" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 13px;">
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="saveActionEdit" style="background: var(--accent-light); color: var(--bg-dark); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: none;">Save</button>
+            <button id="cancelActionEdit" style="background: rgba(255,255,255,0.1); color: white; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: 1px solid rgba(255,255,255,0.2);">Cancel</button>
+          </div>
+        `;
+        break;
+      case 'triggerColumn':
+        formEl.innerHTML = `
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; opacity: 0.8; display: block; margin-bottom: 4px;">Column:</label>
+            <input type="number" id="editActionColumn" value="${action.column}" min="1" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 13px;">
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="saveActionEdit" style="background: var(--accent-light); color: var(--bg-dark); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: none;">Save</button>
+            <button id="cancelActionEdit" style="background: rgba(255,255,255,0.1); color: white; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: 1px solid rgba(255,255,255,0.2);">Cancel</button>
+          </div>
+        `;
+        break;
+      case 'sleep':
+        formEl.innerHTML = `
+          <div style="margin-bottom: 10px;">
+            <label style="font-size: 11px; opacity: 0.8; display: block; margin-bottom: 4px;">Wait Time (milliseconds):</label>
+            <input type="number" id="editActionMs" value="${action.ms}" min="0" step="50" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: white; font-size: 13px;">
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="saveActionEdit" style="background: var(--accent-light); color: var(--bg-dark); padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: none;">Save</button>
+            <button id="cancelActionEdit" style="background: rgba(255,255,255,0.1); color: white; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px; border: 1px solid rgba(255,255,255,0.2);">Cancel</button>
+          </div>
+        `;
+        break;
+      default:
+        return; // No params to edit
+    }
+    
+    actionEl.appendChild(formEl);
+    
+    formEl.querySelector('#saveActionEdit').onclick = () => {
+      if (action.type === 'trigger') {
+        action.layer = parseInt(formEl.querySelector('#editActionLayer').value);
+        action.column = parseInt(formEl.querySelector('#editActionColumn').value);
+      } else if (action.type === 'triggerColumn') {
+        action.column = parseInt(formEl.querySelector('#editActionColumn').value);
+      } else if (action.type === 'sleep') {
+        action.ms = parseInt(formEl.querySelector('#editActionMs').value);
+      }
+      renderCustomCueActions();
+    };
+    
+    formEl.querySelector('#cancelActionEdit').onclick = () => {
+      renderCustomCueActions();
+    };
+  }
+  
+  // Save custom cue
+  saveCustomCueBtn.onclick = () => {
+    const label = customCueLabel.value.trim();
+    
+    if (!label) {
+      showNotification('Please enter a cue label', 'warning');
+      return;
+    }
+    
+    if (customCueActions.length === 0) {
+      showNotification('Please add at least one action', 'warning');
+      return;
+    }
+    
+    // Convert actions to macro format for execution
+    const macroActions = customCueActions.map(action => {
+      // Already in the right format (type, layer, column, ms, etc.)
+      return { ...action };
+    });
+    
+    // Add custom cue to the stack
+    cueStack.cues.push({
+      custom: {
+        label,
+        color: customCueColor.value,
+        actions: macroActions
+      }
+    });
+    
+    renderCueStackBuilder();
+    closeCustomModal();
+    showNotification(`Custom cue "${label}" added`, 'success');
+  };
+  
+  // Initial render
+  renderCueStack();
+}
+
 console.log('🔥 MAIN DEBUG: Script loaded, checking DOM ready state:', document.readyState);
 if (document.readyState === "loading") {
   console.log('🔥 MAIN DEBUG: DOM still loading, adding event listener');
   document.addEventListener("DOMContentLoaded", function() {
     console.log('🔥 MAIN DEBUG: DOMContentLoaded event fired, calling init()');
     init();
+    // Initialize cue stack after main app
+    setTimeout(() => initCueStack(), 100);
   });
 } else {
   console.log('🔥 MAIN DEBUG: DOM already loaded, calling init() immediately');
   init();
+  // Initialize cue stack after main app
+  setTimeout(() => initCueStack(), 100);
 }
