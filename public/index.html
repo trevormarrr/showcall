@@ -15,7 +15,7 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.4.2</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.4.3</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -87,17 +87,18 @@
         </div>
         
         <div class="cuestack-hint">
-          💡 Tip: Press <kbd>Space</kbd> to GO, <kbd>R</kbd> to reset, or <kbd>1</kbd>-<kbd>9</kbd>/<kbd>0</kbd> to fire specific cues
+          💡 Tip: Press <kbd>Space</kbd> to GO, <kbd>R</kbd> to reset
         </div>
       </div>
     </section>
 
-    <section class="preview-section">
+    <!-- NDI Preview Section - Coming Soon -->
+    <!-- <section class="preview-section">
       <h2 style="margin: 24px 0 8px; opacity: 0.9; font-size: 18px; font-weight: 600;">NDI Preview</h2>
       
       <iframe src="/video-test.html" width="100%" height="600" style="border: 1px solid #333; border-radius: 8px;"></iframe>
       
-    </section>
+    </section> -->
   </div>
 
   <!-- Settings Modal -->
@@ -129,7 +130,8 @@
           <small>Local port for ShowCall web interface</small>
         </div>
         
-        <h3 style="margin: 24px 0 12px; color: var(--accent); font-size: 16px;">NDI Preview (OBS Integration)</h3>
+        <!-- NDI Preview Settings - Coming Soon -->
+        <!-- <h3 style="margin: 24px 0 12px; color: var(--accent); font-size: 16px;">NDI Preview (OBS Integration)</h3>
         <div style="margin-bottom: 16px;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
             <input type="checkbox" id="ndiAutoReconnect"> Auto-check NDI-OBS status
@@ -150,7 +152,9 @@
           2. Add NDI source in OBS (10.1.110.72:5960)<br>
           3. Enable OBS WebSocket in Tools → WebSocket Server<br>
           4. ShowCall will automatically connect and stream via OBS
-        </div>        <div class="setting-actions">
+        </div> -->
+        
+        <div class="setting-actions">
           <button id="saveSettings" class="btn-primary">Save & Restart</button>
           <button id="cancelSettings" class="btn-secondary">Cancel</button>
         </div>

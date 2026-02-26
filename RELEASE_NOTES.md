@@ -1,44 +1,53 @@
-# ShowCall v2.4.2 Release Notes
+# ShowCall v2.4.3 Release Notes
 
-## 🎨 UI Enhancement Release
+## 🎯 Production Release
 
-This release focuses on improving the Cue Stack UI for better readability and usability with large cue lists.
+This release focuses on production readiness, adding cue editing capabilities, and cleaning up the interface for professional use.
 
 ### What's New
 
-- ✅ **Taller Cue Items** - 50% larger cue items (72px min-height) for much better readability
-- ✅ **Enhanced Scrollbar** - Always visible, polished scrollbar with beautiful gradient effects
-- ✅ **Better Spacing** - Increased padding (18px/20px) and gaps (10px) throughout
-- ✅ **Larger Elements** - Bigger cue numbers (40px), text sizes, and color indicators
-- ✅ **Smooth Auto-Centering** - Active cue smoothly scrolls to center of viewport
-- ✅ **Improved Container** - Expanded to 65vh with 350px minimum height
+- ✅ **Edit Custom Cues** - Click "Edit" button in cue stack management to modify custom cues
+- ✅ **Simplified Keyboard Shortcuts** - Removed 1-0 direct cue firing, kept Space (GO) and R (Reset)
+- ✅ **Cleaner Interface** - Removed debug quick action buttons for production use
+- ✅ **Documentation Cleanup** - Reorganized and updated all documentation
+- ✅ **Version Consistency** - All files updated to v2.4.3
 
 ### Why This Update?
 
-When working with 10+ cues, the previous UI felt cramped. This update makes everything more spacious and easier to read at a glance, especially during live shows.
+Based on user feedback, we've streamlined the cue stack workflow to be more professional and less prone to accidental triggers. The edit functionality for custom cues was the #1 requested feature, and debug controls were confusing for end users.
 
-### Visual Improvements
+### Cue Editing
 
-**Scrollbar:**
-- Width: 10px → 12px
-- Always visible (not just on hover)
-- Cyan/blue gradient with glow effects
-- Dark track with subtle borders
-- Enhanced hover and active states
+**How to edit a custom cue:**
+1. Open cue stack management (⚙️ Manage button)
+2. Find your custom cue in the list
+3. Click the "Edit" button
+4. Modify label, color, or actions
+5. Save changes
 
-**Cue Items:**
-- Padding: 12px/16px → 18px/20px
-- Minimum height: 72px (consistent sizing)
-- Gap between items: 8px → 10px
-- Side indicator: 4px → 5px width
+**Note:** Preset-based cues cannot be edited (edit the preset itself instead). Only custom cues show the Edit button.
 
-**Typography & Elements:**
-- Cue numbers: 32px → 40px (font 14px → 16px)
-- Labels: 14px → 15px
-- Details: 12px → 13px
-- Color dots: 10px → 12px
+### Keyboard Shortcuts
 
-### All v2.4 Features Included
+**Updated shortcuts:**
+- **Space** - GO (execute next cue)
+- **R** - Reset (back to Cue 0)
+
+**Removed:**
+- Number keys 1-9/0 no longer fire specific cues directly
+- This prevents accidental triggers during shows
+
+### Coming Soon
+
+Future releases will focus on:
+- MIDI controller integration
+- OSC input support (for external triggering)
+- Cue list import/export
+- Performance optimizations
+
+---
+
+## All v2.4 Features Included
 
 ## 🎭 Cue Stack System - Sequential Show Control
 
@@ -48,8 +57,9 @@ Professional theatrical-style cue stack for running shows cue by cue.
 
 - **Theatrical Numbering**: Cue 0 (Standby), Cue 1, 2, 3...
 - **Visual State Indicators**: Cyan (active), yellow (next), faded (completed)
-- **Keyboard Shortcuts**: Space=GO, R=Reset, 1-9/0=Direct fire
+- **Keyboard Shortcuts**: Space=GO, R=Reset
 - **Preset & Custom Cues**: Add presets or build custom cues visually
+- **Edit Custom Cues**: Modify cues after creation
 - **Drag & Drop**: Easily reorder cues
 - **Progress Tracking**: Visual progress bar and status
 - **Auto Standby**: Every show starts with Cue 0
@@ -64,20 +74,26 @@ Professional theatrical-style cue stack for running shows cue by cue.
 
 ### Use Case Example: Worship Service
 
-\`\`\`
+```
 Cue 0: Standby (house lights up)
-Cue 1: Walk-In (background loop + NDI feed)
+Cue 1: Walk-In (background loop)
 Cue 2: Worship Set 1
 Cue 3: Announcements  
 Cue 4: Worship Set 2
 Cue 5: Sermon
 Cue 6: Closing
-\`\`\`
+```
 
 ## 📦 Installation
 
 ### macOS
-Download `ShowCall-2.4.2-arm64.dmg` for Apple Silicon or `ShowCall-2.4.2.dmg` for Intel Macs.
+Download `ShowCall-2.4.3-arm64.dmg` for Apple Silicon or `ShowCall-2.4.3.dmg` for Intel Macs.
+
+### Windows
+Download `ShowCall-Setup-2.4.3.exe`
+
+### Linux
+Download `ShowCall-2.4.3.AppImage`
 
 ### Auto-Update
 If you're on v2.3.4 or later, the app will automatically notify you of this update.

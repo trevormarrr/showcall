@@ -24,7 +24,7 @@ async function init() {
     // Build UI elements
     buildQuickCues(CFG);
     buildDeck(CFG);
-    addDebugControls();
+    // Debug controls removed for production
     initSettings();
     initPresets();
     
@@ -83,6 +83,8 @@ async function loadComposition() {
   }
 }
 
+// Debug controls commented out for production
+/*
 function addDebugControls() {
   // Add debug section to quick cues
   const quickCues = document.getElementById("quickCues");
@@ -147,6 +149,7 @@ function addDebugControls() {
   testHighlightBtn.style.backgroundColor = "#e11d48";
   quickCues.appendChild(testHighlightBtn);
 }
+*/
 
 async function testConnection() {
   try {
@@ -2361,18 +2364,17 @@ function initCueStack() {
         }
       }
       
-      // Keyboard shortcuts: 1-9 trigger cues 0-8, 0 triggers cue 9
-      const hotkeyNum = index < 9 ? (index + 1) : (index === 9 ? 0 : null);
-      const hotkeyBadge = hotkeyNum !== null 
-        ? `<div style="min-width: 24px; height: 24px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: rgb(251, 191, 36); flex-shrink: 0;">${hotkeyNum}</div>` 
-        : '<div style="min-width: 24px;"></div>'; // Spacer for alignment
+      // Keyboard shortcuts removed for production - no visual badges
+      // const hotkeyNum = index < 9 ? (index + 1) : (index === 9 ? 0 : null);
+      // const hotkeyBadge = hotkeyNum !== null 
+      //   ? `<div style="min-width: 24px; height: 24px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: rgb(251, 191, 36); flex-shrink: 0;">${hotkeyNum}</div>` 
+      //   : '<div style="min-width: 24px;"></div>'; // Spacer for alignment
       
       // Cue number is 0-based (0, 1, 2, 3...)
       const cueNumber = index;
       
       if (isCustom) {
         cueItem.innerHTML = `
-          ${hotkeyBadge}
           <div class="cue-number">${cueNumber}</div>
           <div class="cue-content">
             <div class="cue-label">${cue.custom.label}</div>
@@ -2392,7 +2394,6 @@ function initCueStack() {
         `;
       } else {
         cueItem.innerHTML = `
-          ${hotkeyBadge}
           <div class="cue-number">${cueNumber}</div>
           <div class="cue-content">
             <div class="cue-label">${preset.label}</div>
@@ -2770,6 +2771,9 @@ function initCueStack() {
         </div>
         <div style="width: 10px; height: 10px; border-radius: 50%; background-color: ${color}"></div>
         <div style="flex: 1; font-weight: 600; font-size: 13px; ${isMissing ? 'opacity: 0.6;' : ''}">${label}</div>
+        ${cue.custom ? `<button class="edit-cue-btn" data-index="${index}" style="background: rgba(125,211,252,0.2); border: 1px solid rgba(125,211,252,0.3); color: var(--accent-light); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 6px;">
+          Edit
+        </button>` : ''}
         <button class="remove-cue-btn" data-index="${index}" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3); color: var(--red); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px;">
           Remove
         </button>
@@ -2791,6 +2795,14 @@ function initCueStack() {
         cueStack.cues.splice(index, 1);
         renderCueStackBuilder();
         showNotification('Cue removed', 'info');
+      };
+    });
+    
+    // Attach edit handlers for custom cues
+    document.querySelectorAll('.edit-cue-btn').forEach(btn => {
+      btn.onclick = () => {
+        const index = parseInt(btn.dataset.index);
+        editExistingCue(index);
       };
     });
   }
@@ -2900,31 +2912,7 @@ function initCueStack() {
       resetCueStack();
     }
     
-    // Number keys 1-9 and 0 = Execute specific cues
-    // 1-9 triggers cues 1-9, 0 triggers cue 10
-    if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      let cueIndex = -1;
-      
-      // Check for Digit keys (1-9, 0)
-      if (e.code >= 'Digit1' && e.code <= 'Digit9') {
-        cueIndex = parseInt(e.code.replace('Digit', '')) - 1; // 0-indexed
-      } else if (e.code === 'Digit0') {
-        cueIndex = 9; // 10th cue (0-indexed)
-      }
-      // Also check numpad keys
-      else if (e.code >= 'Numpad1' && e.code <= 'Numpad9') {
-        cueIndex = parseInt(e.code.replace('Numpad', '')) - 1;
-      } else if (e.code === 'Numpad0') {
-        cueIndex = 9;
-      }
-      
-      // Execute the cue if it exists
-      if (cueIndex >= 0 && cueIndex < cueStack.cues.length) {
-        e.preventDefault();
-        console.log(`🎹 Keyboard shortcut: Executing cue ${cueIndex + 1}`);
-        window.executeSpecificCue(cueIndex);
-      }
-    }
+    // Number keys 1-0 removed for production - use Space and R only
   });
   
   // ═══════════════════════════════════════════════════════════════════════════
@@ -2952,9 +2940,26 @@ function initCueStack() {
     customCueModal.style.display = 'flex';
   };
   
+  // Edit existing custom cue
+  let editingCueIndex = null;
+  
+  function editExistingCue(index) {
+    const cue = cueStack.cues[index];
+    if (!cue.custom) return;
+    
+    editingCueIndex = index;
+    customCueLabel.value = cue.custom.label || '';
+    customCueColor.value = cue.custom.color || '#7dd3fc';
+    customCueActions = JSON.parse(JSON.stringify(cue.custom.macro || [])); // Deep clone
+    renderCustomCueActions();
+    customCueModal.style.display = 'flex';
+    showNotification('Editing custom cue', 'info');
+  }
+  
   // Close custom cue modal
   const closeCustomModal = () => {
     customCueModal.style.display = 'none';
+    editingCueIndex = null; // Reset editing mode
   };
   
   closeCustomCueModal.onclick = closeCustomModal;
@@ -3219,18 +3224,32 @@ function initCueStack() {
       return { ...action };
     });
     
-    // Add custom cue to the stack
-    cueStack.cues.push({
-      custom: {
-        label,
-        color: customCueColor.value,
-        actions: macroActions
-      }
-    });
+    // Check if we're editing or creating new
+    if (editingCueIndex !== null) {
+      // Update existing cue
+      cueStack.cues[editingCueIndex] = {
+        custom: {
+          label,
+          color: customCueColor.value,
+          actions: macroActions
+        }
+      };
+      showNotification(`Custom cue "${label}" updated`, 'success');
+      editingCueIndex = null;
+    } else {
+      // Add new custom cue to the stack
+      cueStack.cues.push({
+        custom: {
+          label,
+          color: customCueColor.value,
+          actions: macroActions
+        }
+      });
+      showNotification(`Custom cue "${label}" added`, 'success');
+    }
     
     renderCueStackBuilder();
     closeCustomModal();
-    showNotification(`Custom cue "${label}" added`, 'success');
   };
   
   // Initial render

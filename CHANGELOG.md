@@ -2,6 +2,45 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.4.3] - 2026-02-26
+
+### ✨ Features
+
+- **Edit Custom Cues**: Added ability to edit existing custom cues in cue stack management modal
+  - Click "Edit" button next to custom cues in the management list
+  - Modify label, color, and actions
+  - Preset-based cues cannot be edited (must edit the preset itself)
+- **Simplified Keyboard Shortcuts**: Removed number keys 1-0 for direct cue firing
+  - Kept Space (GO) and R (Reset) for cleaner show control
+  - Prevents accidental cue triggers during performances
+
+### 🧹 Cleanup
+
+- **Removed Debug Controls**: Commented out debug quick action buttons for production
+  - No more "Refresh Grid", "Debug Info", "Test L1C1", etc.
+  - Cleaner interface for end users
+- **NDI Preview**: Commented out NDI preview section (not yet implemented)
+  - Settings panel NDI options also commented out
+  - Will be re-enabled when feature is complete
+
+### 📚 Documentation
+
+- **README Cleanup**: Complete rewrite for clarity and conciseness
+  - Removed redundant version histories
+  - Streamlined quick start and feature list
+  - Better organization of documentation links
+- **RELEASE_NOTES**: Updated for v2.4.3 with clear upgrade path
+- **Version Updates**: All references updated from 2.4.2 to 2.4.3
+
+### Technical Details
+
+- Updated `package.json` version to 2.4.3
+- Updated UI header version display to v2.4.3
+- Added `editingCueIndex` state tracking for cue editing
+- Added `editExistingCue()` function to load cue data into editor
+- Modified `saveCustomCueBtn` handler to support update vs. create modes
+- Added "Edit" button rendering in cue stack builder (custom cues only)
+
 ## [2.4.2] - 2026-02-25
 
 ### 🎨 UI Enhancements
