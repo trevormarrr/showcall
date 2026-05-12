@@ -43,15 +43,17 @@ jobs:
             fi
           done
 
-      - name: Test notarytool credentials (macOS)
+      - name: Store notarytool credentials (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          echo "Testing notarytool with provided credentials..."
+          echo "Storing notarytool credentials in keychain..."
+          # Store credentials for later use by @electron/notarize
           xcrun notarytool store-credentials "showcall-creds" \
             --apple-id "$APPLE_ID" \
             --team-id "$APPLE_TEAM_ID" \
-            --password "$APPLE_APP_SPECIFIC_PASSWORD" 2>&1 | head -20 || true
-          echo "Credential test completed (errors above are expected if already stored)"
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --force 2>&1 || true
+          echo "Credentials stored in keychain"
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

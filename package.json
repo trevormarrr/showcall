@@ -73,8 +73,7 @@
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
       "notarize": {
-        "teamId": "KHG523256M",
-        "keychainProfile": "showcall-creds"
+        "teamId": "KHG523256M"
       }
     },
     "win": {
