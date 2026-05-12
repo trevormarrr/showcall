@@ -1,4 +1,4 @@
-# ShowCall v2.4.3 Release Notes
+# ShowCall v2.5.0 Release Notes
 
 ## 🎯 Production Release
 
@@ -10,7 +10,7 @@ This release focuses on production readiness, adding cue editing capabilities, a
 - ✅ **Simplified Keyboard Shortcuts** - Removed 1-0 direct cue firing, kept Space (GO) and R (Reset)
 - ✅ **Cleaner Interface** - Removed debug quick action buttons for production use
 - ✅ **Documentation Cleanup** - Reorganized and updated all documentation
-- ✅ **Version Consistency** - All files updated to v2.4.3
+- ✅ **Version Consistency** - All files updated to v2.5.0
 
 ### Why This Update?
 
@@ -87,13 +87,13 @@ Cue 6: Closing
 ## 📦 Installation
 
 ### macOS
-Download `ShowCall-2.4.3-arm64.dmg` for Apple Silicon or `ShowCall-2.4.3.dmg` for Intel Macs.
+Download `ShowCall-2.5.0-arm64.dmg` for Apple Silicon or `ShowCall-2.5.0.dmg` for Intel Macs.
 
 ### Windows
-Download `ShowCall-Setup-2.4.3.exe`
+Download `ShowCall-Setup-2.5.0.exe`
 
 ### Linux
-Download `ShowCall-2.4.3.AppImage`
+Download `ShowCall-2.5.0.AppImage`
 
 ### Auto-Update
 If you're on v2.3.4 or later, the app will automatically notify you of this update.

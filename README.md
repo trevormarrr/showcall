@@ -6,7 +6,7 @@
 
 
 
-![ShowCall Interface](https://img.shields.io/badge/version-2.4.3-blue)![ShowCall Interface](https://img.shields.io/badge/version-2.4.3-blue)
+![ShowCall Interface](https://img.shields.io/badge/version-2.5.0-blue)![ShowCall Interface](https://img.shields.io/badge/version-2.5.0-blue)
 
 ![License](https://img.shields.io/badge/license-MIT-green)![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -82,7 +82,7 @@ A professional Electron-based controller for Resolume Arena using **OSC for cont
 
 **The grid now scrolls horizontally so you can see ALL your columns!**
 
-**Latest Release:** [v2.4.3](https://github.com/trevormarrr/showcall/releases/tag/v2.4.3)
+**Latest Release:** [v2.5.0](https://github.com/trevormarrr/showcall/releases/tag/v2.5.0)
 
 - ✅ **All Columns Visible** - No more hidden columns with 20+ column compositions
 
@@ -398,13 +398,13 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Author:** Trevor Marr  2. **Install in Companion:**
 
-**Version:** 2.4.3     - Open Bitfocus Companion
+**Version:** 2.5.0     - Open Bitfocus Companion
 
 **License:** MIT   - Install the generated `.tgz` file
 
 
 
-**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.4.3)3. **Connect Companion:**
+**Download Now:** [GitHub Releases](https://github.com/trevormarrr/showcall/releases/tag/v2.5.0)3. **Connect Companion:**
 
    - Add ShowCall connection
 

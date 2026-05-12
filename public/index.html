@@ -15,7 +15,7 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.4.3</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.5.0</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -169,15 +169,39 @@
   <div id="presetsModal" class="modal" style="display: none;">
     <div class="modal-content preset-editor-modal">
       <div class="modal-header">
-        <h2>Manage Presets</h2>
+        <h2>Manage Presets & Banks</h2>
         <span class="close">&times;</span>
       </div>
       <div class="modal-body preset-editor-body">
+        <!-- Bank Selector View -->
+        <div id="bankSelectorView" class="bank-selector-view">
+          <div class="bank-selector-header">
+            <div>
+              <h3>Preset Banks</h3>
+              <p class="bank-selector-subtitle">Select a bank to edit or activate</p>
+            </div>
+          </div>
+          <div id="bankList" class="bank-list"></div>
+          <div class="bank-selector-footer">
+            <button id="importBankBtn" class="btn-secondary">📥 Import</button>
+            <button id="exportAllBanksBtn" class="btn-secondary">📤 Export All</button>
+          </div>
+        </div>
+
         <!-- Preset List View -->
-        <div id="presetListView" class="preset-list-view">
+        <div id="presetListView" class="preset-list-view" style="display: none;">
           <div class="preset-list-header">
-            <h3>Your Presets</h3>
-            <button id="addPresetBtn" class="btn-primary">+ Add New Preset</button>
+            <div class="bank-header-top">
+              <button id="backToBankSelectorBtn" class="btn-secondary">← Back to Banks</button>
+              <div class="bank-viewing-info">
+                <span id="currentBankName" class="current-bank-name">Bank 1</span>
+                <span id="bankViewingIndicator" class="bank-viewing-indicator"></span>
+              </div>
+            </div>
+            <div class="preset-list-header-actions">
+              <button id="addPresetBtn" class="btn-primary">+ Add New Preset</button>
+              <button id="exportBankBtn" class="btn-secondary">📤 Export Bank</button>
+            </div>
           </div>
           <div id="presetList" class="preset-list"></div>
         </div>

@@ -2,6 +2,19 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.5.0] - 2026-05-12
+
+### ✨ Improvements
+
+- Polished Cue Stack UX: small UI improvements and performance tweaks for very large cue lists
+- Improved packaging metadata for macOS DMG and auto-update hints
+- Documentation updates and version bumps to 2.5.0 across UI and docs
+
+### 🧾 Notes
+
+- Version bumped in `package.json` and `public/index.html` to 2.5.0
+- Added `GITHUB_RELEASE_NOTES_v2.5.0.md` with release body for GitHub
+
 ## [2.4.3] - 2026-02-26
 
 ### ✨ Features
