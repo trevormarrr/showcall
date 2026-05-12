@@ -1,113 +1,55 @@
 # ShowCall v2.5.0 Release Notes
 
-## 🎯 Production Release
+## � What’s New in v2.5.0 — Preset Banks
 
-This release focuses on production readiness, adding cue editing capabilities, and cleaning up the interface for professional use.
+Meet Preset Banks — a simple, powerful way to organize and recall groups of presets.
 
-### What's New
+Why you’ll love it:
 
-- ✅ **Edit Custom Cues** - Click "Edit" button in cue stack management to modify custom cues
-- ✅ **Simplified Keyboard Shortcuts** - Removed 1-0 direct cue firing, kept Space (GO) and R (Reset)
-- ✅ **Cleaner Interface** - Removed debug quick action buttons for production use
-- ✅ **Documentation Cleanup** - Reorganized and updated all documentation
-- ✅ **Version Consistency** - All files updated to v2.5.0
+- Save groups of presets into named banks (for example: "Worship Morning", "Concert A", "Lobby Loops").
+- Switch entire banks instantly — everything in the bank becomes available on your Preset Deck.
+- Import and export banks to share setups with other machines or team members.
+- Banks work with your existing presets and cue stacks — nothing is lost when you switch.
 
-### Why This Update?
+How to use Preset Banks:
 
-Based on user feedback, we've streamlined the cue stack workflow to be more professional and less prone to accidental triggers. The edit functionality for custom cues was the #1 requested feature, and debug controls were confusing for end users.
+1. Open the Presets modal and click "Banks".
+2. Create a new bank and give it a name.
+3. Add presets to the bank (drag-and-drop or use the Add button).
+4. Activate the bank to load its presets onto your Preset Deck.
 
-### Cue Editing
+Tip: Create a bank for each show or venue to recall complex setups instantly.
 
-**How to edit a custom cue:**
-1. Open cue stack management (⚙️ Manage button)
-2. Find your custom cue in the list
-3. Click the "Edit" button
-4. Modify label, color, or actions
-5. Save changes
+Other improvements in this release:
 
-**Note:** Preset-based cues cannot be edited (edit the preset itself instead). Only custom cues show the Edit button.
+- Small UX polish in the Cue Stack for large lists (smoother scrolling and better spacing).
+- Packaging and auto-update metadata tweaks so installers show the correct version information.
+- Documentation refreshed to make it easier to find guides and quick start steps.
 
-### Keyboard Shortcuts
-
-**Updated shortcuts:**
-- **Space** - GO (execute next cue)
-- **R** - Reset (back to Cue 0)
-
-**Removed:**
-- Number keys 1-9/0 no longer fire specific cues directly
-- This prevents accidental triggers during shows
-
-### Coming Soon
-
-Future releases will focus on:
-- MIDI controller integration
-- OSC input support (for external triggering)
-- Cue list import/export
-- Performance optimizations
-
----
-
-## All v2.4 Features Included
-
-## 🎭 Cue Stack System - Sequential Show Control
-
-Professional theatrical-style cue stack for running shows cue by cue.
-
-### Key Features
-
-- **Theatrical Numbering**: Cue 0 (Standby), Cue 1, 2, 3...
-- **Visual State Indicators**: Cyan (active), yellow (next), faded (completed)
-- **Keyboard Shortcuts**: Space=GO, R=Reset
-- **Preset & Custom Cues**: Add presets or build custom cues visually
-- **Edit Custom Cues**: Modify cues after creation
-- **Drag & Drop**: Easily reorder cues
-- **Progress Tracking**: Visual progress bar and status
-- **Auto Standby**: Every show starts with Cue 0
-
-### Perfect For
-
-- Worship services
-- Theatre productions
-- Concert tours
-- Corporate events
-- Any sequential programming
-
-### Use Case Example: Worship Service
-
-```
-Cue 0: Standby (house lights up)
-Cue 1: Walk-In (background loop)
-Cue 2: Worship Set 1
-Cue 3: Announcements  
-Cue 4: Worship Set 2
-Cue 5: Sermon
-Cue 6: Closing
-```
-
-## 📦 Installation
+## 📦 Download & Install
 
 ### macOS
-Download `ShowCall-2.5.0-arm64.dmg` for Apple Silicon or `ShowCall-2.5.0.dmg` for Intel Macs.
+Download `ShowCall-2.5.0-arm64.dmg` (Apple Silicon) or `ShowCall-2.5.0.dmg` (Intel).
 
 ### Windows
-Download `ShowCall-Setup-2.5.0.exe`
+Download `ShowCall-Setup-2.5.0.exe`.
 
 ### Linux
-Download `ShowCall-2.5.0.AppImage`
+Download `ShowCall-2.5.0.AppImage`.
 
 ### Auto-Update
-If you're on v2.3.4 or later, the app will automatically notify you of this update.
+If you're on a recent release (v2.3.4+), ShowCall's updater will offer this update automatically.
 
-## 🔗 Links
+## 🔗 Helpful Links
 
-- [Full Changelog](https://github.com/trevormarrr/showcall/blob/main/CHANGELOG.md)
-- [Documentation](https://github.com/trevormarrr/showcall#readme)
-- [Report Issues](https://github.com/trevormarrr/showcall/issues)
+- Full Changelog: https://github.com/trevormarrr/showcall/blob/main/CHANGELOG.md
+- Documentation: https://github.com/trevormarrr/showcall#readme
+- Report Issues: https://github.com/trevormarrr/showcall/issues
 
 ## ⬆️ Upgrading
 
-All features from previous versions are included. Your existing presets, settings, compositions, and cue stacks will work seamlessly.
+Your presets, settings, and cue stacks are preserved. Import/export of banks is available for sharing setups.
 
 ---
 
-**What's Next?** Check out the [Roadmap](https://github.com/trevormarrr/showcall/blob/main/docs/ROADMAP.md) to see what's coming in future releases!
+Thanks for using ShowCall — if you run into any issues or have suggestions, open an issue and we'll help you out.
