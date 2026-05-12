@@ -59,7 +59,7 @@ jobs:
       - name: Check required env vars for macOS build
         if: matrix.os == 'macos-latest'
         run: |
-          for var in APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID CSC_LINK CSC_KEY_PASSWORD; do
+          for var in CSC_LINK CSC_KEY_PASSWORD; do
             if [ -z "${!var}" ]; then
               echo "::error::Missing required env var: $var"
               exit 1
@@ -68,9 +68,6 @@ jobs:
           echo "All required macOS build secrets are present"
         shell: bash
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
@@ -84,11 +81,9 @@ jobs:
           cp build-electron-builder.log dist/logs/ || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          SKIP_NOTARIZE: 'true'
         shell: bash
 
       - name: Build app (Linux)
