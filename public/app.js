@@ -1237,12 +1237,22 @@ function initPresets() {
   const close = modal.querySelector('.close');
   
   // Views
+  const bankSelectorView = document.getElementById('bankSelectorView');
   const listView = document.getElementById('presetListView');
   const editView = document.getElementById('presetEditView');
+  const bankList = document.getElementById('bankList');
   const presetList = document.getElementById('presetList');
+  
+  // Bank Selector Controls
+  const backToBankSelectorBtn = document.getElementById('backToBankSelectorBtn');
+  const importBankBtn = document.getElementById('importBankBtn');
+  const exportAllBanksBtn = document.getElementById('exportAllBanksBtn');
+  const currentBankNameEl = document.getElementById('currentBankName');
+  const bankViewingIndicator = document.getElementById('bankViewingIndicator');
   
   // List View Controls
   const addPresetBtn = document.getElementById('addPresetBtn');
+  const exportBankBtn = document.getElementById('exportBankBtn');
   
   // Edit View Controls
   const backToListBtn = document.getElementById('backToListBtn');
@@ -1258,38 +1268,304 @@ function initPresets() {
   const cancelEditBtn = document.getElementById('cancelEditBtn');
   
   let currentPresets = [];
+  let activeBank = 1;        // The active bank in the system (persistent)
+  let viewingBank = 1;       // The bank whose presets we're viewing
+  let bankMetadata = null;
   let editingPresetIndex = -1;
   let currentMacroSteps = [];
   
-  // Open modal and show list view
-  const openModal = async () => {
+  // Show specific view
+  const showView = (view) => {
+    bankSelectorView.style.display = 'none';
+    listView.style.display = 'none';
+    editView.style.display = 'none';
+    if (view === 'banks') bankSelectorView.style.display = 'block';
+    else if (view === 'list') listView.style.display = 'block';
+    else if (view === 'edit') editView.style.display = 'block';
+  };
+  
+  // Load banks list
+  const loadAndRenderBanks = async () => {
     try {
-      const data = await fetch('/api/presets').then(r => r.json());
-      currentPresets = data.presets || [];
-      renderPresetList();
-      showListView();
-      modal.style.display = 'flex';
+      const res = await fetch('/api/banks');
+      const data = await res.json();
+      if (!data.ok && !data.banks) {
+        throw new Error('Invalid response from /api/banks');
+      }
+      activeBank = data.currentBank;
+      bankMetadata = {
+        currentBank: data.currentBank,
+        bankNames: data.bankNames || {
+          '1': 'Bank 1',
+          '2': 'Bank 2',
+          '3': 'Bank 3',
+          '4': 'Bank 4',
+          '5': 'Bank 5'
+        }
+      };
+      renderBankList(data.banks);
     } catch (e) {
-      showNotification('Failed to load presets', 'error');
+      console.error('Failed to load banks:', e);
+      showNotification('Failed to load banks: ' + e.message, 'error');
     }
+  };
+  
+  // Render banks
+  const renderBankList = (banks) => {
+    bankList.innerHTML = '';
+    banks.forEach(bank => {
+      const isActive = bank.id === activeBank;
+      const item = document.createElement('div');
+      item.className = `bank-item ${isActive ? 'active' : ''}`;
+      
+      // Build action buttons
+      let actionButtons = `
+        <button class="bank-item-action-main bank-item-open" data-id="${bank.id}" title="${isActive ? 'Edit presets' : 'View presets'}">
+          ${isActive ? '✎ Edit' : '👁 View'}
+        </button>
+      `;
+      
+      if (!isActive) {
+        actionButtons += `
+          <button class="bank-item-action-main bank-item-activate" data-id="${bank.id}" title="Make this bank active">
+            ✓ Activate
+          </button>
+        `;
+      }
+      
+      item.innerHTML = `
+        <div class="bank-item-header">
+          <div class="bank-item-info">
+            <div class="bank-item-name">${bank.name}</div>
+            ${isActive ? '<span class="bank-active-badge">Active</span>' : ''}
+          </div>
+          <div class="bank-item-menu-btn" data-id="${bank.id}" title="More options">⋮</div>
+        </div>
+        <div class="bank-item-meta">${bank.presetCount} preset${bank.presetCount !== 1 ? 's' : ''}</div>
+        <div class="bank-item-actions">
+          ${actionButtons}
+        </div>
+        <div class="bank-item-menu hidden" data-id="${bank.id}">
+          <button class="bank-item-menu-btn-rename" data-id="${bank.id}">✏ Rename</button>
+          <button class="bank-item-menu-btn-clear" data-id="${bank.id}">🗑 Clear</button>
+        </div>
+      `;
+      bankList.appendChild(item);
+    });
+    
+    console.log('📋 Rendered', banks.length, 'banks');
+    
+    // Attach listeners for Open/View
+    bankList.querySelectorAll('.bank-item-open').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        switchBank(parseInt(btn.dataset.id));
+      };
+    });
+    
+    // Attach listeners for Activate
+    bankList.querySelectorAll('.bank-item-activate').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        await activateBank(parseInt(btn.dataset.id));
+      };
+    });
+    
+    // Attach listeners for menu button (⋮)
+    const menuBtns = bankList.querySelectorAll('.bank-item-menu-btn');
+    console.log('🎯 Found', menuBtns.length, 'menu buttons (⋮)');
+    menuBtns.forEach((btn, idx) => {
+      btn.addEventListener('click', (e) => {
+        console.log('✅ MENU BUTTON (⋮) CLICKED for bank');
+        e.stopPropagation();
+        const bankId = parseInt(btn.dataset.id);
+        console.log('📋 Menu button clicked for bank:', bankId);
+        const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
+        if (menu) {
+          const wasHidden = menu.classList.contains('hidden');
+          menu.classList.toggle('hidden');
+          console.log('✅ Menu toggled, was hidden:', wasHidden, 'now hidden:', menu.classList.contains('hidden'));
+          // Close other menus
+          bankList.querySelectorAll('.bank-item-menu').forEach(m => {
+            if (m !== menu) m.classList.add('hidden');
+          });
+        } else {
+          console.warn('⚠️ Menu element not found for bank:', bankId);
+        }
+      }, false);
+    });
+    
+    // Attach listeners for menu actions
+    const renameButtons = bankList.querySelectorAll('.bank-item-menu-btn-rename');
+    console.log('🔍 Found', renameButtons.length, 'rename buttons');
+    console.log('📝 Button elements:', renameButtons);
+    
+    if (renameButtons.length > 0) {
+      renameButtons.forEach((btn, idx) => {
+        console.log(`📌 Attaching rename listener to button ${idx} with bankId:`, btn.dataset.id);
+        btn.addEventListener('click', (e) => {
+          console.log('✅ RENAME BUTTON CLICKED - listener fired!');
+          e.preventDefault();
+          e.stopPropagation();
+          const bankId = parseInt(btn.dataset.id);
+          console.log('🔄 Rename button clicked for bank:', bankId);
+          
+          // Show the prompt
+          const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
+          console.log('📝 Current name:', currentName);
+          const newName = prompt(`Rename "${currentName}" to:`, currentName);
+          console.log('📝 New name entered:', newName);
+          
+          if (!newName || newName === currentName) {
+            console.log('❌ No name change, returning');
+            return;
+          }
+          
+          renameBank(bankId);
+          
+          // Close menu
+          const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
+          if (menu) menu.classList.add('hidden');
+        }, false);
+      });
+    } else {
+      console.warn('⚠️ NO RENAME BUTTONS FOUND!');
+    }
+    
+    const clearButtons = bankList.querySelectorAll('.bank-item-menu-btn-clear');
+    clearButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const bankId = parseInt(btn.dataset.id);
+        console.log('🗑️ Clear button clicked for bank:', bankId);
+        clearBank(bankId);
+        // Close menu
+        const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
+        if (menu) menu.classList.add('hidden');
+      }, false);
+    });
+  };
+  
+  // Switch to a bank (for viewing/editing presets, doesn't activate)
+  const switchBank = async (bankId) => {
+    try {
+      const res = await fetch(`/api/banks/${bankId}/presets`);
+      const data = await res.json();
+      if (!data.ok) throw new Error('Failed to load bank');
+      
+      viewingBank = bankId;
+      activeBank = data.activeBank;  // Get the actual active bank from server
+      currentPresets = data.presets || [];
+      const bankName = data.bankName || `Bank ${bankId}`;
+      currentBankNameEl.textContent = bankName;
+      
+      // Update indicator showing if this is the active bank
+      if (viewingBank === activeBank) {
+        bankViewingIndicator.textContent = '● Active';
+        bankViewingIndicator.className = 'bank-viewing-indicator active-bank';
+      } else {
+        bankViewingIndicator.textContent = '';
+        bankViewingIndicator.className = 'bank-viewing-indicator';
+      }
+      
+      renderPresetList();
+      showView('list');
+      showNotification(`Opened ${bankName}`, 'success');
+    } catch (e) {
+      console.error('Failed to switch bank:', e);
+      showNotification('Failed to switch bank', 'error');
+    }
+  };
+  
+  // Rename bank
+  const renameBank = async (bankId) => {
+    const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
+    const newName = prompt(`Rename to:`, currentName);
+    if (!newName || newName === currentName) return;
+    
+    try {
+      const res = await fetch(`/api/banks/${bankId}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      if (!res.ok) throw new Error('Failed to rename');
+      
+      // Update local metadata
+      if (bankMetadata && bankMetadata.bankNames) {
+        bankMetadata.bankNames[bankId] = newName;
+      }
+      
+      // Reload and re-render
+      await loadAndRenderBanks();
+      showNotification(`Renamed to "${newName}"`, 'success');
+    } catch (e) {
+      console.error('Failed to rename bank:', e);
+      showNotification('Failed to rename bank', 'error');
+    }
+  };
+  
+  // Clear bank
+  const clearBank = async (bankId) => {
+    if (!confirm(`Are you sure you want to clear all presets in Bank ${bankId}?`)) return;
+    
+    try {
+      await fetch(`/api/banks/${bankId}/clear`, { method: 'POST' });
+      loadAndRenderBanks();
+      showNotification('Bank cleared', 'success');
+    } catch (e) {
+      showNotification('Failed to clear bank', 'error');
+    }
+  };
+  
+  // Activate a bank (make it the active bank for the deck)
+  const activateBank = async (bankId) => {
+    try {
+      const res = await fetch(`/api/banks/switch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bankId })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error('Failed to activate bank');
+      
+      activeBank = bankId;
+      
+      // Update the main app's preset deck and quick cues with the new active bank's presets
+      CFG = {
+        presets: data.presets || [],
+        quickCues: data.quickCues || []
+      };
+      buildQuickCues(CFG);
+      buildDeck(CFG);
+      
+      // Re-register hotkeys
+      deckByKey.clear();
+      (CFG.presets || []).forEach(p => {
+        if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+      });
+      
+      // Reload and re-render the bank list to show updated active state
+      await loadAndRenderBanks();
+      
+      showNotification(`${data.bankName} is now active`, 'success');
+    } catch (e) {
+      console.error('Failed to activate bank:', e);
+      showNotification('Failed to activate bank', 'error');
+    }
+  };
+  
+  // Open modal and show banks
+  const openModal = async () => {
+    await loadAndRenderBanks();
+    showView('banks');
+    modal.style.display = 'flex';
   };
   
   // Close modal
   const closeModal = () => {
     modal.style.display = 'none';
-    showListView();
-  };
-  
-  // Show list view
-  const showListView = () => {
-    listView.style.display = 'block';
-    editView.style.display = 'none';
-  };
-  
-  // Show edit view
-  const showEditView = () => {
-    listView.style.display = 'none';
-    editView.style.display = 'block';
   };
   
   // Render preset list
@@ -1358,7 +1634,7 @@ function initPresets() {
     currentMacroSteps = [];
     renderMacroSteps();
     
-    showEditView();
+    showView('edit');
   };
   
   // Edit existing preset
@@ -1377,7 +1653,7 @@ function initPresets() {
     currentMacroSteps = JSON.parse(JSON.stringify(preset.macro || []));
     renderMacroSteps();
     
-    showEditView();
+    showView('edit');
   };
   
   // Duplicate preset
@@ -1498,6 +1774,7 @@ function initPresets() {
         break;
     }
     
+
     currentMacroSteps.push(newStep);
     renderMacroSteps();
   };
@@ -1569,7 +1846,7 @@ function initPresets() {
     renderMacroSteps();
   };
   
-  // Save preset
+  // Save preset (bank-aware)
   const savePreset = async () => {
     const id = presetIdInput.value.trim();
     const label = presetLabelInput.value.trim();
@@ -1604,10 +1881,10 @@ function initPresets() {
       currentPresets[editingPresetIndex] = preset;
     }
     
-    // Save to server
+    // Save to server (with bank param)
     try {
       const data = { presets: currentPresets };
-      const resp = await fetch('/api/presets', {
+      const resp = await fetch(`/api/presets?bank=${viewingBank}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -1629,13 +1906,13 @@ function initPresets() {
       });
       
       renderPresetList();
-      showListView();
+      showView('list');
     } catch (e) {
       showNotification('Failed to save preset', 'error');
     }
   };
   
-  // Delete preset
+  // Delete preset (bank-aware)
   const deletePreset = async () => {
     if (editingPresetIndex === -1) return;
     
@@ -1643,10 +1920,10 @@ function initPresets() {
     
     currentPresets.splice(editingPresetIndex, 1);
     
-    // Save to server
+    // Save to server (with bank param)
     try {
       const data = { presets: currentPresets };
-      const resp = await fetch('/api/presets', {
+      const resp = await fetch(`/api/presets?bank=${viewingBank}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -1667,20 +1944,132 @@ function initPresets() {
       });
       
       renderPresetList();
-      showListView();
+      showView('list');
     } catch (e) {
       showNotification('Failed to delete preset', 'error');
     }
   };
   
-  // Event listeners
-  btn.onclick = openModal;
-  close.onclick = closeModal;
-  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+  // Export current bank
+  const exportBank = async () => {
+    try {
+      const res = await fetch(`/api/banks/export/${viewingBank}`);
+      const data = await res.json();
+      
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `showcall-presets-${bankMetadata.bankNames[viewingBank]?.replace(/\s+/g, '-')}-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('Bank exported successfully', 'success');
+    } catch (e) {
+      showNotification('Failed to export bank', 'error');
+    }
+  };
   
+  // Export all banks
+  const exportAllBanks = async () => {
+    try {
+      const res = await fetch('/api/banks/export/-1');
+      const data = await res.json();
+      
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `showcall-all-presets-${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      showNotification('All banks exported successfully', 'success');
+    } catch (e) {
+      showNotification('Failed to export banks', 'error');
+    }
+  };
+  
+  // Import bank
+  const importBank = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async (e) => {
+      try {
+        const file = e.target.files[0];
+        const text = await file.text();
+        const importedData = JSON.parse(text);
+        
+        // Determine target bank
+        const targetBankId = prompt('Import to which bank? (1-5)', '2');
+        const targetId = parseInt(targetBankId);
+        
+        if (!targetId || targetId < 1 || targetId > 5) {
+          showNotification('Invalid bank number', 'error');
+          return;
+        }
+        
+        const overwrite = confirm('Overwrite existing presets in this bank? (OK = Yes, Cancel = Merge)');
+        
+        const res = await fetch('/api/banks/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceBank: importedData,
+            targetBank: targetId,
+            overwrite
+          })
+        });
+        
+        if (!res.ok) throw new Error('Failed to import');
+        
+        loadAndRenderBanks();
+        showNotification('Bank imported successfully', 'success');
+      } catch (e) {
+        showNotification(`Failed to import bank: ${e.message}`, 'error');
+      }
+    };
+    input.click();
+  };
+  
+  // Event listeners
+  btn.onclick = () => {
+    loadAndRenderBanks();
+    modal.style.display = 'flex';
+    showView('banks');
+  };
+  close.onclick = closeModal;
+  
+  // Only close modal if clicking on the dark background overlay
+  // NOT on the modal-content or anything inside it
+  modal.addEventListener('click', (e) => {
+    // Check if the click is directly on the modal div (background), 
+    // not on the modal-content or its children
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent && modalContent.contains(e.target)) {
+      // Click is inside modal-content, don't close
+      return;
+    }
+    // Click is on the overlay background
+    if (e.target === modal) {
+      closeModal();
+    }
+  }, true); // Use capture phase to catch it early
+  
+  backToBankSelectorBtn.onclick = () => showView('banks');
   addPresetBtn.onclick = addNewPreset;
-  backToListBtn.onclick = showListView;
-  cancelEditBtn.onclick = showListView;
+  exportBankBtn.onclick = exportBank;
+  importBankBtn.onclick = importBank;
+  exportAllBanksBtn.onclick = exportAllBanks;
+  backToListBtn.onclick = () => showView('list');
+  cancelEditBtn.onclick = () => showView('list');
   savePresetBtn.onclick = savePreset;
   deletePresetBtn.onclick = deletePreset;
   

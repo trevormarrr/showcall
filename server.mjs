@@ -31,6 +31,17 @@ try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
 const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
 const USER_PRESETS_PATH = path.join(USER_DATA_DIR, 'presets.json');
 
+// Preset Banks: Support up to 5 banks (preset-bank-1.json through preset-bank-5.json)
+const MAX_PRESET_BANKS = 5;
+function getBankPath(bankId = 1) {
+  const id = Math.max(1, Math.min(MAX_PRESET_BANKS, parseInt(bankId) || 1));
+  return path.join(USER_DATA_DIR, `preset-bank-${id}.json`);
+}
+
+function getMetadataPath() {
+  return path.join(USER_DATA_DIR, 'presets-metadata.json');
+}
+
 // Function to ensure user config exists - defined early
 async function ensureUserConfig() {
   try {
@@ -495,17 +506,150 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
-// Presets API
+// Helper: Load bank metadata (current bank, bank names)
+async function loadBankMetadata() {
+  try {
+    if (fs.existsSync(getMetadataPath())) {
+      const json = await fs.promises.readFile(getMetadataPath(), 'utf-8');
+      return JSON.parse(json);
+    }
+  } catch {}
+  // Return default metadata
+  return {
+    currentBank: 1,
+    bankNames: {
+      '1': 'Bank 1',
+      '2': 'Bank 2',
+      '3': 'Bank 3',
+      '4': 'Bank 4',
+      '5': 'Bank 5'
+    }
+  };
+}
+
+// Helper: Save bank metadata
+async function saveBankMetadata(metadata) {
+  try {
+    await fs.promises.writeFile(getMetadataPath(), JSON.stringify(metadata, null, 2));
+  } catch (e) {
+    console.error('Failed to save bank metadata:', e.message);
+  }
+}
+
+// Helper: Load a specific bank
+async function loadBank(bankId = 1) {
+  try {
+    const bankPath = getBankPath(bankId);
+    if (fs.existsSync(bankPath)) {
+      const json = await fs.promises.readFile(bankPath, 'utf-8');
+      return JSON.parse(json);
+    }
+  } catch {}
+  // Return empty bank structure
+  return { presets: [], quickCues: [] };
+}
+
+// Helper: Save a specific bank
+async function saveBank(bankId, data) {
+  try {
+    const bankPath = getBankPath(bankId);
+    await fs.promises.writeFile(bankPath, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error(`Failed to save bank ${bankId}:`, e.message);
+    throw e;
+  }
+}
+
+// Helper: Ensure all banks exist (called on startup)
+async function ensureBanksExist() {
+  try {
+    console.log("📦 Checking preset banks...");
+    
+    // First, try to migrate legacy presets.json to Bank 1 if it exists
+    if (fs.existsSync(USER_PRESETS_PATH)) {
+      const bank1Path = getBankPath(1);
+      if (!fs.existsSync(bank1Path)) {
+        console.log("🔄 Migrating legacy presets.json to Bank 1...");
+        try {
+          const legacyJson = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
+          const legacyData = JSON.parse(legacyJson);
+          await saveBank(1, legacyData);
+          console.log("✅ Legacy presets migrated to Bank 1");
+        } catch (migrationError) {
+          console.error("⚠️ Migration failed:", migrationError.message);
+        }
+      }
+    }
+    
+    // Create all 5 banks if they don't exist (with empty structure)
+    for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+      const bankPath = getBankPath(i);
+      if (!fs.existsSync(bankPath)) {
+        console.log(`📝 Creating Bank ${i}...`);
+        await saveBank(i, { presets: [], quickCues: [] });
+      }
+    }
+    
+    // Ensure metadata file exists
+    const metadataPath = getMetadataPath();
+    if (!fs.existsSync(metadataPath)) {
+      console.log("📝 Creating bank metadata...");
+      const defaultMetadata = {
+        currentBank: 1,
+        bankNames: {
+          '1': 'Bank 1',
+          '2': 'Bank 2',
+          '3': 'Bank 3',
+          '4': 'Bank 4',
+          '5': 'Bank 5'
+        }
+      };
+      await saveBankMetadata(defaultMetadata);
+    }
+    
+    console.log("✅ All preset banks ready");
+  } catch (e) {
+    console.error("❌ Failed to ensure banks exist:", e.message);
+    throw e;
+  }
+}
+
+// Presets API (now bank-aware)
 app.get('/api/presets', async (req, res) => {
   try {
-    if (fs.existsSync(USER_PRESETS_PATH)) {
-      const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
-      return res.json(JSON.parse(json));
+    const bankId = req.query.bank || 1;
+    const metadata = await loadBankMetadata();
+    
+    // Try to load from new bank system first
+    const bankData = await loadBank(bankId);
+    if (bankData.presets && bankData.presets.length > 0) {
+      return res.json({
+        ...bankData,
+        currentBank: parseInt(bankId),
+        bankMetadata: metadata
+      });
     }
-    // fallback to packaged/public config.json
+    
+    // Fallback to legacy presets.json for backwards compatibility
+    if (bankId === 1 && fs.existsSync(USER_PRESETS_PATH)) {
+      const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
+      const data = JSON.parse(json);
+      return res.json({
+        ...data,
+        currentBank: 1,
+        bankMetadata: metadata
+      });
+    }
+    
+    // Fallback to packaged config.json
     const fallback = path.join(PUBLIC_DIR || __dirname, 'config.json');
     const json = await fs.promises.readFile(fallback, 'utf-8');
-    return res.json(JSON.parse(json));
+    const data = JSON.parse(json);
+    return res.json({
+      ...data,
+      currentBank: parseInt(bankId),
+      bankMetadata: metadata
+    });
   } catch (e) {
     console.error('Failed to load presets:', e.message);
     res.status(500).json({ presets: [], quickCues: [], error: e.message });
@@ -514,22 +658,31 @@ app.get('/api/presets', async (req, res) => {
 
 app.post('/api/presets', async (req, res) => {
   try {
+    const bankId = req.query.bank || 1;
     const data = req.body;
     if (!data || typeof data !== 'object') return res.status(400).json({ ok: false, error: 'Invalid JSON' });
-    await fs.promises.writeFile(USER_PRESETS_PATH, JSON.stringify(data, null, 2));
+    
+    // Save to the appropriate bank
+    await saveBank(bankId, data);
+    
+    // Update metadata
+    const metadata = await loadBankMetadata();
+    metadata.currentBank = parseInt(bankId);
+    await saveBankMetadata(metadata);
     
     // Broadcast updated presets to all connected Companion clients
     const message = JSON.stringify({
       type: 'presets_updated',
       data: data.presets || [],
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      bank: parseInt(bankId)
     });
     
     companionClients.forEach(client => {
       if (client.readyState === 1) { // WebSocket.OPEN
         try {
           client.send(message);
-          console.log('🎛️ Broadcasted preset update to Companion client');
+          console.log(`🎛️ Broadcasted preset update (bank ${bankId}) to Companion client`);
         } catch (error) {
           console.error('🎛️ Failed to send preset update to Companion:', error);
           companionClients.delete(client);
@@ -537,9 +690,257 @@ app.post('/api/presets', async (req, res) => {
       }
     });
     
-    res.json({ ok: true });
+    res.json({ ok: true, bank: parseInt(bankId) });
   } catch (e) {
     console.error('Failed to save presets:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Bank Management APIs
+
+// IMPORTANT: More specific routes MUST come before generic :id routes
+// So /api/banks/export/:id and /api/banks/switch must be before /api/banks/:id/presets
+
+app.get('/api/banks/export/:id', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    if (bankId < 1 && bankId !== -1) { // -1 for export all
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    
+    const metadata = await loadBankMetadata();
+    
+    if (bankId === -1) {
+      // Export all banks
+      const allBanks = {};
+      for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+        const bank = await loadBank(i);
+        allBanks[`bank_${i}`] = {
+          name: metadata.bankNames[i] || `Bank ${i}`,
+          data: bank
+        };
+      }
+      res.json({
+        exportType: 'all_banks',
+        timestamp: new Date().toISOString(),
+        banks: allBanks
+      });
+    } else {
+      // Export single bank
+      const bank = await loadBank(bankId);
+      res.json({
+        exportType: 'single_bank',
+        bankId,
+        bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
+        timestamp: new Date().toISOString(),
+        data: bank
+      });
+    }
+  } catch (e) {
+    console.error('Failed to export bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/banks/switch', async (req, res) => {
+  try {
+    const { bankId } = req.body;
+    if (!bankId || bankId < 1 || bankId > MAX_PRESET_BANKS) {
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    
+    const metadata = await loadBankMetadata();
+    metadata.currentBank = parseInt(bankId);
+    await saveBankMetadata(metadata);
+    
+    const bank = await loadBank(bankId);
+    res.json({
+      ok: true,
+      activeBank: parseInt(bankId),
+      bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
+      presets: bank.presets || [],
+      quickCues: bank.quickCues || []
+    });
+  } catch (e) {
+    console.error('Failed to switch bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Now the generic :id routes come AFTER the specific ones
+app.get('/api/banks', async (req, res) => {
+  try {
+    const metadata = await loadBankMetadata();
+    const banks = [];
+    
+    // Load all banks with info
+    for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+      const bank = await loadBank(i);
+      banks.push({
+        id: i,
+        name: metadata.bankNames[i] || `Bank ${i}`,
+        presetCount: (bank.presets || []).length,
+        hasContent: (bank.presets || []).length > 0
+      });
+    }
+    
+    res.json({
+      ok: true,
+      banks,
+      currentBank: metadata.currentBank,
+      bankNames: metadata.bankNames,
+      maxBanks: MAX_PRESET_BANKS
+    });
+  } catch (e) {
+    console.error('Failed to load banks:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Get a specific bank's presets (view only, don't activate)
+app.get('/api/banks/:id/presets', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    
+    const metadata = await loadBankMetadata();
+    const bank = await loadBank(bankId);
+    
+    res.json({
+      ok: true,
+      bank: bankId,
+      bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
+      activeBank: metadata.currentBank,
+      presets: bank.presets || [],
+      quickCues: bank.quickCues || []
+    });
+  } catch (e) {
+    console.error('Failed to load bank presets:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/banks/:id/rename', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    const { name } = req.body;
+    
+    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    if (!name || typeof name !== 'string' || name.length > 50) {
+      return res.status(400).json({ ok: false, error: 'Invalid name' });
+    }
+    
+    const metadata = await loadBankMetadata();
+    metadata.bankNames[bankId] = name;
+    await saveBankMetadata(metadata);
+    
+    res.json({ ok: true, bank: bankId, name });
+  } catch (e) {
+    console.error('Failed to rename bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/banks/:id/clear', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    
+    await saveBank(bankId, { presets: [], quickCues: [] });
+    res.json({ ok: true, bank: bankId, message: 'Bank cleared' });
+  } catch (e) {
+    console.error('Failed to clear bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/banks/export/:id', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    if (bankId < 1 && bankId !== -1) { // -1 for export all
+      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
+    }
+    
+    const metadata = await loadBankMetadata();
+    
+    if (bankId === -1) {
+      // Export all banks
+      const allBanks = {};
+      for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+        const bank = await loadBank(i);
+        allBanks[`bank_${i}`] = {
+          name: metadata.bankNames[i] || `Bank ${i}`,
+          data: bank
+        };
+      }
+      res.json({
+        exportType: 'all_banks',
+        timestamp: new Date().toISOString(),
+        banks: allBanks
+      });
+    } else {
+      // Export single bank
+      const bank = await loadBank(bankId);
+      res.json({
+        exportType: 'single_bank',
+        bankId,
+        bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
+        timestamp: new Date().toISOString(),
+        data: bank
+      });
+    }
+  } catch (e) {
+    console.error('Failed to export bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/banks/import', async (req, res) => {
+  try {
+    const { sourceBank, targetBank, overwrite } = req.body;
+    
+    if (!sourceBank || !targetBank) {
+      return res.status(400).json({ ok: false, error: 'sourceBank and targetBank required' });
+    }
+    
+    const targetId = parseInt(targetBank);
+    if (targetId < 1 || targetId > MAX_PRESET_BANKS) {
+      return res.status(400).json({ ok: false, error: 'Invalid target bank ID' });
+    }
+    
+    // Load source bank data
+    const sourceBankData = sourceBank.data || sourceBank;
+    
+    // Load or create target
+    let targetBankData = await loadBank(targetId);
+    
+    if (overwrite) {
+      // Replace entire bank
+      targetBankData = sourceBankData;
+    } else {
+      // Merge presets (avoid duplicates by ID)
+      const existingIds = new Set((targetBankData.presets || []).map(p => p.id));
+      const newPresets = (sourceBankData.presets || []).filter(p => !existingIds.has(p.id));
+      targetBankData.presets = [...(targetBankData.presets || []), ...newPresets];
+      targetBankData.quickCues = sourceBankData.quickCues || targetBankData.quickCues;
+    }
+    
+    await saveBank(targetId, targetBankData);
+    
+    res.json({
+      ok: true,
+      targetBank: targetId,
+      presetCount: (targetBankData.presets || []).length
+    });
+  } catch (e) {
+    console.error('Failed to import bank:', e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -751,6 +1152,7 @@ async function initializeApp() {
     console.log("USER_DATA_DIR:", USER_DATA_DIR);
     console.log("USER_ENV_PATH:", USER_ENV_PATH);
     await ensureUserConfig();
+    await ensureBanksExist();
 
     // Start server
     const PORT = process.env.PORT || 3200;
