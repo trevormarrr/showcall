@@ -2,6 +2,34 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [2.5.1] - 2026-05-12
+
+### ✨ Features
+
+- **Preset Deck Customization**: Add hamburger menu to preset popout deck for widget customization
+  - Toggle Cue Go Button (enabled by default)
+  - Toggle Cue Status display (shows progress: "Ready: Cue X of Y")
+  - Toggle Quick Cues widget (prepared for future expansion)
+  - Settings persist across sessions via localStorage
+  - Extensible architecture for adding more widgets
+- **Cue Stack API**: New backend endpoints for cue management
+  - `GET /api/cuestack` - Retrieve current cue stack state
+  - `POST /api/cuestack/execute` - Execute and advance to next cue
+- **GO Button**: Large, prominent green button in deck for executing cues
+  - Gradient design matching app aesthetics
+  - Auto-disables when all cues executed
+  - Visual feedback on click
+
+### 🧹 Cleanup
+
+- Removed experimental keychainProfile approach for notarization (reverted to env vars)
+- Simplified GitHub Actions workflow for macOS builds
+
+### 🔧 Technical
+
+- Added verbose DEBUG logging support for notarization troubleshooting
+- Added pre-flight credential validation in CI/CD pipeline
+
 ## [2.5.0] - 2026-05-12
 
 ### ✨ Improvements
