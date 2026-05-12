@@ -43,9 +43,27 @@ jobs:
             fi
           done
 
-      - name: Build app (macOS)
+      
+      - name: "Debug: show non-secret environment and npm config"
         if: matrix.os == 'macos-latest'
-        run: npm run dist
+        run: |
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "npm config list --json:" 
+          npm config list --json
+          echo "Listing /usr/bin and /usr/local/bin for tools:" 
+          ls -la /usr/bin | head -n 40 || true
+          ls -la /usr/local/bin | head -n 40 || true
+        shell: bash
+
+      - name: "Build app (macOS) with verbose logging"
+        if: matrix.os == 'macos-latest'
+        run: |
+          set -o pipefail
+          DEBUG=electron-builder npm run dist 2>&1 | tee build-electron-builder.log
+          # copy logs into dist for easier upload
+          mkdir -p dist/logs || true
+          cp build-electron-builder.log dist/logs/ || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -53,7 +71,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          DEBUG: electron-builder
+        shell: bash
 
       - name: Build app (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -75,10 +93,9 @@ jobs:
         with:
           name: macos-build
           path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/latest-mac.yml
-            dist/*.blockmap
+            dist/**
+            build-electron-builder.log
+            dist/logs/**
 
       - name: Upload artifacts (Linux)
         if: matrix.os == 'ubuntu-latest'
