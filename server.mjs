@@ -475,6 +475,100 @@ app.post("/api/macro", async (req, res) => {
   res.json({ ok: true, id, name, results, totalSteps: macro.length });
 });
 
+// Cue Stack API - Get current cue stack state (from main app's localStorage-like storage)
+app.get('/api/cuestack', async (req, res) => {
+  try {
+    // Try to read the cue stack from the app's state
+    // Since the main app stores this in localStorage, we'll provide a minimal API response
+    // The deck window will sync with the main app via SSE or periodic polling
+    const cueStackPath = path.join(USER_DATA_DIR, 'cuestack.json');
+    
+    if (fs.existsSync(cueStackPath)) {
+      const json = await fs.promises.readFile(cueStackPath, 'utf-8');
+      const cueStack = JSON.parse(json);
+      return res.json(cueStack);
+    }
+    
+    // Return default empty cue stack
+    res.json({
+      name: "My Show",
+      cues: [
+        {
+          custom: {
+            label: "Standby",
+            color: "#6b7280",
+            actions: []
+          }
+        }
+      ],
+      currentIndex: -1
+    });
+  } catch (e) {
+    console.error('Failed to load cue stack:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Cue Stack API - Execute next cue (server-side cue advancement)
+app.post('/api/cuestack/execute', async (req, res) => {
+  try {
+    const cueStackPath = path.join(USER_DATA_DIR, 'cuestack.json');
+    let cueStack = {
+      name: "My Show",
+      cues: [
+        {
+          custom: {
+            label: "Standby",
+            color: "#6b7280",
+            actions: []
+          }
+        }
+      ],
+      currentIndex: -1
+    };
+
+    // Load current cue stack
+    if (fs.existsSync(cueStackPath)) {
+      const json = await fs.promises.readFile(cueStackPath, 'utf-8');
+      cueStack = JSON.parse(json);
+    }
+
+    // Increment to next cue
+    cueStack.currentIndex++;
+
+    if (cueStack.currentIndex >= cueStack.cues.length) {
+      cueStack.currentIndex = cueStack.cues.length;
+      return res.json({ ...cueStack, message: "No more cues in the stack" });
+    }
+
+    const cue = cueStack.cues[cueStack.currentIndex];
+    console.log(`🎬 GO button pressed - executing cue at index: ${cueStack.currentIndex}`);
+
+    try {
+      // Handle custom cues
+      if (cue.custom && cue.custom.actions) {
+        console.log(`🎬 GO: Executing cue #${cueStack.currentIndex} - ${cue.custom.label}`);
+        
+        // Execute each action like a macro step
+        for (const action of cue.custom.actions) {
+          const results = await executeMacro([action]);
+          console.log(`✅ Cue action executed:`, results);
+        }
+      }
+
+      // Save updated cue stack
+      await fs.promises.writeFile(cueStackPath, JSON.stringify(cueStack, null, 2));
+      res.json({ ...cueStack, message: `Cue #${cueStack.currentIndex} executed` });
+    } catch (error) {
+      console.error('Failed to execute cue:', error);
+      res.status(500).json({ ok: false, error: error.message });
+    }
+  } catch (e) {
+    console.error('Failed to process cue stack execute:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Settings API
 app.get('/api/settings', async (req, res) => {
   res.json({

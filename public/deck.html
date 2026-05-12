@@ -28,7 +28,9 @@
         }
         
         .deck-header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 16px;
             font-weight: 600;
             color: var(--accent);
@@ -37,6 +39,31 @@
             border-bottom: 1px solid var(--border);
             letter-spacing: 0.5px;
             flex-shrink: 0;
+        }
+
+        .deck-header-title {
+            text-align: center;
+            flex: 1;
+        }
+
+        .deck-menu-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .deck-menu-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--accent);
         }
         
         .deck-presets {
@@ -173,11 +200,198 @@
         .deck-presets .btn.success-flash {
             animation: successFlash 0.4s ease;
         }
+
+        /* Control section (cue go, quick buttons, etc) */
+        .deck-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .deck-go-button {
+            width: 100%;
+            min-height: 56px;
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            transition: all 0.15s ease;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .deck-go-button:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+        }
+
+        .deck-go-button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+        }
+
+        .deck-go-button:disabled {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            cursor: not-allowed;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+
+        .deck-cue-status {
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            padding: 4px;
+        }
+
+        /* Modal styles */
+        .deck-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .deck-modal-overlay.active {
+            display: flex;
+        }
+
+        .deck-modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .deck-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .deck-modal-section {
+            margin-bottom: 20px;
+        }
+
+        .deck-modal-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .deck-checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .deck-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .deck-checkbox-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .deck-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .deck-checkbox-label {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .deck-checkbox-label-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .deck-checkbox-label-desc {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .deck-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+
+        .deck-modal-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+
+        .deck-modal-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: var(--accent);
+        }
+
+        .deck-modal-btn.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .deck-modal-btn.primary:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
     <div class="deck-container">
-        <div class="deck-header">Preset Deck</div>
+        <div class="deck-header">
+            <div class="deck-header-title">Preset Deck</div>
+            <button class="deck-menu-btn" id="deckMenuBtn" title="Customize deck">☰</button>
+        </div>
+        
+        <!-- Control Section (Cue Go, Quick Actions) -->
+        <div id="deckControls" class="deck-controls" style="display: none;"></div>
+        
+        <!-- Presets Section -->
         <div id="deckPresets" class="deck-presets">
             <div class="loading-state">
                 <div class="loading-spinner"></div>
@@ -186,8 +400,131 @@
         </div>
     </div>
 
+    <!-- Customize Modal -->
+    <div id="deckModalOverlay" class="deck-modal-overlay">
+        <div class="deck-modal">
+            <div class="deck-modal-title">Customize Deck</div>
+            
+            <div class="deck-modal-section">
+                <div class="deck-modal-section-title">Widgets</div>
+                <div class="deck-checkbox-group">
+                    <label class="deck-checkbox-item">
+                        <input type="checkbox" id="showGoButton" checked>
+                        <div class="deck-checkbox-label">
+                            <span class="deck-checkbox-label-title">Cue Go Button</span>
+                            <span class="deck-checkbox-label-desc">Execute next cue from cue stack</span>
+                        </div>
+                    </label>
+                    <label class="deck-checkbox-item">
+                        <input type="checkbox" id="showCueStatus">
+                        <div class="deck-checkbox-label">
+                            <span class="deck-checkbox-label-title">Cue Status</span>
+                            <span class="deck-checkbox-label-desc">Show current cue progress</span>
+                        </div>
+                    </label>
+                    <label class="deck-checkbox-item">
+                        <input type="checkbox" id="showQuickCues">
+                        <div class="deck-checkbox-label">
+                            <span class="deck-checkbox-label-title">Quick Cues</span>
+                            <span class="deck-checkbox-label-desc">Show configured quick cues</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="deck-modal-buttons">
+                <button class="deck-modal-btn" id="closeDeckModal">Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let presets = [];
+        let cueStack = null;
+        
+        // Deck customization settings
+        const deckSettings = {
+            showGoButton: true,
+            showCueStatus: false,
+            showQuickCues: false
+        };
+
+        // Load customization settings from localStorage
+        function loadDeckSettings() {
+            const saved = localStorage.getItem('showcall_deck_settings');
+            if (saved) {
+                try {
+                    Object.assign(deckSettings, JSON.parse(saved));
+                } catch (e) {
+                    console.error('Failed to load deck settings:', e);
+                }
+            }
+            applyDeckSettings();
+        }
+
+        // Save customization settings to localStorage
+        function saveDeckSettings() {
+            localStorage.setItem('showcall_deck_settings', JSON.stringify(deckSettings));
+        }
+
+        // Apply settings to UI
+        function applyDeckSettings() {
+            document.getElementById('showGoButton').checked = deckSettings.showGoButton;
+            document.getElementById('showCueStatus').checked = deckSettings.showCueStatus;
+            document.getElementById('showQuickCues').checked = deckSettings.showQuickCues;
+            
+            // Show/hide controls section
+            const controlsSection = document.getElementById('deckControls');
+            if (deckSettings.showGoButton || deckSettings.showCueStatus) {
+                controlsSection.style.display = 'flex';
+                renderControls();
+            } else {
+                controlsSection.style.display = 'none';
+            }
+        }
+
+        // Initialize modal and settings
+        function initializeModal() {
+            const menuBtn = document.getElementById('deckMenuBtn');
+            const modalOverlay = document.getElementById('deckModalOverlay');
+            const closeBtn = document.getElementById('closeDeckModal');
+            
+            // Open modal
+            menuBtn.addEventListener('click', () => {
+                modalOverlay.classList.add('active');
+            });
+            
+            // Close modal
+            closeBtn.addEventListener('click', () => {
+                modalOverlay.classList.remove('active');
+            });
+            
+            // Close on overlay click
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                }
+            });
+            
+            // Sync checkboxes with settings
+            document.getElementById('showGoButton').addEventListener('change', (e) => {
+                deckSettings.showGoButton = e.target.checked;
+                saveDeckSettings();
+                applyDeckSettings();
+            });
+            
+            document.getElementById('showCueStatus').addEventListener('change', (e) => {
+                deckSettings.showCueStatus = e.target.checked;
+                saveDeckSettings();
+                applyDeckSettings();
+            });
+            
+            document.getElementById('showQuickCues').addEventListener('change', (e) => {
+                deckSettings.showQuickCues = e.target.checked;
+                saveDeckSettings();
+                applyDeckSettings();
+            });
+        }
         
         // Load configuration from the API (same as main app)
         async function loadPresets() {
@@ -205,11 +542,57 @@
                 showError('Failed to load presets');
             }
         }
+
+        // Load cue stack from main app
+        async function loadCueStack() {
+            try {
+                const response = await fetch('/api/cuestack');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                cueStack = await response.json();
+                console.log('✅ Loaded cue stack:', cueStack);
+                renderControls();
+            } catch (error) {
+                console.error('❌ Failed to load cue stack:', error);
+                cueStack = null;
+            }
+        }
         
         // Show error state
         function showError(message) {
             const container = document.getElementById('deckPresets');
             container.innerHTML = `<div class="error-state">${message}</div>`;
+        }
+
+        // Render control section (go button, status, etc)
+        function renderControls() {
+            const controlsSection = document.getElementById('deckControls');
+            controlsSection.innerHTML = '';
+            
+            if (deckSettings.showGoButton && cueStack) {
+                const goBtn = document.createElement('button');
+                goBtn.className = 'deck-go-button';
+                goBtn.textContent = 'GO';
+                goBtn.id = 'deckGoButton';
+                
+                // Disable if no more cues
+                if (cueStack.currentIndex >= cueStack.cues.length - 1) {
+                    goBtn.disabled = true;
+                }
+                
+                goBtn.addEventListener('click', executeNextCue);
+                controlsSection.appendChild(goBtn);
+            }
+            
+            if (deckSettings.showCueStatus && cueStack) {
+                const statusEl = document.createElement('div');
+                statusEl.className = 'deck-cue-status';
+                const nextCueNum = cueStack.currentIndex + 1;
+                const cueCount = cueStack.cues.length - 1; // Exclude Standby
+                statusEl.textContent = `Ready: Cue ${nextCueNum} of ${cueCount}`;
+                controlsSection.appendChild(statusEl);
+            }
         }
         
         // Build the preset deck UI (matching main app design)
@@ -263,6 +646,32 @@
             });
         }
         
+        // Execute next cue from cue stack
+        async function executeNextCue() {
+            if (!cueStack) {
+                console.warn('⚠️ Cue stack not available');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cuestack/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    cueStack = result;
+                    console.log('✅ Cue executed:', result);
+                    renderControls();
+                } else {
+                    console.error('❌ Failed to execute cue:', response.statusText);
+                }
+            } catch (error) {
+                console.error('❌ Error executing cue:', error);
+            }
+        }
+        
         // Fire a preset (same logic as main app)
         async function firePreset(preset, buttonElement) {
             try {
@@ -288,7 +697,6 @@
                 } else {
                     const errorText = await response.text();
                     console.error('❌ Failed to execute preset:', errorText);
-                    // Could add error flash here too
                 }
             } catch (error) {
                 console.error('❌ Error executing preset:', error);
@@ -314,7 +722,10 @@
         
         // Initialize
         console.log('🪟 Initializing preset deck window...');
+        initializeModal();
+        loadDeckSettings();
         loadPresets();
+        loadCueStack();
     </script>
 </body>
 </html>
