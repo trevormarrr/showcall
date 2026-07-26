@@ -22,11 +22,11 @@ app.use(express.json({ limit: "1mb" }));
 // User-writable config directory
 const USER_DATA_DIR = process.env.SERVER_USER_DATA
   || (process.platform === 'darwin'
-      ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
-      : process.platform === 'win32'
-        ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
-        : path.join(os.homedir(), '.showcall'));
-try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch {}
+    ? path.join(os.homedir(), 'Library', 'Application Support', 'ShowCall')
+    : process.platform === 'win32'
+      ? path.join(os.homedir(), 'AppData', 'Roaming', 'ShowCall')
+      : path.join(os.homedir(), '.showcall'));
+try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch { }
 
 const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
 const USER_PRESETS_PATH = path.join(USER_DATA_DIR, 'presets.json');
@@ -102,7 +102,7 @@ function resolvePublicDir() {
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) return p;
-    } catch {}
+    } catch { }
   }
   console.error('✖ No public directory found!');
   return null;
@@ -125,8 +125,24 @@ const baseUrl = () => `http://${HOST}:${REST_PORT}`;
 // Connection state
 let isResolumeConnected = false;
 let isOSCConnected = false;
+let serverCueStack = null;
 let lastConnectionCheck = 0;
 const CONNECTION_CHECK_INTERVAL = 3000;
+
+// Cue stack SSE clients
+const cueStackClients = new Set();
+
+function broadcastCueStack() {
+  if (!serverCueStack) return;
+  const payload = JSON.stringify({ ok: true, cueStack: serverCueStack });
+  cueStackClients.forEach(res => {
+    try {
+      res.write(`data: ${payload}\n\n`);
+    } catch (e) {
+      cueStackClients.delete(res);
+    }
+  });
+}
 
 // Companion WebSocket clients
 const companionClients = new Set();
@@ -222,16 +238,20 @@ async function getCompositionStatus() {
     return {
       name: "Weekend_Main",
       layers: [
-        { name: { value: "Background" }, clips: [
-          { name: { value: "Walk-In BG" }, connected: { value: 0 } },
-          { name: { value: "Sermon BG" }, connected: { value: "Connected" } },
-          { name: { value: "Baptism BG" }, connected: { value: 0 } }
-        ]},
-        { name: { value: "Video Feed" }, clips: [
-          { name: { value: "NDI Feed" }, connected: { value: 0 } },
-          { name: { value: "Camera 1" }, connected: { value: "Connected" } },
-          { name: { value: "Baptism Cam" }, connected: { value: 0 } }
-        ]}
+        {
+          name: { value: "Background" }, clips: [
+            { name: { value: "Walk-In BG" }, connected: { value: 0 } },
+            { name: { value: "Sermon BG" }, connected: { value: "Connected" } },
+            { name: { value: "Baptism BG" }, connected: { value: 0 } }
+          ]
+        },
+        {
+          name: { value: "Video Feed" }, clips: [
+            { name: { value: "NDI Feed" }, connected: { value: 0 } },
+            { name: { value: "Camera 1" }, connected: { value: "Connected" } },
+            { name: { value: "Baptism Cam" }, connected: { value: 0 } }
+          ]
+        }
       ],
       transport: { bpm: { value: 120 } }
     };
@@ -245,34 +265,45 @@ function parseCompositionStatus(data) {
   try {
     let programClips = []; // Change to array to handle multiple clips
     let previewClip = null;
-    
+
     console.log("🔍 Raw composition data layers:", data.layers?.length);
-    
+
     if (data.layers && Array.isArray(data.layers)) {
       data.layers.forEach((layer, layerIdx) => {
         if (layer.clips && Array.isArray(layer.clips)) {
           layer.clips.forEach((clip, clipIdx) => {
+            const connectedValue = clip?.connected?.value;
+
             // Only check clips that are actually connected (not empty or disconnected)
-            if (clip && clip.connected && clip.connected.value === 'Connected') {
+            if (clip && connectedValue === 'Connected') {
               const clipInfo = {
                 layer: layerIdx + 1,
                 column: clipIdx + 1,
                 clipName: clip.name?.value || `Clip ${clipIdx + 1}`,
                 layerName: layer.name?.value || `Layer ${layerIdx + 1}`
               };
-              
+
               console.log(`� CONNECTED clip found: L${clipInfo.layer}C${clipInfo.column} - ${clipInfo.clipName}`);
-              
+
               // Add to program clips array
               programClips.push(clipInfo);
+            } else if (clip && connectedValue === 'Previewed' && !previewClip) {
+              // Resolume reports a clip queued/selected (but not yet triggered)
+              // as "Previewed". Track the first one we find as the preview clip.
+              previewClip = {
+                layer: layerIdx + 1,
+                column: clipIdx + 1,
+                clipName: clip.name?.value || `Clip ${clipIdx + 1}`,
+                layerName: layer.name?.value || `Layer ${layerIdx + 1}`
+              };
             }
           });
         }
       });
     }
-    
+
     console.log("🔍 Final result - Program clips:", programClips, "Preview:", previewClip);
-    
+
     let bpm = "—";
     if (data.tempocontroller?.tempo && typeof data.tempocontroller.tempo.value === 'number') {
       bpm = Math.round(data.tempocontroller.tempo.value);
@@ -476,95 +507,103 @@ app.post("/api/macro", async (req, res) => {
 });
 
 // Cue Stack API - Get current cue stack state (from main app's localStorage-like storage)
-app.get('/api/cuestack', async (req, res) => {
-  try {
-    // Try to read the cue stack from the app's state
-    // Since the main app stores this in localStorage, we'll provide a minimal API response
-    // The deck window will sync with the main app via SSE or periodic polling
-    const cueStackPath = path.join(USER_DATA_DIR, 'cuestack.json');
-    
-    if (fs.existsSync(cueStackPath)) {
-      const json = await fs.promises.readFile(cueStackPath, 'utf-8');
-      const cueStack = JSON.parse(json);
-      return res.json(cueStack);
-    }
-    
-    // Return default empty cue stack
-    res.json({
-      name: "My Show",
-      cues: [
-        {
-          custom: {
-            label: "Standby",
-            color: "#6b7280",
-            actions: []
-          }
-        }
-      ],
-      currentIndex: -1
+// This is now the single source of truth for the deck window.
+app.get('/api/cuestack', (req, res) => {
+  if (serverCueStack) {
+    res.json({ ok: true, ...serverCueStack });
+  } else {
+    // If no cue stack has been synced from the main app, send a default empty state.
+    res.status(404).json({
+      ok: false,
+      name: "No Show Loaded",
+      cues: [{ custom: { label: "Standby" } }],
+      currentIndex: -1,
+      error: 'No cue stack synced from main app yet.'
     });
-  } catch (e) {
-    console.error('Failed to load cue stack:', e);
-    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
+// Cue Stack - Stream updates (SSE)
+app.get('/api/cuestack/stream', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive'
+  });
+  res.write('retry: 500\n\n');
+
+  cueStackClients.add(res);
+
+  if (serverCueStack) {
+    const payload = JSON.stringify({ ok: true, cueStack: serverCueStack });
+    res.write(`data: ${payload}\n\n`);
+  }
+
+  req.on('close', () => {
+    cueStackClients.delete(res);
+  });
+});
+
 // Cue Stack API - Execute next cue (server-side cue advancement)
-app.post('/api/cuestack/execute', async (req, res) => {
+// Cue Stack - Sync from main app (called whenever main app saves)
+app.post('/api/cuestack/sync', (req, res) => {
+  serverCueStack = req.body;
+  console.log(`🔄 Cue stack synced: ${serverCueStack?.cues?.length || 0} cues, index: ${serverCueStack?.currentIndex}`);
+  broadcastCueStack();
+  res.json({ ok: true, message: 'Cue stack synced' });
+});
+
+// Cue Stack - GO (execute next cue, handles all cue types)
+app.post('/api/cuestack/go', async (req, res) => {
+  if (!serverCueStack) {
+    return res.status(400).json({ ok: false, error: 'No cue stack loaded. Open the main app first.' });
+  }
+
+  // Advance index
+  serverCueStack.currentIndex = (serverCueStack.currentIndex ?? -1) + 1;
+
+  if (serverCueStack.currentIndex >= serverCueStack.cues.length) {
+    serverCueStack.currentIndex = serverCueStack.cues.length;
+    broadcastCueStack();
+    return res.json({ ok: true, complete: true, cueStack: serverCueStack });
+  }
+
+  const cue = serverCueStack.cues[serverCueStack.currentIndex];
+  console.log(`🎬 Deck GO: executing cue ${serverCueStack.currentIndex}`, JSON.stringify(cue));
+
   try {
-    const cueStackPath = path.join(USER_DATA_DIR, 'cuestack.json');
-    let cueStack = {
-      name: "My Show",
-      cues: [
-        {
-          custom: {
-            label: "Standby",
-            color: "#6b7280",
-            actions: []
-          }
-        }
-      ],
-      currentIndex: -1
-    };
+    if (cue.custom) {
+      // Custom cue - execute its actions array
+      const actions = cue.custom.actions || [];
+      if (actions.length > 0) {
+        await executeMacro(actions);
+      }
+      console.log(`✅ Custom cue "${cue.custom.label}" executed`);
 
-    // Load current cue stack
-    if (fs.existsSync(cueStackPath)) {
-      const json = await fs.promises.readFile(cueStackPath, 'utf-8');
-      cueStack = JSON.parse(json);
-    }
+    } else if (cue.presetId) {
+      // Preset-based cue - look up preset across all banks
+      const metadata = await loadBankMetadata();
+      const activeBank = metadata.currentBank || 1;
+      const bankData = await loadBank(activeBank);
+      const preset = (bankData.presets || []).find(p => p.id === cue.presetId);
 
-    // Increment to next cue
-    cueStack.currentIndex++;
-
-    if (cueStack.currentIndex >= cueStack.cues.length) {
-      cueStack.currentIndex = cueStack.cues.length;
-      return res.json({ ...cueStack, message: "No more cues in the stack" });
-    }
-
-    const cue = cueStack.cues[cueStack.currentIndex];
-    console.log(`🎬 GO button pressed - executing cue at index: ${cueStack.currentIndex}`);
-
-    try {
-      // Handle custom cues
-      if (cue.custom && cue.custom.actions) {
-        console.log(`🎬 GO: Executing cue #${cueStack.currentIndex} - ${cue.custom.label}`);
-        
-        // Execute each action like a macro step
-        for (const action of cue.custom.actions) {
-          const results = await executeMacro([action]);
-          console.log(`✅ Cue action executed:`, results);
-        }
+      if (!preset) {
+        console.error(`❌ Preset not found: ${cue.presetId}`);
+        return res.status(404).json({ ok: false, error: `Preset not found: ${cue.presetId}` });
       }
 
-      // Save updated cue stack
-      await fs.promises.writeFile(cueStackPath, JSON.stringify(cueStack, null, 2));
-      res.json({ ...cueStack, message: `Cue #${cueStack.currentIndex} executed` });
-    } catch (error) {
-      console.error('Failed to execute cue:', error);
-      res.status(500).json({ ok: false, error: error.message });
+      console.log(`✅ Executing preset cue: ${preset.label}`);
+      await executeMacro(preset.macro || []);
+
+    } else {
+      console.warn('⚠️ Cue has no custom or presetId, skipping execution');
     }
+
+  broadcastCueStack();
+  res.json({ ok: true, cueStack: serverCueStack });
+
   } catch (e) {
-    console.error('Failed to process cue stack execute:', e);
+    console.error('❌ Cue execution failed:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -607,7 +646,7 @@ async function loadBankMetadata() {
       const json = await fs.promises.readFile(getMetadataPath(), 'utf-8');
       return JSON.parse(json);
     }
-  } catch {}
+  } catch { }
   // Return default metadata
   return {
     currentBank: 1,
@@ -638,7 +677,7 @@ async function loadBank(bankId = 1) {
       const json = await fs.promises.readFile(bankPath, 'utf-8');
       return JSON.parse(json);
     }
-  } catch {}
+  } catch { }
   // Return empty bank structure
   return { presets: [], quickCues: [] };
 }
@@ -658,7 +697,7 @@ async function saveBank(bankId, data) {
 async function ensureBanksExist() {
   try {
     console.log("📦 Checking preset banks...");
-    
+
     // First, try to migrate legacy presets.json to Bank 1 if it exists
     if (fs.existsSync(USER_PRESETS_PATH)) {
       const bank1Path = getBankPath(1);
@@ -674,7 +713,7 @@ async function ensureBanksExist() {
         }
       }
     }
-    
+
     // Create all 5 banks if they don't exist (with empty structure)
     for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
       const bankPath = getBankPath(i);
@@ -683,7 +722,7 @@ async function ensureBanksExist() {
         await saveBank(i, { presets: [], quickCues: [] });
       }
     }
-    
+
     // Ensure metadata file exists
     const metadataPath = getMetadataPath();
     if (!fs.existsSync(metadataPath)) {
@@ -700,7 +739,7 @@ async function ensureBanksExist() {
       };
       await saveBankMetadata(defaultMetadata);
     }
-    
+
     console.log("✅ All preset banks ready");
   } catch (e) {
     console.error("❌ Failed to ensure banks exist:", e.message);
@@ -713,7 +752,7 @@ app.get('/api/presets', async (req, res) => {
   try {
     const bankId = req.query.bank || 1;
     const metadata = await loadBankMetadata();
-    
+
     // Try to load from new bank system first
     const bankData = await loadBank(bankId);
     if (bankData.presets && bankData.presets.length > 0) {
@@ -723,7 +762,7 @@ app.get('/api/presets', async (req, res) => {
         bankMetadata: metadata
       });
     }
-    
+
     // Fallback to legacy presets.json for backwards compatibility
     if (bankId === 1 && fs.existsSync(USER_PRESETS_PATH)) {
       const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
@@ -734,7 +773,7 @@ app.get('/api/presets', async (req, res) => {
         bankMetadata: metadata
       });
     }
-    
+
     // Fallback to packaged config.json
     const fallback = path.join(PUBLIC_DIR || __dirname, 'config.json');
     const json = await fs.promises.readFile(fallback, 'utf-8');
@@ -755,35 +794,19 @@ app.post('/api/presets', async (req, res) => {
     const bankId = req.query.bank || 1;
     const data = req.body;
     if (!data || typeof data !== 'object') return res.status(400).json({ ok: false, error: 'Invalid JSON' });
-    
+
     // Save to the appropriate bank
     await saveBank(bankId, data);
-    
+
     // Update metadata
     const metadata = await loadBankMetadata();
     metadata.currentBank = parseInt(bankId);
     await saveBankMetadata(metadata);
-    
-    // Broadcast updated presets to all connected Companion clients
-    const message = JSON.stringify({
-      type: 'presets_updated',
-      data: data.presets || [],
-      timestamp: Date.now(),
-      bank: parseInt(bankId)
-    });
-    
-    companionClients.forEach(client => {
-      if (client.readyState === 1) { // WebSocket.OPEN
-        try {
-          client.send(message);
-          console.log(`🎛️ Broadcasted preset update (bank ${bankId}) to Companion client`);
-        } catch (error) {
-          console.error('🎛️ Failed to send preset update to Companion:', error);
-          companionClients.delete(client);
-        }
-      }
-    });
-    
+
+    // Saving via this endpoint always makes the saved bank the active one,
+    // so always push the fresh preset list to connected Companion clients.
+    broadcastPresetsToCompanion(data.presets || [], parseInt(bankId));
+
     res.json({ ok: true, bank: parseInt(bankId) });
   } catch (e) {
     console.error('Failed to save presets:', e.message);
@@ -802,9 +825,9 @@ app.get('/api/banks/export/:id', async (req, res) => {
     if (bankId < 1 && bankId !== -1) { // -1 for export all
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
-    
+
     const metadata = await loadBankMetadata();
-    
+
     if (bankId === -1) {
       // Export all banks
       const allBanks = {};
@@ -843,12 +866,17 @@ app.post('/api/banks/switch', async (req, res) => {
     if (!bankId || bankId < 1 || bankId > MAX_PRESET_BANKS) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
-    
+
     const metadata = await loadBankMetadata();
     metadata.currentBank = parseInt(bankId);
     await saveBankMetadata(metadata);
-    
+
     const bank = await loadBank(bankId);
+
+    // Push the newly active bank's presets to Companion so Stream Deck
+    // buttons update immediately, without waiting for a reconnect.
+    broadcastPresetsToCompanion(bank.presets || [], parseInt(bankId));
+
     res.json({
       ok: true,
       activeBank: parseInt(bankId),
@@ -867,7 +895,7 @@ app.get('/api/banks', async (req, res) => {
   try {
     const metadata = await loadBankMetadata();
     const banks = [];
-    
+
     // Load all banks with info
     for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
       const bank = await loadBank(i);
@@ -878,7 +906,7 @@ app.get('/api/banks', async (req, res) => {
         hasContent: (bank.presets || []).length > 0
       });
     }
-    
+
     res.json({
       ok: true,
       banks,
@@ -899,10 +927,10 @@ app.get('/api/banks/:id/presets', async (req, res) => {
     if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
-    
+
     const metadata = await loadBankMetadata();
     const bank = await loadBank(bankId);
-    
+
     res.json({
       ok: true,
       bank: bankId,
@@ -921,18 +949,18 @@ app.post('/api/banks/:id/rename', async (req, res) => {
   try {
     const bankId = parseInt(req.params.id);
     const { name } = req.body;
-    
+
     if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
     if (!name || typeof name !== 'string' || name.length > 50) {
       return res.status(400).json({ ok: false, error: 'Invalid name' });
     }
-    
+
     const metadata = await loadBankMetadata();
     metadata.bankNames[bankId] = name;
     await saveBankMetadata(metadata);
-    
+
     res.json({ ok: true, bank: bankId, name });
   } catch (e) {
     console.error('Failed to rename bank:', e.message);
@@ -946,8 +974,16 @@ app.post('/api/banks/:id/clear', async (req, res) => {
     if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
-    
+
     await saveBank(bankId, { presets: [], quickCues: [] });
+
+    // If the cleared bank is currently active, tell Companion right away
+    // so Stream Deck buttons don't keep showing stale, now-deleted presets.
+    const metadata = await loadBankMetadata();
+    if (metadata.currentBank === bankId) {
+      broadcastPresetsToCompanion([], bankId);
+    }
+
     res.json({ ok: true, bank: bankId, message: 'Bank cleared' });
   } catch (e) {
     console.error('Failed to clear bank:', e.message);
@@ -961,9 +997,9 @@ app.get('/api/banks/export/:id', async (req, res) => {
     if (bankId < 1 && bankId !== -1) { // -1 for export all
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
-    
+
     const metadata = await loadBankMetadata();
-    
+
     if (bankId === -1) {
       // Export all banks
       const allBanks = {};
@@ -999,22 +1035,22 @@ app.get('/api/banks/export/:id', async (req, res) => {
 app.post('/api/banks/import', async (req, res) => {
   try {
     const { sourceBank, targetBank, overwrite } = req.body;
-    
+
     if (!sourceBank || !targetBank) {
       return res.status(400).json({ ok: false, error: 'sourceBank and targetBank required' });
     }
-    
+
     const targetId = parseInt(targetBank);
     if (targetId < 1 || targetId > MAX_PRESET_BANKS) {
       return res.status(400).json({ ok: false, error: 'Invalid target bank ID' });
     }
-    
+
     // Load source bank data
     const sourceBankData = sourceBank.data || sourceBank;
-    
+
     // Load or create target
     let targetBankData = await loadBank(targetId);
-    
+
     if (overwrite) {
       // Replace entire bank
       targetBankData = sourceBankData;
@@ -1025,9 +1061,9 @@ app.post('/api/banks/import', async (req, res) => {
       targetBankData.presets = [...(targetBankData.presets || []), ...newPresets];
       targetBankData.quickCues = sourceBankData.quickCues || targetBankData.quickCues;
     }
-    
+
     await saveBank(targetId, targetBankData);
-    
+
     res.json({
       ok: true,
       targetBank: targetId,
@@ -1052,9 +1088,9 @@ app.get('/api/ndi/status', async (req, res) => {
     });
   } catch (error) {
     console.error('Failed to get NDI status:', error.message);
-    res.status(500).json({ 
-      connected: false, 
-      error: error.message 
+    res.status(500).json({
+      connected: false,
+      error: error.message
     });
   }
 });
@@ -1062,14 +1098,14 @@ app.get('/api/ndi/status', async (req, res) => {
 app.post('/api/ndi/switch', async (req, res) => {
   try {
     const { sourceId } = req.body;
-    
+
     // Simple response - user needs to switch manually in OBS
-    res.json({ 
-      ok: true, 
+    res.json({
+      ok: true,
       message: `Switch to NDI source "${sourceId}" in OBS Studio manually`,
-      sourceId 
+      sourceId
     });
-    
+
   } catch (error) {
     console.error('Failed to switch NDI source:', error.message);
     res.status(500).json({ ok: false, error: error.message });
@@ -1079,9 +1115,9 @@ app.post('/api/ndi/switch', async (req, res) => {
 app.post('/api/ndi/restart', async (req, res) => {
   try {
     // Simple restart message
-    res.json({ 
-      ok: true, 
-      message: 'Restart OBS Studio manually to refresh NDI sources' 
+    res.json({
+      ok: true,
+      message: 'Restart OBS Studio manually to refresh NDI sources'
     });
   } catch (error) {
     console.error('Failed to restart NDI bridge:', error.message);
@@ -1102,7 +1138,7 @@ async function getAppVersion() {
         const j = JSON.parse(await fs.promises.readFile(p, 'utf-8'));
         if (j.version) return String(j.version);
       }
-    } catch {}
+    } catch { }
   }
   return '0.0.0';
 }
@@ -1178,16 +1214,16 @@ app.get("/api/status", async (req, res) => {
     try {
       const composition = await getCompositionStatus();
       const status = parseCompositionStatus(composition);
-      
+
       // Store for Companion clients
       lastStatusState = status;
-      
+
       // Send to SSE clients
       res.write(`data: ${JSON.stringify(status)}\n\n`);
-      
+
       // Broadcast to Companion clients
       broadcastToCompanion(status);
-      
+
     } catch (error) {
       const errorStatus = { ...getDefaultStatus(), error: error.message };
       lastStatusState = errorStatus;
@@ -1213,22 +1249,75 @@ app.use((req, res) => {
 // Global NDI bridge instance
 let ndiBridge = null;
 
+// Independent status polling for Companion/Stream Deck clients.
+//
+// Without this, status_update messages (BPM, active clips, connection state)
+// only get sent while the ShowCall app's own UI has an open dashboard
+// connection (SSE /api/status), because that endpoint is the only place that
+// previously called broadcastToCompanion(). That meant Stream Deck feedback
+// would silently stop updating whenever ShowCall was minimized/hidden.
+// This timer keeps Companion clients in sync independently of the UI.
+let companionPollTimer = null;
+function startCompanionPolling() {
+  if (companionPollTimer) return;
+  companionPollTimer = setInterval(async () => {
+    if (companionClients.size === 0) return;
+    try {
+      const composition = await getCompositionStatus();
+      const status = parseCompositionStatus(composition);
+      lastStatusState = status;
+      broadcastToCompanion(status);
+    } catch (error) {
+      const errorStatus = { ...getDefaultStatus(), error: error.message };
+      lastStatusState = errorStatus;
+      broadcastToCompanion(errorStatus);
+    }
+  }, 1000);
+}
+
 // Companion WebSocket broadcast function
 function broadcastToCompanion(status) {
   if (companionClients.size === 0) return;
-  
+
   const message = JSON.stringify({
     type: 'status_update',
     data: status,
     timestamp: Date.now()
   });
-  
+
   companionClients.forEach(client => {
     if (client.readyState === 1) { // WebSocket.OPEN
       try {
         client.send(message);
       } catch (error) {
         console.error('🎛️ Failed to send to Companion client:', error);
+        companionClients.delete(client);
+      }
+    }
+  });
+}
+
+// Broadcast the active bank's preset list to all connected Companion clients.
+// This is the single source of truth for Stream Deck dynamic preset buttons -
+// call this any time the ACTIVE bank's preset list changes (saved, switched, cleared)
+// so Companion can regenerate its buttons in real time.
+function broadcastPresetsToCompanion(presets, bankId) {
+  if (companionClients.size === 0) return;
+
+  const message = JSON.stringify({
+    type: 'presets_updated',
+    data: presets || [],
+    bank: bankId,
+    timestamp: Date.now()
+  });
+
+  companionClients.forEach(client => {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      try {
+        client.send(message);
+        console.log(`🎛️ Broadcasted preset sync (bank ${bankId}, ${(presets || []).length} presets) to Companion client`);
+      } catch (error) {
+        console.error('🎛️ Failed to send preset sync to Companion:', error);
         companionClients.delete(client);
       }
     }
@@ -1251,17 +1340,18 @@ async function initializeApp() {
     // Start server
     const PORT = process.env.PORT || 3200;
     const server = http.createServer(app);
-    
+
     // WebSocket server for Companion integration
-    const wss = new WebSocketServer({ 
+    const wss = new WebSocketServer({
       server,
       path: '/api/companion'
     });
-    
+
     wss.on('connection', (ws, req) => {
       console.log('🎛️ Companion module connected from:', req.socket.remoteAddress);
       companionClients.add(ws);
-      
+      startCompanionPolling();
+
       // Send current status immediately
       if (lastStatusState) {
         ws.send(JSON.stringify({
@@ -1269,48 +1359,49 @@ async function initializeApp() {
           data: lastStatusState
         }));
       }
-      
-      // Send current presets list
+
+      // Send the ACTIVE bank's presets (not the legacy presets.json file) so a
+      // freshly (re)connected Companion instance is always in sync with
+      // whatever bank the operator currently has selected in ShowCall.
       (async () => {
         try {
-          if (fs.existsSync(USER_PRESETS_PATH)) {
-            const json = await fs.promises.readFile(USER_PRESETS_PATH, 'utf-8');
-            const presetsData = JSON.parse(json);
-            ws.send(JSON.stringify({
-              type: 'presets_updated',
-              data: presetsData.presets || []
-            }));
-            console.log('🎛️ Sent presets to new Companion client');
-          }
+          const metadata = await loadBankMetadata();
+          const bank = await loadBank(metadata.currentBank);
+          ws.send(JSON.stringify({
+            type: 'presets_updated',
+            data: bank.presets || [],
+            bank: metadata.currentBank
+          }));
+          console.log(`🎛️ Sent active bank ${metadata.currentBank} presets (${(bank.presets || []).length}) to new Companion client`);
         } catch (e) {
           console.error('Failed to send presets to Companion:', e.message);
         }
       })();
-      
+
       ws.on('message', async (message) => {
         try {
           const command = JSON.parse(message.toString());
           console.log('🎛️ Companion command:', command);
-          
+
           let result = { ok: false };
-          
+
           switch (command.action) {
             case 'trigger_clip':
               result = await triggerClip(parseInt(command.layer), parseInt(command.column));
               break;
-              
+
             case 'trigger_column':
               result = await triggerColumn(parseInt(command.column));
               break;
-              
+
             case 'cut_to_program':
               result = await cutToProgram();
               break;
-              
+
             case 'clear_all':
               result = await clearAll();
               break;
-              
+
             case 'execute_macro':
               if (command.macro && Array.isArray(command.macro)) {
                 // Direct macro execution
@@ -1319,23 +1410,23 @@ async function initializeApp() {
                 // Look up macro by ID from user presets first, then fall back to config.json
                 try {
                   let preset = null;
-                  
+
                   // Try user presets first
                   if (fs.existsSync(USER_PRESETS_PATH)) {
                     const presetsData = JSON.parse(fs.readFileSync(USER_PRESETS_PATH, 'utf8'));
                     preset = presetsData.presets?.find(p => p.id === command.macroId);
                   }
-                  
+
                   // Fall back to config.json if not found
                   if (!preset) {
                     const configPath = path.join(import.meta.dirname, 'public', 'config.json');
                     const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
                     preset = configData.presets?.find(p => p.id === command.macroId);
                   }
-                  
+
                   if (preset && preset.macro) {
                     console.log(`🎯 Executing preset: ${preset.label || preset.id}`);
-                    
+
                     // Update active preset and broadcast to Companion
                     activePresetId = command.macroId;
                     const presetMessage = JSON.stringify({
@@ -1346,7 +1437,7 @@ async function initializeApp() {
                       },
                       timestamp: Date.now()
                     });
-                    
+
                     companionClients.forEach(client => {
                       if (client.readyState === 1) {
                         try {
@@ -1356,9 +1447,9 @@ async function initializeApp() {
                         }
                       }
                     });
-                    
+
                     result = await executeMacro(preset.macro);
-                    
+
                     // Clear active preset after short delay (allow visual feedback)
                     setTimeout(() => {
                       activePresetId = null;
@@ -1377,7 +1468,7 @@ async function initializeApp() {
                         }
                       });
                     }, 500); // 500ms visual feedback
-                    
+
                   } else {
                     result = { ok: false, error: `Preset '${command.macroId}' not found` };
                   }
@@ -1388,22 +1479,22 @@ async function initializeApp() {
                 result = { ok: false, error: 'No macro or macroId provided' };
               }
               break;
-              
+
             case 'get_status':
               result = { ok: true, data: lastStatusState };
               break;
-              
+
             default:
               result = { ok: false, error: `Unknown action: ${command.action}` };
           }
-          
+
           // Send response back to Companion
           ws.send(JSON.stringify({
             type: 'command_response',
             id: command.id,
             result
           }));
-          
+
         } catch (error) {
           console.error('🎛️ Companion command error:', error);
           ws.send(JSON.stringify({
@@ -1413,12 +1504,12 @@ async function initializeApp() {
           }));
         }
       });
-      
+
       ws.on('close', () => {
         companionClients.delete(ws);
         console.log('🎛️ Companion module disconnected');
       });
-      
+
       ws.on('error', (error) => {
         console.error('🎛️ Companion WebSocket error:', error);
         companionClients.delete(ws);
@@ -1444,7 +1535,7 @@ async function initializeApp() {
       console.log(`🗂️ User data:  ${USER_DATA_DIR}`);
       if (MOCK) console.log("🎭 MOCK MODE (set MOCK=0 in .env to disable)");
       console.log("=".repeat(60));
-      try { initOSC(); } catch {}
+      try { initOSC(); } catch { }
     });
 
     // Graceful shutdown

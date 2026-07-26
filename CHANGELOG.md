@@ -2,6 +2,50 @@
 
 All notable changes to ShowCall will be documented in this file.
 
+## [Unreleased]
+
+## [2.6.0] - 2026-07-26
+
+### ✨ Features
+
+- **LTC Timecode Cue Playback**: New Timecode section for linking cue stack playback to SMPTE Linear Timecode (LTC) received via audio input.
+  - `public/ltcDecoder.js` - Browser-based LTC decoder (Web Audio API), supports 24/25/29.97/30 fps.
+  - Listen/Arm/Record/Auto-Record controls with adjustable trigger tolerance (frames).
+  - Live timecode display, signal meter, and upcoming-cues preview list.
+  - Timecode cue list persisted via `localStorage`, editable per-cue with SMPTE input validation.
+  - Frame rate configurable from Settings and persisted across sessions.
+- **Deck Popout GO Improvements**: Preset deck popout window now has a fully working GO button synced with the main app's cue stack via a new `/api/cuestack/go` server endpoint, SSE stream (`/api/cuestack/stream`), and periodic polling fallback.
+
+### 🐛 Fixed - Companion / Stream Deck integration
+- New Companion WebSocket connections were sent the legacy top-level
+  `presets.json` file instead of the actually-active preset bank, so a freshly
+  (re)connected Stream Deck could show the wrong preset buttons.
+- Switching preset banks (`POST /api/banks/switch`) never notified connected
+  Companion clients - Stream Deck buttons kept showing the previous bank until
+  Companion reconnected.
+- Clearing a preset bank (`POST /api/banks/:id/clear`) never notified
+  connected Companion clients either.
+- `status_update` messages (BPM, active clips, connection state) were only
+  broadcast to Companion while the app's own dashboard UI had an open
+  `/api/status` SSE connection. Companion now gets an independent 1-second
+  status poll whenever at least one Companion/Stream Deck client is connected,
+  so feedback keeps working even with the ShowCall window minimized.
+- The composition parser always reported `preview: null` - it computed a
+  `previewClip` variable but never assigned anything to it. It now detects
+  Resolume's `Previewed` connected-state and reports the queued/selected clip.
+- Deck popout GO button no longer silently fails when the cue stack hasn't
+  synced from the main app yet - it now shows a disabled/waiting state instead.
+
+### 🔧 Technical
+
+- Server now tracks cue stack state (`serverCueStack`) as the single source of
+  truth for the popout deck, synced via `POST /api/cuestack/sync` from the
+  main app whenever the cue stack changes.
+- Added cue-stack SSE broadcast (`broadcastCueStack`) for instant popout deck
+  updates instead of relying solely on polling.
+- Minor code formatting cleanup across `server.mjs`, `app.js`, `deck.html`,
+  and `cuestack.css` (consistent spacing/indentation).
+
 ## [2.5.1] - 2026-05-12
 
 ### ✨ Features

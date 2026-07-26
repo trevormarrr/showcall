@@ -15,7 +15,7 @@
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.5.1</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.6.0</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -92,6 +92,65 @@
       </div>
     </section>
 
+    <!-- Timecode Section -->
+    <section id="timecodeSection">
+      <h2>⏱ Timecode <span style="opacity: 0.6; font-size: 14px; font-weight: 400;">— LTC Cue Playback</span></h2>
+      <div class="timecode-card">
+        <div class="timecode-row">
+          <div class="timecode-field">
+            <label for="timecodeSource">Source</label>
+            <select id="timecodeSource">
+              <option value="ltc" selected>LTC Audio (Local)</option>
+            </select>
+          </div>
+          <div class="timecode-field">
+            <label for="ltcAudioDevice">LTC Input</label>
+            <select id="ltcAudioDevice">
+              <option value="default">Default Input</option>
+            </select>
+          </div>
+          <div class="timecode-field">
+            <label for="timecodeTolerance">Tolerance (frames)</label>
+            <input id="timecodeTolerance" type="number" min="0" max="20" value="2" />
+          </div>
+        </div>
+
+        <div class="timecode-display">
+          <span id="timecodeDisplay">00:00:00:00</span>
+          <div class="timecode-signal">
+            <div class="timecode-meter">
+              <div id="timecodeMeterFill" class="timecode-meter-fill"></div>
+            </div>
+            <span id="timecodeSignal" class="timecode-signal-text">No Signal</span>
+          </div>
+          <span id="timecodeStatus" class="timecode-status">Idle</span>
+        </div>
+
+        <div class="timecode-controls">
+          <button id="timecodeListenBtn" class="cuestack-btn">🎧 Listen</button>
+          <button id="timecodeArmBtn" class="cuestack-btn primary">Arm</button>
+          <button id="timecodeRecordBtn" class="cuestack-btn">● Record</button>
+          <button id="timecodeAutoRecordBtn" class="cuestack-btn">⏺ Auto Record</button>
+          <button id="timecodeClearBtn" class="cuestack-btn danger">Clear</button>
+        </div>
+
+        <div id="timecodeCueList" class="timecode-list">
+          <div class="timecode-empty">No timecode cues recorded yet.</div>
+        </div>
+
+        <div class="timecode-preview">
+          <div class="timecode-preview-title">Next 3 Timecode Cues</div>
+          <div id="timecodePreviewList" class="timecode-preview-list">
+            <div class="timecode-empty">No upcoming timecode cues.</div>
+          </div>
+        </div>
+
+        <div class="timecode-hint">
+          💡 Tip: Enable Record, then press GO to stamp timecode onto each cue.
+        </div>
+      </div>
+    </section>
+
     <!-- NDI Preview Section - Coming Soon -->
     <!-- <section class="preview-section">
       <h2 style="margin: 24px 0 8px; opacity: 0.9; font-size: 18px; font-weight: 600;">NDI Preview</h2>
@@ -128,6 +187,16 @@
           <label for="serverPort">ShowCall Server Port:</label>
           <input type="number" id="serverPort" placeholder="3200" min="1024" max="65535">
           <small>Local port for ShowCall web interface</small>
+        </div>
+        <div class="setting-group">
+          <label for="ltcFrameRate">LTC Frame Rate:</label>
+          <select id="ltcFrameRate">
+            <option value="24">24 fps</option>
+            <option value="25">25 fps</option>
+            <option value="29.97">29.97 fps (NTSC)</option>
+            <option value="30" selected>30 fps</option>
+          </select>
+          <small>Frame rate used when decoding LTC audio input</small>
         </div>
         
         <!-- NDI Preview Settings - Coming Soon -->
@@ -459,6 +528,7 @@
     </div>
   </div>
 
+  <script src="/ltcDecoder.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

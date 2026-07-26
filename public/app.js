@@ -20,21 +20,21 @@ async function init() {
     // Load config for presets only
     CFG = await fetch("/api/presets").then(r => r.json());
     gridEl = document.getElementById("grid");
-    
+
     // Build UI elements
     buildQuickCues(CFG);
     buildDeck(CFG);
     // Debug controls removed for production
     initSettings();
     initPresets();
-    
-  document.addEventListener("keydown", onHotkey);
-    
+
+    document.addEventListener("keydown", onHotkey);
+
     // Check connection and load composition structure
     await checkConnection();
     await loadComposition();
     setupStatusStream();
-    
+
     // Setup auto-updater notifications (Electron only)
     if (window.electronAPI) {
       setupUpdateNotifications();
@@ -54,10 +54,10 @@ async function init() {
         }
       }, 10000);
     }
-    
+
     // Refresh composition every 10 seconds
     setInterval(loadComposition, 10000);
-    
+
     console.log("🎬 ShowCall initialized");
   } catch (error) {
     console.error("❌ Init failed:", error);
@@ -69,7 +69,7 @@ async function loadComposition() {
   try {
     const response = await fetch("/api/composition");
     composition = await response.json();
-    
+
     if (composition.connected) {
       buildGridFromComposition(composition);
       resolumeConnected = true;
@@ -156,7 +156,7 @@ async function testConnection() {
     showNotification("Testing Resolume connection...", "info");
     const response = await fetch("/api/debug");
     const result = await response.json();
-    
+
     if (result.connected) {
       const layerInfo = result.layersInfo?.map(l => `${l.name}(${l.clipCount} clips)`).join(', ') || 'None';
       showNotification(`Connected: ${result.compositionName} - ${result.layerCount} layers`, "success");
@@ -178,9 +178,9 @@ async function testTrigger(layer, column) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layer, column })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
       showNotification(`✅ L${layer}C${column} trigger works!`, "success");
     } else {
@@ -200,9 +200,9 @@ async function testColumnTrigger(column) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ column })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.success) {
       showNotification(`✅ Column ${column} trigger works!`, "success");
     } else {
@@ -220,18 +220,18 @@ async function trigger(layer, column) {
     showNotification("Not connected to Resolume", "error");
     return;
   }
-  
+
   try {
     showNotification(`Triggering L${layer}C${column}...`, "info");
-    
+
     const response = await fetch("/api/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layer, column })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.ok) {
       showNotification(`Triggered L${layer}C${column}`, "success");
     } else {
@@ -263,15 +263,15 @@ function updateConnectionStatus(status) {
   // Update composition and BPM in header
   const compEl = document.getElementById('comp');
   const bpmEl = document.getElementById('bpm');
-  
+
   if (compEl && status.comp) {
     compEl.textContent = status.comp;
   }
-  
+
   if (bpmEl && status.bpm) {
     bpmEl.textContent = `BPM: ${status.bpm}`;
   }
-  
+
   // Create/update connection indicator
   let indicator = document.getElementById("connectionStatus");
   if (!indicator) {
@@ -290,7 +290,7 @@ function updateConnectionStatus(status) {
     `;
     document.body.appendChild(indicator);
   }
-  
+
   if (status.connected) {
     const oscStatus = status.osc ? '🎵 OSC' : '⚠️ OSC Off';
     indicator.style.background = '#34C759';
@@ -306,11 +306,11 @@ function updateConnectionStatus(status) {
 function setupStatusStream() {
   const connectSSE = () => {
     const es = new EventSource("/api/status");
-    
+
     es.onopen = () => {
       console.log("✅ Status stream connected");
     };
-    
+
     es.onmessage = (evt) => {
       try {
         const status = JSON.parse(evt.data);
@@ -320,62 +320,62 @@ function setupStatusStream() {
         console.error("Failed to parse status:", error);
       }
     };
-    
+
     es.onerror = (error) => {
       console.error("Status stream error:", error);
       es.close();
       setTimeout(connectSSE, 3000);
     };
   };
-  
+
   connectSSE();
 }
 
 // Helper function to compare status states for highlighting
 function hasHighlightingChanged(newStatus, oldStatus) {
   if (!oldStatus) return true;
-  
+
   // Compare programClips arrays
   const newProgram = newStatus.programClips || [];
   const oldProgram = oldStatus.programClips || [];
-  
+
   if (newProgram.length !== oldProgram.length) return true;
-  
+
   // Check if program clips are different
   const newProgramKeys = newProgram.map(c => `L${c.layer}-C${c.column}`).sort();
   const oldProgramKeys = oldProgram.map(c => `L${c.layer}-C${c.column}`).sort();
-  
+
   if (JSON.stringify(newProgramKeys) !== JSON.stringify(oldProgramKeys)) return true;
-  
+
   // Compare preview
   const newPreview = newStatus.preview;
   const oldPreview = oldStatus.preview;
-  
+
   if (!newPreview && !oldPreview) return false;
   if (!newPreview || !oldPreview) return true;
-  
+
   return newPreview.layer !== oldPreview.layer || newPreview.column !== oldPreview.column;
 }
 
 function updateStatus(status) {
   // Only log major changes, not every status update
   const highlightingChanged = hasHighlightingChanged(status, lastStatusState);
-  
+
   if (highlightingChanged) {
     console.log("🔍 Highlighting changed - updating UI");
     console.log("🔍 Program clips:", status.programClips);
     console.log("🔍 Preview:", status.preview);
   }
-  
+
   // Update display elements
   document.getElementById("progName").textContent = status.program?.clipName || "—";
   document.getElementById("prevName").textContent = status.preview?.clipName || "—";
-  document.getElementById("progLayer").textContent = 
+  document.getElementById("progLayer").textContent =
     `${status.program?.layerName || "—"} • Col ${status.program?.column || "—"}`;
-  document.getElementById("prevLayer").textContent = 
+  document.getElementById("prevLayer").textContent =
     `${status.preview?.layerName || "—"} • Col ${status.preview?.column || "—"}`;
   document.getElementById("bpm").textContent = `BPM: ${status.bpm || "—"}`;
-  
+
   // Show composition name prominently
   const compEl = document.getElementById("comp");
   if (status.comp && status.comp !== "—" && status.comp !== "Unknown") {
@@ -385,71 +385,71 @@ function updateStatus(status) {
     compEl.textContent = "No Composition";
     compEl.style.color = "#6b7280";
   }
-  
-  updateConnectionStatus({ 
-    connected: status.connected, 
+
+  updateConnectionStatus({
+    connected: status.connected,
     osc: status.osc,
-    host: status.host, 
+    host: status.host,
     restPort: status.restPort,
     oscPort: status.oscPort
   });
-  
+
   // Only update highlights if something actually changed
   if (highlightingChanged) {
     console.log("🎨 Updating highlights due to state change");
-    
+
     // Clear previous highlights (cells, headers, tiles)
     indexByKey.forEach(div => div.classList.remove("active-prog", "active-prev", "active-clip"));
-    document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight','active-col-prog','active-col-prev'));
+    document.querySelectorAll('.grid .hdr').forEach(h => h.classList.remove('active-col-highlight', 'active-col-prog', 'active-col-prev'));
     document.getElementById('programTile')?.classList.remove('active');
     document.getElementById('previewTile')?.classList.remove('active');
-    
+
     // Highlight ALL active program clips
     if (status.programClips && status.programClips.length > 0) {
       console.log("🟢 Highlighting program clips:", status.programClips);
-      
+
       // Mark the program tile as active
       document.getElementById('programTile')?.classList.add('active');
-      
+
       // Get all active columns to highlight headers
       const activeColumns = [...new Set(status.programClips.map(clip => clip.column))];
-      
+
       status.programClips.forEach(clipInfo => {
         const key = `L${clipInfo.layer}-C${clipInfo.column}`;
         const el = indexByKey.get(key);
         if (el) {
-          el.classList.add('active-prog','active-clip');
+          el.classList.add('active-prog', 'active-clip');
         }
       });
-      
+
       // Highlight column headers for all active columns
       activeColumns.forEach(col => {
-        document.querySelectorAll('.grid .hdr').forEach(h => { 
+        document.querySelectorAll('.grid .hdr').forEach(h => {
           if (h.textContent.trim() === `Col ${col}`) {
-            h.classList.add('active-col-prog'); 
+            h.classList.add('active-col-prog');
           }
         });
       });
     }
-    
+
     // Highlight preview
     if (status.preview?.layer && status.preview?.column) {
       console.log("🔵 Highlighting preview:", status.preview);
       const key = `L${status.preview.layer}-C${status.preview.column}`;
       const el = indexByKey.get(key);
       if (el) {
-        el.classList.add('active-prev','active-clip');
+        el.classList.add('active-prev', 'active-clip');
         document.getElementById('previewTile')?.classList.add('active');
         const col = status.preview.column;
-        document.querySelectorAll('.grid .hdr').forEach(h => { 
+        document.querySelectorAll('.grid .hdr').forEach(h => {
           if (h.textContent.trim() === `Col ${col}`) {
-            h.classList.add('active-col-prev'); 
+            h.classList.add('active-col-prev');
           }
         });
       }
     }
   }
-  
+
   // Store current state for next comparison
   lastStatusState = {
     programClips: status.programClips ? [...status.programClips] : [],
@@ -505,22 +505,22 @@ let previewSettings = {
 
 function initNDIPreview() {
   console.log('🎬 Initializing NDI Preview...');
-  
+
   const video = document.getElementById('ndiPreview');
   const overlay = document.querySelector('.preview-overlay');
   const status = document.getElementById('previewStatus');
   const toggleBtn = document.getElementById('previewToggle');
   const settingsBtn = document.getElementById('previewSettings');
-  
+
   console.log('NDI elements found:', { video, overlay, status, toggleBtn, settingsBtn });
-  
+
   // Load saved settings
   loadPreviewSettings();
-  
+
   // Event handlers
   if (toggleBtn) {
     console.log('Adding click listener to toggle button');
-    toggleBtn.addEventListener('click', function(e) {
+    toggleBtn.addEventListener('click', function (e) {
       console.log('🎯 Toggle button clicked!');
       e.preventDefault();
       toggleNDIPreview();
@@ -528,10 +528,10 @@ function initNDIPreview() {
   } else {
     console.error('❌ Toggle button not found!');
   }
-  
+
   if (settingsBtn) {
     console.log('Adding click listener to settings button');
-    settingsBtn.addEventListener('click', function(e) {
+    settingsBtn.addEventListener('click', function (e) {
       console.log('⚙️ Settings button clicked!');
       e.preventDefault();
       openPreviewSettings();
@@ -539,7 +539,7 @@ function initNDIPreview() {
   } else {
     console.error('❌ Settings button not found!');
   }
-  
+
   // Update initial status
   if (status) {
     status.textContent = 'Ready for NDI preview (ensure OBS Virtual Camera is running)';
@@ -547,31 +547,31 @@ function initNDIPreview() {
   } else {
     console.error('❌ Status element not found!');
   }
-  
+
   // Video event handlers
   video.addEventListener('loadstart', () => {
     updatePreviewStatus('Loading...');
   });
-  
+
   video.addEventListener('loadedmetadata', () => {
     updatePreviewInfo(video);
     overlay.classList.add('hidden');
   });
-  
+
   video.addEventListener('error', (e) => {
     console.error('NDI Preview error:', e);
     updatePreviewStatus('Failed to load NDI stream');
     overlay.classList.remove('hidden');
   });
-  
+
   video.addEventListener('play', () => {
     overlay.classList.add('hidden');
   });
-  
+
   video.addEventListener('pause', () => {
     overlay.classList.remove('hidden');
   });
-  
+
   // Auto-connect if enabled
   if (previewSettings.autoConnect && previewSettings.streamUrl) {
     setTimeout(() => toggleNDIPreview(), 1000);
@@ -580,15 +580,15 @@ function initNDIPreview() {
 
 function toggleNDIPreview() {
   console.log('🎬 toggleNDIPreview called, current state:', ndiPreviewEnabled);
-  
+
   const video = document.getElementById('ndiPreview');
   const toggleBtn = document.getElementById('previewToggle');
-  
+
   if (!ndiPreviewEnabled) {
     console.log('📹 Enabling NDI preview via camera access...');
     // Enable preview via OBS Virtual Camera
     updatePreviewStatus('Requesting camera access...');
-    
+
     navigator.mediaDevices.getUserMedia({
       video: {
         width: { ideal: 1920 },
@@ -627,9 +627,9 @@ function updatePreviewStatus(message) {
 
 function updatePreviewInfo(video) {
   const resolution = `${video.videoWidth}x${video.videoHeight}`;
-  const frameRate = video.getVideoPlaybackQuality ? 
+  const frameRate = video.getVideoPlaybackQuality ?
     `${Math.round(video.getVideoPlaybackQuality().totalVideoFrames / video.currentTime)}fps` : '—';
-  
+
   document.getElementById('previewResolution').textContent = resolution;
   document.getElementById('previewFrameRate').textContent = frameRate;
   document.getElementById('previewSource').textContent = previewSettings.ndiSource;
@@ -643,13 +643,13 @@ function getDefaultStreamUrl() {
     `http://10.1.110.72:5000/video`, // Custom NDI bridge on Resolume machine
     `http://localhost:8080/ndi` // Local bridge (fallback)
   ];
-  
+
   return previewSettings.streamUrl || possibleUrls[0];
 }
 
 function openPreviewSettings() {
   console.log('⚙️ openPreviewSettings called');
-  
+
   // Simple instructions for OBS Virtual Camera setup
   alert(
     'NDI Preview Setup Instructions:\n\n' +
@@ -695,16 +695,16 @@ function buildGridFromComposition(comp) {
     gridEl.innerHTML = '<div class="error">No composition data available</div>';
     return;
   }
-  
+
   const container = document.createElement("div");
   container.className = "grid";
-  
+
   // Determine how many layers/columns to show
   const totalLayers = comp.layers.length;
   const totalColumns = comp.maxColumns || 10;
   const displayLayers = gridView.expandedLayers ? totalLayers : Math.min(gridView.maxLayers, totalLayers);
   const displayColumns = gridView.expandedColumns ? totalColumns : Math.min(gridView.maxColumns, totalColumns);
-  
+
   // Use fixed widths when expanded to ensure all columns are visible with scroll
   if (gridView.expandedColumns) {
     container.style.gridTemplateColumns = `160px repeat(${displayColumns}, 120px)`;
@@ -722,7 +722,7 @@ function buildGridFromComposition(comp) {
     </div>
   `;
   container.appendChild(cornerCell);
-  
+
   for (let col = 1; col <= displayColumns; col++) {
     const h = hdrCell(`Col ${col}`);
     h.onclick = () => triggerColumn(col);
@@ -741,20 +741,20 @@ function buildGridFromComposition(comp) {
   layersToShow.forEach(layer => {
     const layerLabelEl = layerLabel(`Layer ${layer.id}`);
     layerLabelEl.setAttribute("title", `Layer ${layer.id}: ${layer.name}`);
-      layerLabelEl.dataset.layer = layer.id; // Add data-layer attribute
+    layerLabelEl.dataset.layer = layer.id; // Add data-layer attribute
     container.appendChild(layerLabelEl);
-    
+
     // Create cells for each column
     for (let col = 1; col <= displayColumns; col++) {
       const clip = layer.clips?.find(c => c.column === col);
       const div = document.createElement("div");
-      
+
       // Check if clip has a valid name (not [object Object] or empty)
-      const hasValidName = clip && clip.name && 
-                          clip.name.trim() !== '' && 
-                          !clip.name.includes('[object') &&
-                          !clip.isEmpty;
-      
+      const hasValidName = clip && clip.name &&
+        clip.name.trim() !== '' &&
+        !clip.name.includes('[object') &&
+        !clip.isEmpty;
+
       if (hasValidName) {
         // Clip exists with content
         div.className = "cell";
@@ -775,16 +775,16 @@ function buildGridFromComposition(comp) {
         div.textContent = "";
         div.setAttribute("title", `Empty slot\nLayer ${layer.id}, Column ${col}`);
       }
-      
+
       div.dataset.layer = layer.id;
       div.dataset.column = col;
-      
+
       const key = `L${layer.id}-C${col}`;
       indexByKey.set(key, div);
       container.appendChild(div);
     }
   });
-  
+
   // Add expand/collapse row at bottom if there are more layers
   if (totalLayers > gridView.maxLayers) {
     const expandLabelEl = document.createElement("div");
@@ -792,7 +792,7 @@ function buildGridFromComposition(comp) {
     expandLabelEl.style.cursor = "pointer";
     expandLabelEl.style.textAlign = "center";
     expandLabelEl.style.opacity = "0.7";
-    expandLabelEl.innerHTML = gridView.expandedLayers 
+    expandLabelEl.innerHTML = gridView.expandedLayers
       ? `▲ Show Less (${displayLayers}/${totalLayers})`
       : `▼ Show More (${displayLayers}/${totalLayers})`;
     expandLabelEl.onclick = () => {
@@ -800,7 +800,7 @@ function buildGridFromComposition(comp) {
       buildGridFromComposition(composition);
     };
     container.appendChild(expandLabelEl);
-    
+
     // Empty cells for this row
     for (let col = 1; col <= displayColumns; col++) {
       container.appendChild(document.createElement("div"));
@@ -809,7 +809,7 @@ function buildGridFromComposition(comp) {
 
   gridEl.innerHTML = "";
   gridEl.appendChild(container);
-  
+
   // Add event listener to column expand button
   setTimeout(() => {
     const expandColsBtn = document.getElementById("expandCols");
@@ -819,15 +819,15 @@ function buildGridFromComposition(comp) {
         gridView.expandedColumns = !gridView.expandedColumns;
         buildGridFromComposition(composition);
         showNotification(
-          gridView.expandedColumns 
-            ? `Showing all ${totalColumns} columns` 
+          gridView.expandedColumns
+            ? `Showing all ${totalColumns} columns`
             : `Showing ${gridView.maxColumns} columns`,
           "info"
         );
       };
     }
   }, 0);
-  
+
   console.log(`✅ Grid built: ${displayLayers}/${totalLayers} layers × ${displayColumns}/${totalColumns} columns`);
 }
 
@@ -868,20 +868,20 @@ async function trigger(layer, column) {
     showNotification("Not connected to Resolume", "error");
     return;
   }
-  
+
   try {
     console.log(`🎯 Triggering L${layer}C${column}...`);
     showNotification(`Triggering L${layer}C${column}...`, "info");
-    
+
     const response = await fetch("/api/trigger", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ layer, column })
     });
-    
+
     const result = await response.json();
     console.log("🎯 Trigger result:", result);
-    
+
     if (result.ok) {
       console.log(`✅ Triggered L${layer}C${column} using ${result.method || 'unknown method'}`);
       showNotification(`Triggered L${layer}C${column}`, "success");
@@ -900,15 +900,15 @@ async function triggerPreview(layer, column) {
     showNotification("Not connected to Resolume", "error");
     return;
   }
-  
+
   try {
     console.log(`🔵 Preview L${layer}C${column}...`);
     showNotification(`🔵 Preview L${layer}C${column} (right-click detected!)`, "info");
-    
+
     // For now, just show notification with preview styling
     // You can implement actual preview logic here later
     // Preview in Resolume typically means selecting but not connecting
-    
+
   } catch (error) {
     console.error("❌ Preview error:", error);
     showNotification(`Preview error: ${error.message}`, "error");
@@ -920,16 +920,16 @@ async function triggerColumn(column) {
     showNotification("Not connected to Resolume", "error");
     return;
   }
-  
+
   try {
     const response = await fetch("/api/triggerColumn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ column })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.ok) {
       console.log(`✅ Triggered column ${column}`);
       showNotification(`Column ${column} triggered`, "success");
@@ -948,23 +948,23 @@ async function firePreset(preset) {
     showNotification("Invalid preset", "error");
     return;
   }
-  
+
   try {
     console.log(`🎯 Firing preset: ${preset.label}`);
     console.log(`📋 Preset macro:`, JSON.stringify(preset.macro, null, 2));
-    
+
     const response = await fetch("/api/macro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         macro: preset.macro,
         id: preset.id,
         name: preset.label
       })
     });
-    
+
     const result = await response.json();
-    
+
     if (result.ok) {
       console.log(`✅ Preset "${preset.label}" executed`);
       console.log(`📊 Results:`, result.results);
@@ -984,10 +984,10 @@ async function runQuickCue(q) {
     showNotification("Not connected to Resolume", "error");
     return;
   }
-  
+
   try {
     let response;
-    
+
     if (q.action === "cut") {
       response = await fetch("/api/cut", { method: "POST" });
     } else if (q.action === "clear") {
@@ -996,9 +996,9 @@ async function runQuickCue(q) {
       showNotification(`Unknown action: ${q.action}`, "error");
       return;
     }
-    
+
     const result = await response.json();
-    
+
     if (result.ok) {
       console.log(`✅ ${q.label} executed`);
       showNotification(`${q.label} executed`, "success");
@@ -1016,12 +1016,12 @@ function showNotification(message, type = "info") {
   const notification = document.createElement("div");
   notification.className = `notification ${type}`;
   notification.textContent = message;
-  
+
   // Calculate position based on existing notifications
   const existingNotifications = document.querySelectorAll('.notification');
   const topOffset = 20 + (existingNotifications.length * 70); // 70px spacing between notifications
   notification.style.top = `${topOffset}px`;
-  
+
   document.body.appendChild(notification);
   setTimeout(() => notification.classList.add("visible"), 10);
   setTimeout(() => {
@@ -1039,14 +1039,14 @@ function showNotification(message, type = "info") {
 
 function onHotkey(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  
+
   const key = e.key.toLowerCase();
   const preset = deckByKey.get(key);
-  
+
   if (preset) {
     e.preventDefault();
     firePreset(preset);
-    
+
     const btn = document.querySelector(`[data-preset-id="${preset.id}"]`);
     if (btn) {
       btn.classList.add("pressed");
@@ -1115,17 +1115,23 @@ async function loadCurrentSettings() {
   try {
     const response = await fetch('/api/settings');
     const settings = await response.json();
-    
+
     document.getElementById('resolumeHost').value = settings.resolumeHost || '10.1.110.72';
     document.getElementById('resolumeRestPort').value = settings.resolumeRestPort || '8080';
     document.getElementById('resolumeOscPort').value = settings.resolumeOscPort || '7000';
     document.getElementById('serverPort').value = settings.serverPort || '3200';
-    
+
+    const ltcRateEl = document.getElementById('ltcFrameRate');
+    if (ltcRateEl) {
+      const savedLtcRate = localStorage.getItem('showcall_ltc_frame_rate');
+      ltcRateEl.value = savedLtcRate || '30';
+    }
+
     // Load NDI settings from localStorage (only if elements exist)
     const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
     const ndiSourceNameEl = document.getElementById('ndiSourceName');
     const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
-    
+
     if (ndiStreamUrlEl) ndiStreamUrlEl.value = previewSettings.streamUrl || '';
     if (ndiSourceNameEl) ndiSourceNameEl.value = previewSettings.ndiSource || 'ShowCall_Preview';
     if (ndiAutoConnectEl) ndiAutoConnectEl.checked = previewSettings.autoConnect || false;
@@ -1136,12 +1142,18 @@ async function loadCurrentSettings() {
     document.getElementById('resolumeRestPort').value = '8080';
     document.getElementById('resolumeOscPort').value = '7000';
     document.getElementById('serverPort').value = '3200';
-    
+
+    const ltcRateEl = document.getElementById('ltcFrameRate');
+    if (ltcRateEl) {
+      const savedLtcRate = localStorage.getItem('showcall_ltc_frame_rate');
+      ltcRateEl.value = savedLtcRate || '30';
+    }
+
     // Set NDI defaults (only if elements exist)
     const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
     const ndiSourceNameEl = document.getElementById('ndiSourceName');
     const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
-    
+
     if (ndiStreamUrlEl) ndiStreamUrlEl.value = previewSettings.streamUrl || '';
     if (ndiSourceNameEl) ndiSourceNameEl.value = previewSettings.ndiSource || 'ShowCall_Preview';
     if (ndiAutoConnectEl) ndiAutoConnectEl.checked = previewSettings.autoConnect || false;
@@ -1160,11 +1172,27 @@ async function saveSettings() {
   const ndiStreamUrlEl = document.getElementById('ndiStreamUrl');
   const ndiSourceNameEl = document.getElementById('ndiSourceName');
   const ndiAutoConnectEl = document.getElementById('ndiAutoConnect');
-  
+
   if (ndiStreamUrlEl) previewSettings.streamUrl = ndiStreamUrlEl.value.trim();
   if (ndiSourceNameEl) previewSettings.ndiSource = ndiSourceNameEl.value.trim() || 'ShowCall_Preview';
   if (ndiAutoConnectEl) previewSettings.autoConnect = ndiAutoConnectEl.checked;
   savePreviewSettings();
+
+  const ltcRateEl = document.getElementById('ltcFrameRate');
+  if (ltcRateEl) {
+    const rateValue = ltcRateEl.value || '30';
+    localStorage.setItem('showcall_ltc_frame_rate', rateValue);
+    timecodeState.frameRate = parseFloat(rateValue);
+    if (timecodeState.decoder?.setFrameRate) {
+      timecodeState.decoder.setFrameRate(timecodeState.frameRate);
+    }
+    timecodeState.cues = timecodeState.cues.map((entry) => ({
+      ...entry,
+      frames: timecodeToFrames(entry.timecode, timecodeState.frameRate)
+    }));
+    renderTimecodeCues();
+    renderTimecodePreview();
+  }
 
   // Basic validation
   if (!settings.resolumeHost) {
@@ -1189,7 +1217,7 @@ async function saveSettings() {
 
   try {
     showNotification('Saving settings...', 'info');
-    
+
     const response = await fetch('/api/settings', {
       method: 'POST',
       headers: {
@@ -1200,10 +1228,10 @@ async function saveSettings() {
 
     if (response.ok) {
       showNotification('Settings saved! Restarting ShowCall...', 'success');
-      
+
       // Close modal
       document.getElementById('settingsModal').style.display = 'none';
-      
+
       // Show restart message
       setTimeout(() => {
         document.body.innerHTML = `
@@ -1213,7 +1241,7 @@ async function saveSettings() {
             <p style="opacity: 0.7;">This page will automatically reload in a few seconds.</p>
           </div>
         `;
-        
+
         // Try to reload after a delay
         setTimeout(() => {
           window.location.reload();
@@ -1233,27 +1261,27 @@ function initPresets() {
   const btn = document.getElementById('presetsBtn');
   const modal = document.getElementById('presetsModal');
   if (!btn || !modal) return;
-  
+
   const close = modal.querySelector('.close');
-  
+
   // Views
   const bankSelectorView = document.getElementById('bankSelectorView');
   const listView = document.getElementById('presetListView');
   const editView = document.getElementById('presetEditView');
   const bankList = document.getElementById('bankList');
   const presetList = document.getElementById('presetList');
-  
+
   // Bank Selector Controls
   const backToBankSelectorBtn = document.getElementById('backToBankSelectorBtn');
   const importBankBtn = document.getElementById('importBankBtn');
   const exportAllBanksBtn = document.getElementById('exportAllBanksBtn');
   const currentBankNameEl = document.getElementById('currentBankName');
   const bankViewingIndicator = document.getElementById('bankViewingIndicator');
-  
+
   // List View Controls
   const addPresetBtn = document.getElementById('addPresetBtn');
   const exportBankBtn = document.getElementById('exportBankBtn');
-  
+
   // Edit View Controls
   const backToListBtn = document.getElementById('backToListBtn');
   const editPresetTitle = document.getElementById('editPresetTitle');
@@ -1266,14 +1294,14 @@ function initPresets() {
   const savePresetBtn = document.getElementById('savePresetBtn');
   const deletePresetBtn = document.getElementById('deletePresetBtn');
   const cancelEditBtn = document.getElementById('cancelEditBtn');
-  
+
   let currentPresets = [];
   let activeBank = 1;        // The active bank in the system (persistent)
   let viewingBank = 1;       // The bank whose presets we're viewing
   let bankMetadata = null;
   let editingPresetIndex = -1;
   let currentMacroSteps = [];
-  
+
   // Show specific view
   const showView = (view) => {
     bankSelectorView.style.display = 'none';
@@ -1283,7 +1311,7 @@ function initPresets() {
     else if (view === 'list') listView.style.display = 'block';
     else if (view === 'edit') editView.style.display = 'block';
   };
-  
+
   // Load banks list
   const loadAndRenderBanks = async () => {
     try {
@@ -1309,7 +1337,7 @@ function initPresets() {
       showNotification('Failed to load banks: ' + e.message, 'error');
     }
   };
-  
+
   // Render banks
   const renderBankList = (banks) => {
     bankList.innerHTML = '';
@@ -1317,14 +1345,14 @@ function initPresets() {
       const isActive = bank.id === activeBank;
       const item = document.createElement('div');
       item.className = `bank-item ${isActive ? 'active' : ''}`;
-      
+
       // Build action buttons
       let actionButtons = `
         <button class="bank-item-action-main bank-item-open" data-id="${bank.id}" title="${isActive ? 'Edit presets' : 'View presets'}">
           ${isActive ? '✎ Edit' : '👁 View'}
         </button>
       `;
-      
+
       if (!isActive) {
         actionButtons += `
           <button class="bank-item-action-main bank-item-activate" data-id="${bank.id}" title="Make this bank active">
@@ -1332,7 +1360,7 @@ function initPresets() {
           </button>
         `;
       }
-      
+
       item.innerHTML = `
         <div class="bank-item-header">
           <div class="bank-item-info">
@@ -1352,9 +1380,9 @@ function initPresets() {
       `;
       bankList.appendChild(item);
     });
-    
+
     console.log('📋 Rendered', banks.length, 'banks');
-    
+
     // Attach listeners for Open/View
     bankList.querySelectorAll('.bank-item-open').forEach(btn => {
       btn.onclick = (e) => {
@@ -1362,7 +1390,7 @@ function initPresets() {
         switchBank(parseInt(btn.dataset.id));
       };
     });
-    
+
     // Attach listeners for Activate
     bankList.querySelectorAll('.bank-item-activate').forEach(btn => {
       btn.onclick = async (e) => {
@@ -1370,7 +1398,7 @@ function initPresets() {
         await activateBank(parseInt(btn.dataset.id));
       };
     });
-    
+
     // Attach listeners for menu button (⋮)
     const menuBtns = bankList.querySelectorAll('.bank-item-menu-btn');
     console.log('🎯 Found', menuBtns.length, 'menu buttons (⋮)');
@@ -1394,12 +1422,12 @@ function initPresets() {
         }
       }, false);
     });
-    
+
     // Attach listeners for menu actions
     const renameButtons = bankList.querySelectorAll('.bank-item-menu-btn-rename');
     console.log('🔍 Found', renameButtons.length, 'rename buttons');
     console.log('📝 Button elements:', renameButtons);
-    
+
     if (renameButtons.length > 0) {
       renameButtons.forEach((btn, idx) => {
         console.log(`📌 Attaching rename listener to button ${idx} with bankId:`, btn.dataset.id);
@@ -1409,20 +1437,20 @@ function initPresets() {
           e.stopPropagation();
           const bankId = parseInt(btn.dataset.id);
           console.log('🔄 Rename button clicked for bank:', bankId);
-          
+
           // Show the prompt
           const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
           console.log('📝 Current name:', currentName);
           const newName = prompt(`Rename "${currentName}" to:`, currentName);
           console.log('📝 New name entered:', newName);
-          
+
           if (!newName || newName === currentName) {
             console.log('❌ No name change, returning');
             return;
           }
-          
+
           renameBank(bankId);
-          
+
           // Close menu
           const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
           if (menu) menu.classList.add('hidden');
@@ -1431,7 +1459,7 @@ function initPresets() {
     } else {
       console.warn('⚠️ NO RENAME BUTTONS FOUND!');
     }
-    
+
     const clearButtons = bankList.querySelectorAll('.bank-item-menu-btn-clear');
     clearButtons.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -1446,20 +1474,20 @@ function initPresets() {
       }, false);
     });
   };
-  
+
   // Switch to a bank (for viewing/editing presets, doesn't activate)
   const switchBank = async (bankId) => {
     try {
       const res = await fetch(`/api/banks/${bankId}/presets`);
       const data = await res.json();
       if (!data.ok) throw new Error('Failed to load bank');
-      
+
       viewingBank = bankId;
       activeBank = data.activeBank;  // Get the actual active bank from server
       currentPresets = data.presets || [];
       const bankName = data.bankName || `Bank ${bankId}`;
       currentBankNameEl.textContent = bankName;
-      
+
       // Update indicator showing if this is the active bank
       if (viewingBank === activeBank) {
         bankViewingIndicator.textContent = '● Active';
@@ -1468,7 +1496,7 @@ function initPresets() {
         bankViewingIndicator.textContent = '';
         bankViewingIndicator.className = 'bank-viewing-indicator';
       }
-      
+
       renderPresetList();
       showView('list');
       showNotification(`Opened ${bankName}`, 'success');
@@ -1477,13 +1505,13 @@ function initPresets() {
       showNotification('Failed to switch bank', 'error');
     }
   };
-  
+
   // Rename bank
   const renameBank = async (bankId) => {
     const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
     const newName = prompt(`Rename to:`, currentName);
     if (!newName || newName === currentName) return;
-    
+
     try {
       const res = await fetch(`/api/banks/${bankId}/rename`, {
         method: 'POST',
@@ -1491,12 +1519,12 @@ function initPresets() {
         body: JSON.stringify({ name: newName })
       });
       if (!res.ok) throw new Error('Failed to rename');
-      
+
       // Update local metadata
       if (bankMetadata && bankMetadata.bankNames) {
         bankMetadata.bankNames[bankId] = newName;
       }
-      
+
       // Reload and re-render
       await loadAndRenderBanks();
       showNotification(`Renamed to "${newName}"`, 'success');
@@ -1505,11 +1533,11 @@ function initPresets() {
       showNotification('Failed to rename bank', 'error');
     }
   };
-  
+
   // Clear bank
   const clearBank = async (bankId) => {
     if (!confirm(`Are you sure you want to clear all presets in Bank ${bankId}?`)) return;
-    
+
     try {
       await fetch(`/api/banks/${bankId}/clear`, { method: 'POST' });
       loadAndRenderBanks();
@@ -1518,7 +1546,7 @@ function initPresets() {
       showNotification('Failed to clear bank', 'error');
     }
   };
-  
+
   // Activate a bank (make it the active bank for the deck)
   const activateBank = async (bankId) => {
     try {
@@ -1529,9 +1557,9 @@ function initPresets() {
       });
       const data = await res.json();
       if (!data.ok) throw new Error('Failed to activate bank');
-      
+
       activeBank = bankId;
-      
+
       // Update the main app's preset deck and quick cues with the new active bank's presets
       CFG = {
         presets: data.presets || [],
@@ -1539,35 +1567,35 @@ function initPresets() {
       };
       buildQuickCues(CFG);
       buildDeck(CFG);
-      
+
       // Re-register hotkeys
       deckByKey.clear();
       (CFG.presets || []).forEach(p => {
         if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
       });
-      
+
       // Reload and re-render the bank list to show updated active state
       await loadAndRenderBanks();
-      
+
       showNotification(`${data.bankName} is now active`, 'success');
     } catch (e) {
       console.error('Failed to activate bank:', e);
       showNotification('Failed to activate bank', 'error');
     }
   };
-  
+
   // Open modal and show banks
   const openModal = async () => {
     await loadAndRenderBanks();
     showView('banks');
     modal.style.display = 'flex';
   };
-  
+
   // Close modal
   const closeModal = () => {
     modal.style.display = 'none';
   };
-  
+
   // Render preset list
   const renderPresetList = () => {
     if (currentPresets.length === 0) {
@@ -1579,7 +1607,7 @@ function initPresets() {
       `;
       return;
     }
-    
+
     presetList.innerHTML = '';
     currentPresets.forEach((preset, index) => {
       const item = document.createElement('div');
@@ -1603,7 +1631,7 @@ function initPresets() {
       `;
       presetList.appendChild(item);
     });
-    
+
     // Attach event listeners
     presetList.querySelectorAll('.preset-item-edit').forEach(btn => {
       btn.onclick = (e) => {
@@ -1611,7 +1639,7 @@ function initPresets() {
         editPreset(parseInt(btn.dataset.index));
       };
     });
-    
+
     presetList.querySelectorAll('.preset-item-duplicate').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
@@ -1619,13 +1647,13 @@ function initPresets() {
       };
     });
   };
-  
+
   // Add new preset
   const addNewPreset = () => {
     editingPresetIndex = -1;
     editPresetTitle.textContent = 'Add New Preset';
     deletePresetBtn.style.display = 'none';
-    
+
     // Clear form
     presetIdInput.value = '';
     presetLabelInput.value = '';
@@ -1633,18 +1661,18 @@ function initPresets() {
     presetColorInput.value = '#0ea5e9';
     currentMacroSteps = [];
     renderMacroSteps();
-    
+
     showView('edit');
   };
-  
+
   // Edit existing preset
   const editPreset = (index) => {
     editingPresetIndex = index;
     const preset = currentPresets[index];
-    
+
     editPresetTitle.textContent = 'Edit Preset';
     deletePresetBtn.style.display = 'block';
-    
+
     // Populate form
     presetIdInput.value = preset.id;
     presetLabelInput.value = preset.label || '';
@@ -1652,10 +1680,10 @@ function initPresets() {
     presetColorInput.value = preset.color || '#0ea5e9';
     currentMacroSteps = JSON.parse(JSON.stringify(preset.macro || []));
     renderMacroSteps();
-    
+
     showView('edit');
   };
-  
+
   // Duplicate preset
   const duplicatePreset = (index) => {
     const original = currentPresets[index];
@@ -1663,34 +1691,34 @@ function initPresets() {
     duplicate.id = `${original.id}_copy`;
     duplicate.label = `${original.label} (Copy)`;
     duplicate.hotkey = '';
-    
+
     currentPresets.push(duplicate);
     renderPresetList();
     showNotification('Preset duplicated', 'success');
   };
-  
+
   // Render macro steps
   const renderMacroSteps = () => {
     if (currentMacroSteps.length === 0) {
       macroStepsContainer.innerHTML = '<div class="macro-steps-empty">No steps yet. Add steps using the dropdown below.</div>';
       return;
     }
-    
+
     macroStepsContainer.innerHTML = '';
     currentMacroSteps.forEach((step, index) => {
       const stepEl = createMacroStepElement(step, index);
       macroStepsContainer.appendChild(stepEl);
     });
   };
-  
+
   // Create macro step element
   const createMacroStepElement = (step, index) => {
     const stepEl = document.createElement('div');
     stepEl.className = 'macro-step';
     stepEl.dataset.index = index;
-    
+
     const { icon, typeLabel, params } = formatStepDisplay(step);
-    
+
     stepEl.innerHTML = `
       <div class="macro-step-drag">☰</div>
       <div class="macro-step-icon">${icon}</div>
@@ -1703,22 +1731,22 @@ function initPresets() {
         <button class="macro-step-delete" data-index="${index}">×</button>
       </div>
     `;
-    
+
     // Edit step
     stepEl.querySelector('.macro-step-edit').onclick = (e) => {
       e.stopPropagation();
       editMacroStep(index);
     };
-    
+
     // Delete step
     stepEl.querySelector('.macro-step-delete').onclick = (e) => {
       e.stopPropagation();
       deleteMacroStep(index);
     };
-    
+
     return stepEl;
   };
-  
+
   // Format step display
   const formatStepDisplay = (step) => {
     const icons = {
@@ -1728,10 +1756,10 @@ function initPresets() {
       clear: '🧹',
       sleep: '⏱️'
     };
-    
+
     let params = '';
     let typeLabel = step.type.charAt(0).toUpperCase() + step.type.slice(1);
-    
+
     switch (step.type) {
       case 'trigger':
         params = `Layer ${step.layer}, Column ${step.column}`;
@@ -1749,18 +1777,18 @@ function initPresets() {
         params = 'Clear all layers';
         break;
     }
-    
+
     return {
       icon: icons[step.type] || '📝',
       typeLabel,
       params
     };
   };
-  
+
   // Add macro step
   const addMacroStep = (type) => {
     let newStep = { type };
-    
+
     switch (type) {
       case 'trigger':
         newStep.layer = 1;
@@ -1773,21 +1801,21 @@ function initPresets() {
         newStep.ms = 200;
         break;
     }
-    
+
 
     currentMacroSteps.push(newStep);
     renderMacroSteps();
   };
-  
+
   // Edit macro step
   const editMacroStep = (index) => {
     const step = currentMacroSteps[index];
     const stepEl = macroStepsContainer.querySelector(`[data-index="${index}"]`);
-    
+
     // Create inline edit form
     const formEl = document.createElement('div');
     formEl.className = 'step-edit-form';
-    
+
     switch (step.type) {
       case 'trigger':
         formEl.innerHTML = `
@@ -1820,9 +1848,9 @@ function initPresets() {
       default:
         return; // No params to edit
     }
-    
+
     stepEl.appendChild(formEl);
-    
+
     formEl.querySelector('#saveStepEdit').onclick = () => {
       if (step.type === 'trigger') {
         step.layer = parseInt(formEl.querySelector('#editLayer').value);
@@ -1834,37 +1862,37 @@ function initPresets() {
       }
       renderMacroSteps();
     };
-    
+
     formEl.querySelector('#cancelStepEdit').onclick = () => {
       renderMacroSteps();
     };
   };
-  
+
   // Delete macro step
   const deleteMacroStep = (index) => {
     currentMacroSteps.splice(index, 1);
     renderMacroSteps();
   };
-  
+
   // Save preset (bank-aware)
   const savePreset = async () => {
     const id = presetIdInput.value.trim();
     const label = presetLabelInput.value.trim();
     const hotkey = presetHotkeyInput.value.trim();
     const color = presetColorInput.value;
-    
+
     if (!id || !label) {
       showNotification('ID and Label are required', 'error');
       return;
     }
-    
+
     // Check for duplicate ID (except when editing)
     const duplicateIndex = currentPresets.findIndex((p, i) => p.id === id && i !== editingPresetIndex);
     if (duplicateIndex !== -1) {
       showNotification('Preset ID already exists', 'error');
       return;
     }
-    
+
     const preset = {
       id,
       label,
@@ -1872,7 +1900,7 @@ function initPresets() {
       color,
       macro: currentMacroSteps
     };
-    
+
     if (editingPresetIndex === -1) {
       // Add new
       currentPresets.push(preset);
@@ -1880,7 +1908,7 @@ function initPresets() {
       // Update existing
       currentPresets[editingPresetIndex] = preset;
     }
-    
+
     // Save to server (with bank param)
     try {
       const data = { presets: currentPresets };
@@ -1889,37 +1917,37 @@ function initPresets() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      
+
       if (!resp.ok) throw new Error('Failed to save');
-      
+
       showNotification('Preset saved successfully', 'success');
-      
+
       // Refresh UI
       CFG = data;
       buildQuickCues(CFG);
       buildDeck(CFG);
-      
+
       // Re-register hotkeys
       deckByKey.clear();
       (CFG.presets || []).forEach(p => {
         if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
       });
-      
+
       renderPresetList();
       showView('list');
     } catch (e) {
       showNotification('Failed to save preset', 'error');
     }
   };
-  
+
   // Delete preset (bank-aware)
   const deletePreset = async () => {
     if (editingPresetIndex === -1) return;
-    
+
     if (!confirm('Are you sure you want to delete this preset?')) return;
-    
+
     currentPresets.splice(editingPresetIndex, 1);
-    
+
     // Save to server (with bank param)
     try {
       const data = { presets: currentPresets };
@@ -1928,34 +1956,34 @@ function initPresets() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      
+
       if (!resp.ok) throw new Error('Failed to save');
-      
+
       showNotification('Preset deleted', 'success');
-      
+
       // Refresh UI
       CFG = data;
       buildQuickCues(CFG);
       buildDeck(CFG);
-      
+
       deckByKey.clear();
       (CFG.presets || []).forEach(p => {
         if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
       });
-      
+
       renderPresetList();
       showView('list');
     } catch (e) {
       showNotification('Failed to delete preset', 'error');
     }
   };
-  
+
   // Export current bank
   const exportBank = async () => {
     try {
       const res = await fetch(`/api/banks/export/${viewingBank}`);
       const data = await res.json();
-      
+
       const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1966,19 +1994,19 @@ function initPresets() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       showNotification('Bank exported successfully', 'success');
     } catch (e) {
       showNotification('Failed to export bank', 'error');
     }
   };
-  
+
   // Export all banks
   const exportAllBanks = async () => {
     try {
       const res = await fetch('/api/banks/export/-1');
       const data = await res.json();
-      
+
       const jsonStr = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1989,13 +2017,13 @@ function initPresets() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       showNotification('All banks exported successfully', 'success');
     } catch (e) {
       showNotification('Failed to export banks', 'error');
     }
   };
-  
+
   // Import bank
   const importBank = () => {
     const input = document.createElement('input');
@@ -2006,18 +2034,18 @@ function initPresets() {
         const file = e.target.files[0];
         const text = await file.text();
         const importedData = JSON.parse(text);
-        
+
         // Determine target bank
         const targetBankId = prompt('Import to which bank? (1-5)', '2');
         const targetId = parseInt(targetBankId);
-        
+
         if (!targetId || targetId < 1 || targetId > 5) {
           showNotification('Invalid bank number', 'error');
           return;
         }
-        
+
         const overwrite = confirm('Overwrite existing presets in this bank? (OK = Yes, Cancel = Merge)');
-        
+
         const res = await fetch('/api/banks/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2027,9 +2055,9 @@ function initPresets() {
             overwrite
           })
         });
-        
+
         if (!res.ok) throw new Error('Failed to import');
-        
+
         loadAndRenderBanks();
         showNotification('Bank imported successfully', 'success');
       } catch (e) {
@@ -2038,7 +2066,7 @@ function initPresets() {
     };
     input.click();
   };
-  
+
   // Event listeners
   btn.onclick = () => {
     loadAndRenderBanks();
@@ -2046,7 +2074,7 @@ function initPresets() {
     showView('banks');
   };
   close.onclick = closeModal;
-  
+
   // Only close modal if clicking on the dark background overlay
   // NOT on the modal-content or anything inside it
   modal.addEventListener('click', (e) => {
@@ -2062,7 +2090,7 @@ function initPresets() {
       closeModal();
     }
   }, true); // Use capture phase to catch it early
-  
+
   backToBankSelectorBtn.onclick = () => showView('banks');
   addPresetBtn.onclick = addNewPreset;
   exportBankBtn.onclick = exportBank;
@@ -2072,7 +2100,7 @@ function initPresets() {
   cancelEditBtn.onclick = () => showView('list');
   savePresetBtn.onclick = savePreset;
   deletePresetBtn.onclick = deletePreset;
-  
+
   stepTypeSelect.onchange = (e) => {
     const type = e.target.value;
     if (type) {
@@ -2090,16 +2118,16 @@ function initPresets() {
 
 function setupUpdateNotifications() {
   console.log('🔄 Setting up enhanced update notifications...');
-  
+
   if (!window.electronAPI) {
     console.log('⚠️ Electron API not available - running in browser mode');
     return;
   }
-  
+
   const modal = document.getElementById('updateModal');
   const modalClose = modal?.querySelector('.close');
   const updateIndicator = document.getElementById('updateIndicator');
-  
+
   // Views
   const checkingView = document.getElementById('updateCheckingView');
   const availableView = document.getElementById('updateAvailableView');
@@ -2107,9 +2135,9 @@ function setupUpdateNotifications() {
   const readyView = document.getElementById('updateReadyView');
   const notAvailableView = document.getElementById('updateNotAvailableView');
   const errorView = document.getElementById('updateErrorView');
-  
+
   let currentUpdateInfo = null;
-  
+
   // Helper to show specific view
   function showUpdateView(viewId) {
     [checkingView, availableView, downloadingView, readyView, notAvailableView, errorView].forEach(v => {
@@ -2118,56 +2146,56 @@ function setupUpdateNotifications() {
     const view = document.getElementById(viewId);
     if (view) view.style.display = 'block';
   }
-  
+
   // Helper to open modal
   function openUpdateModal() {
     if (modal) modal.style.display = 'flex';
   }
-  
+
   // Helper to close modal
   function closeUpdateModal() {
     if (modal) modal.style.display = 'none';
   }
-  
+
   // Close button
   if (modalClose) {
     modalClose.onclick = closeUpdateModal;
   }
-  
+
   // Click outside to close
   if (modal) {
     modal.onclick = (e) => {
       if (e.target === modal) closeUpdateModal();
     };
   }
-  
+
   // Get current version
   window.electronAPI.getAppVersion().then(version => {
     const versionElements = document.querySelectorAll('#currentVersion');
     versionElements.forEach(el => el.textContent = version);
   });
-  
+
   // ============================================
   // EVENT HANDLERS
   // ============================================
-  
+
   // Checking for updates
   window.electronAPI.onUpdateChecking(() => {
     console.log('🔍 Checking for updates...');
     showUpdateView('updateCheckingView');
     openUpdateModal();
   });
-  
+
   // Update available
   window.electronAPI.onUpdateAvailable((event, info) => {
     console.log('📦 Update available:', info);
     currentUpdateInfo = info;
-    
+
     // Populate UI
     document.getElementById('updateVersion').textContent = info.version;
     document.getElementById('updateReleaseDate').textContent = info.releaseDate || 'Unknown';
     document.getElementById('updateSize').textContent = info.size || 'Unknown';
-    
+
     // Show release notes if available
     const notesSection = document.getElementById('updateNotes');
     const notesContent = document.getElementById('updateNotesContent');
@@ -2178,7 +2206,7 @@ function setupUpdateNotifications() {
     } else {
       notesSection.style.display = 'none';
     }
-    
+
     // Show indicator in header
     if (updateIndicator) {
       updateIndicator.querySelector('.update-text').textContent = `v${info.version} Available`;
@@ -2189,12 +2217,12 @@ function setupUpdateNotifications() {
         openUpdateModal();
       };
     }
-    
+
     showUpdateView('updateAvailableView');
     openUpdateModal();
     showNotification(`Update v${info.version} available!`, 'info', 5000);
   });
-  
+
   // Update not available
   window.electronAPI.onUpdateNotAvailable((event, info) => {
     console.log('✅ No updates available');
@@ -2205,32 +2233,32 @@ function setupUpdateNotifications() {
       showNotification('You\'re running the latest version', 'success', 3000);
     }
   });
-  
+
   // Download progress
   window.electronAPI.onDownloadProgress((event, progress) => {
     console.log(`📥 Download progress: ${progress.percent}%`);
-    
+
     // Update progress bar
     document.getElementById('downloadProgressBar').style.width = progress.percent + '%';
     document.getElementById('downloadPercent').textContent = progress.percent + '%';
     document.getElementById('downloadSpeed').textContent = progress.speed;
     document.getElementById('downloadTransferred').textContent = progress.transferred;
     document.getElementById('downloadTotal').textContent = progress.total;
-    
+
     // Update header indicator
     if (updateIndicator) {
       updateIndicator.querySelector('.update-text').textContent = `Downloading ${progress.percent}%`;
       updateIndicator.className = 'update-indicator downloading';
     }
   });
-  
+
   // Update downloaded
   window.electronAPI.onUpdateDownloaded((event, info) => {
     console.log('✅ Update downloaded:', info);
-    
+
     document.getElementById('readyVersion').textContent = info.version;
     showUpdateView('updateReadyView');
-    
+
     // Update header indicator
     if (updateIndicator) {
       updateIndicator.querySelector('.update-text').textContent = `v${info.version} Ready!`;
@@ -2240,83 +2268,83 @@ function setupUpdateNotifications() {
         openUpdateModal();
       };
     }
-    
+
     showNotification(`Update v${info.version} is ready to install!`, 'success', 8000);
   });
-  
+
   // Update error
   window.electronAPI.onUpdateError((event, error) => {
     console.error('❌ Update error:', error);
-    
+
     document.getElementById('updateErrorMessage').textContent = error.message || 'An unknown error occurred';
     document.getElementById('updateErrorStack').textContent = error.stack || 'No stack trace available';
     showUpdateView('updateErrorView');
-    
+
     // Hide indicator
     if (updateIndicator) {
       updateIndicator.style.display = 'none';
     }
-    
+
     showNotification('Update check failed', 'error', 5000);
   });
-  
+
   // ============================================
   // BUTTON HANDLERS
   // ============================================
-  
+
   // Download update button
   document.getElementById('downloadUpdateBtn')?.addEventListener('click', async () => {
     console.log('📥 User initiated download');
     showUpdateView('updateDownloadingView');
-    
+
     const result = await window.electronAPI.downloadUpdate();
     if (!result.success) {
       document.getElementById('updateErrorMessage').textContent = result.error;
       showUpdateView('updateErrorView');
     }
   });
-  
+
   // View release notes button
   document.getElementById('viewReleaseNotesBtn')?.addEventListener('click', () => {
     if (currentUpdateInfo?.version) {
       window.electronAPI.openReleaseNotes(currentUpdateInfo.version);
     }
   });
-  
+
   // Remind later button
   document.getElementById('remindLaterBtn')?.addEventListener('click', () => {
     closeUpdateModal();
     showNotification('We\'ll remind you later', 'info', 3000);
   });
-  
+
   // Install now button
   document.getElementById('installNowBtn')?.addEventListener('click', () => {
     console.log('🔄 User chose to install now');
     window.electronAPI.installUpdate();
   });
-  
+
   // Install later button
   document.getElementById('installLaterBtn')?.addEventListener('click', () => {
     closeUpdateModal();
     showNotification('Update will install on next launch', 'info', 3000);
   });
-  
+
   // Close no update button
   document.getElementById('closeNoUpdateBtn')?.addEventListener('click', () => {
     closeUpdateModal();
   });
-  
+
   // Retry button
   document.getElementById('retryUpdateBtn')?.addEventListener('click', async () => {
     showUpdateView('updateCheckingView');
     await window.electronAPI.checkForUpdates();
   });
-  
+
   // Close error button
   document.getElementById('closeErrorBtn')?.addEventListener('click', () => {
     closeUpdateModal();
   });
-  
+
   // Manual check button in header
   const checkUpdateBtn = document.getElementById('checkUpdateBtn');
   if (checkUpdateBtn) {
@@ -2336,19 +2364,19 @@ let currentStream = null;
 
 function initVideoPreview() {
   debugLog('🔥 VIDEO DEBUG: initVideoPreview() called');
-  
+
   const videoSource = document.getElementById('videoSource');
   const permissionBtn = document.getElementById('requestPermission');
   const refreshBtn = document.getElementById('refreshSources');
   const videoDisplay = document.getElementById('videoDisplay');
-  
+
   debugLog('🔥 VIDEO DEBUG: Elements found: ' + JSON.stringify({
     videoSource: !!videoSource,
     permissionBtn: !!permissionBtn,
     refreshBtn: !!refreshBtn,
     videoDisplay: !!videoDisplay
   }));
-  
+
   if (!videoSource || !permissionBtn || !refreshBtn || !videoDisplay) {
     debugLog('🔥 VIDEO DEBUG: Missing elements!');
     console.log('🔥 VIDEO DEBUG: videoSource:', videoSource);
@@ -2357,35 +2385,35 @@ function initVideoPreview() {
     console.log('🔥 VIDEO DEBUG: videoDisplay:', videoDisplay);
     return;
   }
-  
+
   // Check API support
   debugLog('🔥 VIDEO DEBUG: Checking APIs...');
   debugLog('🔥 VIDEO DEBUG: navigator.mediaDevices: ' + !!navigator.mediaDevices);
   debugLog('🔥 VIDEO DEBUG: enumerateDevices: ' + !!navigator.mediaDevices?.enumerateDevices);
   debugLog('🔥 VIDEO DEBUG: getUserMedia: ' + !!navigator.mediaDevices?.getUserMedia);
-  
+
   if (!navigator.mediaDevices?.enumerateDevices) {
     debugLog("🔥 VIDEO DEBUG: enumerateDevices() not supported.");
     return;
   }
-  
+
   debugLog('🔥 VIDEO DEBUG: Adding event listeners...');
   // Event listeners
-  permissionBtn.addEventListener('click', function() {
+  permissionBtn.addEventListener('click', function () {
     debugLog('🔥 VIDEO DEBUG: Permission button clicked!');
     requestVideoPermission();
   });
-  
-  refreshBtn.addEventListener('click', function() {
+
+  refreshBtn.addEventListener('click', function () {
     debugLog('🔥 VIDEO DEBUG: Refresh button clicked!');
     loadVideoSources();
   });
-  
-  videoSource.addEventListener('change', function() {
+
+  videoSource.addEventListener('change', function () {
     debugLog('🔥 VIDEO DEBUG: Video source changed to: ' + videoSource.value);
     selectSource();
   });
-  
+
   debugLog('🔥 VIDEO DEBUG: Event listeners added, loading initial sources...');
   // Load sources on init
   loadVideoSources();
@@ -2396,25 +2424,25 @@ function initVideoPreview() {
 function loadVideoSources() {
   debugLog('🔥 VIDEO DEBUG: loadVideoSources() called');
   const videoSource = document.getElementById('videoSource');
-  
+
   if (!videoSource) {
     debugLog('🔥 VIDEO DEBUG: videoSource element not found in loadVideoSources');
     return;
   }
-  
+
   debugLog('🔥 VIDEO DEBUG: Calling enumerateDevices...');
   navigator.mediaDevices
     .enumerateDevices()
     .then((devices) => {
       debugLog('🔥 VIDEO DEBUG: enumerateDevices success, found ' + devices.length + ' devices');
       console.log('🔥 VIDEO DEBUG: All devices:', devices);
-      
+
       videoSource.innerHTML = '<option value="">Select video source...</option>';
-      
+
       let videoDeviceCount = 0;
       devices.forEach((device, index) => {
         debugLog(`🔥 VIDEO DEBUG: Device ${index}: ${device.kind} - ${device.label || 'NO LABEL'} - ${device.deviceId.substring(0, 20)}...`);
-        
+
         if (device.kind === 'videoinput') {
           videoDeviceCount++;
           const option = document.createElement('option');
@@ -2424,9 +2452,9 @@ function loadVideoSources() {
           debugLog(`🔥 VIDEO DEBUG: Added video device: ${option.textContent}`);
         }
       });
-      
+
       debugLog(`🔥 VIDEO DEBUG: Found ${videoDeviceCount} video devices total`);
-      
+
       if (videoDeviceCount === 0) {
         debugLog('🔥 VIDEO DEBUG: No video devices found!');
         videoSource.innerHTML = '<option value="">No cameras found</option>';
@@ -2445,13 +2473,13 @@ async function requestVideoPermission() {
     console.log('🔥 VIDEO DEBUG: Requesting camera permission...');
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     console.log('🔥 VIDEO DEBUG: Permission granted! Stream:', stream);
-    
+
     // Stop stream immediately, we just needed permission
     stream.getTracks().forEach(track => {
       console.log('🔥 VIDEO DEBUG: Stopping track:', track.label);
       track.stop();
     });
-    
+
     console.log('🔥 VIDEO DEBUG: Reloading video sources after permission...');
     // Reload to get device labels
     loadVideoSources();
@@ -2468,30 +2496,30 @@ async function selectSource() {
   const videoSource = document.getElementById('videoSource');
   const videoDisplay = document.getElementById('videoDisplay');
   const deviceId = videoSource.value;
-  
+
   console.log('🔥 VIDEO DEBUG: Selected device ID:', deviceId);
-  
+
   if (!deviceId) {
     console.log('🔥 VIDEO DEBUG: No device selected, returning');
     return;
   }
-  
+
   // Stop current stream
   if (currentStream) {
     console.log('🔥 VIDEO DEBUG: Stopping current stream');
     currentStream.getTracks().forEach(track => track.stop());
   }
-  
+
   try {
     console.log('🔥 VIDEO DEBUG: Requesting video stream for device:', deviceId.substring(0, 20) + '...');
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { deviceId: { exact: deviceId } }
     });
-    
+
     console.log('🔥 VIDEO DEBUG: Got video stream:', stream);
     videoDisplay.srcObject = stream;
     currentStream = stream;
-    
+
     videoDisplay.onloadedmetadata = () => {
       console.log('🔥 VIDEO DEBUG: Video metadata loaded, starting playback');
       videoDisplay.play().then(() => {
@@ -2500,7 +2528,7 @@ async function selectSource() {
         console.error('🔥 VIDEO DEBUG: Video play failed:', e);
       });
     };
-    
+
     console.log("🔥 VIDEO DEBUG: Video setup complete");
   } catch (err) {
     console.error('🔥 VIDEO DEBUG: Video stream failed:', err);
@@ -2514,75 +2542,75 @@ async function selectSource() {
 // === WORKING VIDEO PREVIEW ===
 function initWorkingVideo() {
   console.log('Working video init starting...');
-  
+
   const output = document.getElementById('videoOutput');
   const video = document.getElementById('videoElement');
   const deviceSelect = document.getElementById('deviceSelect');
   const permBtn = document.getElementById('permBtn');
   const listBtn = document.getElementById('listBtn');
-  
+
   if (!output || !video || !deviceSelect || !permBtn || !listBtn) {
     console.error('Video elements missing!');
     return;
   }
-  
+
   function log(msg) {
     console.log(msg);
     output.innerHTML += msg + '<br>';
   }
-  
+
   log('Video preview ready!');
-  
-  permBtn.onclick = async function() {
+
+  permBtn.onclick = async function () {
     log('Requesting permission...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({video: true});
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       log('Permission granted!');
       stream.getTracks().forEach(t => t.stop());
       listDevices();
-    } catch(e) {
+    } catch (e) {
       log('Permission denied: ' + e.message);
     }
   };
-  
+
   listBtn.onclick = listDevices;
-  
+
   async function listDevices() {
     log('Listing devices...');
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       log('Found ' + devices.length + ' devices');
-      
+
       deviceSelect.innerHTML = '';
       devices.forEach(device => {
         if (device.kind === 'videoinput') {
-          log('Video: ' + (device.label || 'Unknown') + ' - ' + device.deviceId.substr(0,10));
+          log('Video: ' + (device.label || 'Unknown') + ' - ' + device.deviceId.substr(0, 10));
           const option = document.createElement('option');
           option.value = device.deviceId;
           option.textContent = device.label || 'Camera';
           deviceSelect.appendChild(option);
         }
       });
-    } catch(e) {
+    } catch (e) {
       log('Error listing devices: ' + e.message);
     }
   }
-  
-  deviceSelect.onchange = async function() {
+
+  deviceSelect.onchange = async function () {
     if (!deviceSelect.value) return;
-    log('Starting video for: ' + deviceSelect.value.substr(0,10));
-    
+    log('Starting video for: ' + deviceSelect.value.substr(0, 10));
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: deviceSelect.value } }
       });
       video.srcObject = stream;
       log('Video started!');
-    } catch(e) {
+    } catch (e) {
       log('Video failed: ' + e.message);
     }
   };
-  
+
   // Auto-start
   listDevices();
   console.log('Working video init complete!');
@@ -2598,6 +2626,425 @@ let cueStack = {
   currentIndex: -1  // Start at -1 (before cue 0/standby)
 };
 
+const timecodeState = {
+  source: 'ltc',
+  frameRate: parseFloat(localStorage.getItem('showcall_ltc_frame_rate') || '30'),
+  currentTimecode: '00:00:00:00',
+  currentFrame: 0,
+  armed: false,
+  recording: false,
+  listening: false,
+  autoRecord: localStorage.getItem('showcall_timecode_auto_record') === '1',
+  toleranceFrames: parseInt(localStorage.getItem('showcall_timecode_tolerance') || '2', 10),
+  cues: [],
+  firedCues: new Set(),
+  lastCueIndex: -1,
+  lastTimecodeAt: 0,
+  signalLevel: 0,
+  audioStream: null,
+  audioContext: null,
+  audioSource: null,
+  audioProcessor: null,
+  audioGain: null,
+  decoder: null
+};
+
+function timecodeToFrames(timecode, frameRate) {
+  if (!timecode) return 0;
+  const [h, m, s, f] = timecode.split(':').map(Number);
+  if ([h, m, s, f].some((v) => Number.isNaN(v))) return 0;
+  return (((h * 60 + m) * 60) + s) * frameRate + f;
+}
+
+function loadTimecodeCues() {
+  const saved = localStorage.getItem('showcall_timecode_cues');
+  if (!saved) {
+    timecodeState.cues = [];
+    return;
+  }
+  try {
+    const parsed = JSON.parse(saved);
+    timecodeState.cues = Array.isArray(parsed)
+      ? parsed.map((entry) => ({
+        cueIndex: entry.cueIndex,
+        timecode: entry.timecode,
+        frames: timecodeToFrames(entry.timecode, timecodeState.frameRate),
+        enabled: entry.enabled !== false
+      }))
+      : [];
+  } catch {
+    timecodeState.cues = [];
+  }
+}
+
+function saveTimecodeCues() {
+  localStorage.setItem('showcall_timecode_cues', JSON.stringify(timecodeState.cues));
+}
+
+function renderTimecodeCues() {
+  const list = document.getElementById('timecodeCueList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (!timecodeState.cues.length) {
+    list.innerHTML = '<div class="timecode-empty">No timecode cues recorded yet.</div>';
+    return;
+  }
+
+  timecodeState.cues
+    .sort((a, b) => a.frames - b.frames)
+    .forEach((entry) => {
+      const item = document.createElement('div');
+      item.className = 'timecode-item';
+      item.innerHTML = `
+        <span>Cue ${entry.cueIndex}</span>
+        <input type="text" value="${entry.timecode}" data-cue="${entry.cueIndex}" aria-label="Timecode for cue ${entry.cueIndex}" />
+        <label class="timecode-item-toggle">
+          <input type="checkbox" ${entry.enabled ? 'checked' : ''} data-toggle="${entry.cueIndex}" />
+          Enabled
+        </label>
+      `;
+
+      const input = item.querySelector('input');
+      input.onchange = () => {
+        const value = input.value.trim();
+        if (!/^\d{2}:\d{2}:\d{2}:\d{2}$/.test(value)) {
+          input.value = entry.timecode;
+          showNotification('Use SMPTE format HH:MM:SS:FF', 'warning');
+          return;
+        }
+        entry.timecode = value;
+        entry.frames = timecodeToFrames(value, timecodeState.frameRate);
+        saveTimecodeCues();
+        renderTimecodeCues();
+      };
+
+      const toggle = item.querySelector('input[type="checkbox"]');
+      toggle.onchange = () => {
+        entry.enabled = toggle.checked;
+        saveTimecodeCues();
+        renderTimecodePreview();
+      };
+      list.appendChild(item);
+    });
+}
+
+function renderTimecodePreview() {
+  const list = document.getElementById('timecodePreviewList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (!cueStack?.cues?.length) {
+    list.innerHTML = '<div class="timecode-empty">No upcoming timecode cues.</div>';
+    return;
+  }
+
+  const nextCueIndex = cueStack.currentIndex + 1;
+  const nextCues = timecodeState.cues
+    .filter((entry) => entry.cueIndex >= nextCueIndex)
+    .sort((a, b) => a.cueIndex - b.cueIndex)
+    .slice(0, 3);
+
+  if (!nextCues.length) {
+    list.innerHTML = '<div class="timecode-empty">No upcoming timecode cues.</div>';
+    return;
+  }
+
+  nextCues.forEach((entry) => {
+    const item = document.createElement('div');
+    item.className = `timecode-preview-item${entry.enabled ? '' : ' disabled'}`;
+    item.innerHTML = `
+      <span>Cue ${entry.cueIndex}</span>
+      <span>${entry.timecode}</span>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function updateTimecodeDisplay() {
+  const display = document.getElementById('timecodeDisplay');
+  const status = document.getElementById('timecodeStatus');
+  const signalText = document.getElementById('timecodeSignal');
+  const meterFill = document.getElementById('timecodeMeterFill');
+  if (display) display.textContent = timecodeState.currentTimecode || '00:00:00:00';
+
+  if (status) {
+    const parts = [];
+    if (timecodeState.listening) parts.push('Listening');
+    if (timecodeState.armed) parts.push('Armed');
+    if (timecodeState.recording) parts.push('Recording');
+    if (timecodeState.autoRecord) parts.push('AutoRec');
+    status.textContent = parts.length ? parts.join(' • ') : 'Idle';
+  }
+
+  if (meterFill) {
+    meterFill.style.width = `${Math.min(timecodeState.signalLevel * 100, 100)}%`;
+  }
+
+  if (signalText) {
+    const isActive = Date.now() - timecodeState.lastTimecodeAt < 1500;
+    signalText.textContent = isActive ? 'LTC Detected' : 'No Signal';
+  }
+}
+
+function recordTimecodeForCue(cueIndex) {
+  if (!timecodeState.currentTimecode || cueIndex < 0) return;
+  const frames = timecodeToFrames(timecodeState.currentTimecode, timecodeState.frameRate);
+  const existing = timecodeState.cues.find((c) => c.cueIndex === cueIndex);
+  if (existing) {
+    existing.timecode = timecodeState.currentTimecode;
+    existing.frames = frames;
+    existing.enabled = true;
+  } else {
+    timecodeState.cues.push({
+      cueIndex,
+      timecode: timecodeState.currentTimecode,
+      frames,
+      enabled: true
+    });
+  }
+  saveTimecodeCues();
+  renderTimecodeCues();
+  renderTimecodePreview();
+}
+
+async function triggerCueFromTimecode(cueIndex) {
+  if (timecodeState.firedCues.has(cueIndex)) return;
+  timecodeState.firedCues.add(cueIndex);
+  try {
+    await fetch('/api/cuestack/go', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  } catch (e) {
+    console.warn('Timecode trigger failed:', e);
+  }
+}
+
+function handleTimecodeUpdate(timecode) {
+  timecodeState.currentTimecode = timecode;
+  timecodeState.currentFrame = timecodeToFrames(timecode, timecodeState.frameRate);
+  timecodeState.lastTimecodeAt = Date.now();
+  updateTimecodeDisplay();
+
+  if (!cueStack) return;
+
+  if (timecodeState.autoRecord && cueStack.currentIndex >= 0) {
+    const existing = timecodeState.cues.find((c) => c.cueIndex === cueStack.currentIndex);
+    if (!existing) {
+      recordTimecodeForCue(cueStack.currentIndex);
+    }
+  }
+
+  if (cueStack.currentIndex < timecodeState.lastCueIndex) {
+    timecodeState.firedCues.clear();
+  }
+  timecodeState.lastCueIndex = cueStack.currentIndex;
+
+  if (!timecodeState.armed) return;
+
+  const nextCueIndex = cueStack.currentIndex + 1;
+  const target = timecodeState.cues.find((c) => c.cueIndex === nextCueIndex);
+  if (!target || target.enabled === false) return;
+
+  const tolerance = Math.max(timecodeState.toleranceFrames, 0);
+  if (Math.abs(timecodeState.currentFrame - target.frames) <= tolerance || timecodeState.currentFrame > target.frames) {
+    triggerCueFromTimecode(nextCueIndex);
+  }
+}
+
+async function startLtcListening(deviceId) {
+  if (timecodeState.listening) return;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showNotification('Audio input not supported in this browser', 'error');
+    return;
+  }
+
+  try {
+    const constraints = {
+      audio: {
+        deviceId: deviceId && deviceId !== 'default' ? { exact: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false
+      }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const source = audioContext.createMediaStreamSource(stream);
+    const processor = audioContext.createScriptProcessor(4096, 1, 1);
+    const gain = audioContext.createGain();
+    gain.gain.value = 0;
+
+    const decoder = new window.LtcDecoder({
+      sampleRate: audioContext.sampleRate,
+      frameRate: timecodeState.frameRate,
+      onTimecode: handleTimecodeUpdate
+    });
+
+    processor.onaudioprocess = (event) => {
+      const input = event.inputBuffer.getChannelData(0);
+      decoder.process(input);
+
+      let sum = 0;
+      for (let i = 0; i < input.length; i += 1) {
+        const sample = input[i];
+        sum += sample * sample;
+      }
+      const rms = Math.sqrt(sum / input.length);
+      timecodeState.signalLevel = Math.min(rms * 6, 1);
+      updateTimecodeDisplay();
+    };
+
+    source.connect(processor);
+    processor.connect(gain);
+    gain.connect(audioContext.destination);
+
+    timecodeState.audioStream = stream;
+    timecodeState.audioContext = audioContext;
+    timecodeState.audioSource = source;
+    timecodeState.audioProcessor = processor;
+    timecodeState.audioGain = gain;
+    timecodeState.decoder = decoder;
+    timecodeState.listening = true;
+    timecodeState.signalLevel = 0;
+    timecodeState.lastTimecodeAt = 0;
+
+    updateTimecodeDisplay();
+  } catch (e) {
+    console.error('Failed to start LTC listener:', e);
+    showNotification('Failed to start LTC input', 'error');
+  }
+}
+
+function stopLtcListening() {
+  if (!timecodeState.listening) return;
+  timecodeState.audioProcessor?.disconnect();
+  timecodeState.audioSource?.disconnect();
+  timecodeState.audioGain?.disconnect();
+  timecodeState.audioStream?.getTracks()?.forEach((track) => track.stop());
+  timecodeState.audioContext?.close();
+
+  timecodeState.audioStream = null;
+  timecodeState.audioContext = null;
+  timecodeState.audioSource = null;
+  timecodeState.audioProcessor = null;
+  timecodeState.audioGain = null;
+  timecodeState.decoder = null;
+  timecodeState.listening = false;
+  timecodeState.signalLevel = 0;
+  timecodeState.lastTimecodeAt = 0;
+  updateTimecodeDisplay();
+}
+
+async function refreshAudioDevices() {
+  const select = document.getElementById('ltcAudioDevice');
+  if (!select || !navigator.mediaDevices?.enumerateDevices) return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter((d) => d.kind === 'audioinput');
+    const current = select.value;
+    select.innerHTML = '';
+    inputs.forEach((device) => {
+      const option = document.createElement('option');
+      option.value = device.deviceId || 'default';
+      option.textContent = device.label || `Audio Input ${select.length + 1}`;
+      select.appendChild(option);
+    });
+    if (current) select.value = current;
+  } catch (e) {
+    console.warn('Failed to enumerate audio devices:', e);
+  }
+}
+
+function initTimecode() {
+  const listenBtn = document.getElementById('timecodeListenBtn');
+  const armBtn = document.getElementById('timecodeArmBtn');
+  const recordBtn = document.getElementById('timecodeRecordBtn');
+  const autoRecordBtn = document.getElementById('timecodeAutoRecordBtn');
+  const clearBtn = document.getElementById('timecodeClearBtn');
+  const deviceSelect = document.getElementById('ltcAudioDevice');
+  const toleranceInput = document.getElementById('timecodeTolerance');
+
+  if (!listenBtn || !armBtn || !recordBtn || !clearBtn) return;
+
+  loadTimecodeCues();
+  renderTimecodeCues();
+  renderTimecodePreview();
+  updateTimecodeDisplay();
+  refreshAudioDevices();
+
+  setInterval(updateTimecodeDisplay, 500);
+
+  timecodeState.armed = localStorage.getItem('showcall_timecode_armed') === '1';
+  armBtn.classList.toggle('primary', timecodeState.armed);
+  armBtn.textContent = timecodeState.armed ? 'Armed' : 'Arm';
+
+  if (toleranceInput) {
+    toleranceInput.value = String(timecodeState.toleranceFrames);
+    toleranceInput.onchange = () => {
+      const value = Math.max(0, Math.min(20, parseInt(toleranceInput.value || '0', 10)));
+      timecodeState.toleranceFrames = value;
+      localStorage.setItem('showcall_timecode_tolerance', String(value));
+      toleranceInput.value = String(value);
+    };
+  }
+
+  listenBtn.onclick = async () => {
+    if (timecodeState.listening) {
+      stopLtcListening();
+      listenBtn.textContent = '🎧 Listen';
+      return;
+    }
+
+    await startLtcListening(deviceSelect?.value || 'default');
+    if (timecodeState.listening) {
+      listenBtn.textContent = '⏹ Stop';
+    }
+  };
+
+  armBtn.onclick = () => {
+    timecodeState.armed = !timecodeState.armed;
+    armBtn.classList.toggle('primary', timecodeState.armed);
+    armBtn.textContent = timecodeState.armed ? 'Armed' : 'Arm';
+    localStorage.setItem('showcall_timecode_armed', timecodeState.armed ? '1' : '0');
+    updateTimecodeDisplay();
+  };
+
+  recordBtn.onclick = () => {
+    timecodeState.recording = !timecodeState.recording;
+    recordBtn.textContent = timecodeState.recording ? '● Recording' : '● Record';
+    recordBtn.classList.toggle('primary', timecodeState.recording);
+    updateTimecodeDisplay();
+  };
+
+  if (autoRecordBtn) {
+    autoRecordBtn.textContent = timecodeState.autoRecord ? '⏺ Auto Recording' : '⏺ Auto Record';
+    autoRecordBtn.classList.toggle('primary', timecodeState.autoRecord);
+    autoRecordBtn.onclick = () => {
+      timecodeState.autoRecord = !timecodeState.autoRecord;
+      localStorage.setItem('showcall_timecode_auto_record', timecodeState.autoRecord ? '1' : '0');
+      autoRecordBtn.textContent = timecodeState.autoRecord ? '⏺ Auto Recording' : '⏺ Auto Record';
+      autoRecordBtn.classList.toggle('primary', timecodeState.autoRecord);
+    };
+  }
+
+  clearBtn.onclick = () => {
+    if (!confirm('Clear all recorded timecode cues?')) return;
+    timecodeState.cues = [];
+    timecodeState.firedCues.clear();
+    saveTimecodeCues();
+    renderTimecodeCues();
+  };
+
+  if (deviceSelect) {
+    deviceSelect.onchange = () => {
+      if (timecodeState.listening) {
+        stopLtcListening();
+        startLtcListening(deviceSelect.value);
+      }
+    };
+  }
+}
+
 function initCueStack() {
   // Load cue stack from localStorage
   const saved = localStorage.getItem('showcall_cuestack');
@@ -2608,7 +3055,7 @@ function initCueStack() {
       if (cueStack.currentIndex === undefined || cueStack.currentIndex === 0) {
         cueStack.currentIndex = -1;
       }
-      
+
       // Ensure every cue stack has a Cue 0 (Standby) at the beginning
       if (!cueStack.cues || cueStack.cues.length === 0) {
         cueStack.cues = [
@@ -2624,11 +3071,10 @@ function initCueStack() {
       } else {
         // Check if first cue is the standby cue - if not, prepend it
         const firstCue = cueStack.cues[0];
-        const isStandbyCue = firstCue?.custom?.label === "Standby" && 
-                            (!firstCue.custom.actions || firstCue.custom.actions.length === 0);
-        
+        const isStandbyCue = firstCue?.custom?.label === "Standby" &&
+          (!firstCue.custom.actions || firstCue.custom.actions.length === 0);
+
         if (!isStandbyCue) {
-          // Prepend Cue 0 to existing cue stack
           cueStack.cues.unshift({
             custom: {
               label: "Standby",
@@ -2636,12 +3082,19 @@ function initCueStack() {
               actions: []
             }
           });
-          // Adjust currentIndex since we inserted a cue at the beginning
           if (cueStack.currentIndex >= 0) {
             cueStack.currentIndex++;
           }
           saveCueStackState();
           console.log('🎭 Added Cue 0 (Standby) to existing cue stack');
+        } else {
+          // Cue stack is valid - sync to server now
+          fetch('/api/cuestack/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cueStack)
+          }).then(r => r.json()).then(d => console.log('🎭 Cue stack synced:', d))
+            .catch(e => console.warn('Cue stack sync failed:', e));
         }
       }
     } catch (e) {
@@ -2671,7 +3124,7 @@ function initCueStack() {
     ];
     saveCueStackState();
   }
-  
+
   // Elements
   const cueStackList = document.getElementById('cueStackList');
   const executeNextCueBtn = document.getElementById('executeNextCueBtn');
@@ -2681,7 +3134,7 @@ function initCueStack() {
   const cueStackStatus = document.getElementById('cueStackStatus');
   const cueProgressText = document.getElementById('cueProgressText');
   const cueProgressFill = document.getElementById('cueProgressFill');
-  
+
   // Modal elements
   const modal = document.getElementById('cueStackModal');
   const closeModal = document.getElementById('closeCueStackModal');
@@ -2691,7 +3144,7 @@ function initCueStack() {
   const saveCueStackBtn = document.getElementById('saveCueStackBtn');
   const cancelCueStackBtn = document.getElementById('cancelCueStackBtn');
   const clearCueStackBtn = document.getElementById('clearCueStackBtn');
-  
+
   // Render the cue stack list
   function renderCueStack() {
     if (!cueStack.cues || cueStack.cues.length === 0) {
@@ -2712,23 +3165,23 @@ function initCueStack() {
       cueProgressFill.style.width = '0%';
       return;
     }
-    
+
     cueStackList.innerHTML = '';
     cueStack.cues.forEach((cue, index) => {
       // Support both preset-based and custom cues
       let preset = null;
       let isCustom = false;
-      
+
       if (cue.presetId) {
         preset = CFG.presets?.find(p => p.id === cue.presetId);
         if (!preset) return; // Skip if preset not found
       } else if (cue.custom) {
         isCustom = true;
       }
-      
+
       const cueItem = document.createElement('div');
       cueItem.className = 'cue-item';
-      
+
       // Visual state logic:
       // - currentIndex = -1: Nothing executed yet (all cues waiting)
       // - currentIndex = 0: Cue 0 was executed and is ACTIVE, Cue 1 is NEXT
@@ -2736,7 +3189,7 @@ function initCueStack() {
       // Active = the cue that was just executed (currentIndex)
       // Next = the cue that will execute on next GO (currentIndex + 1)
       // Completed = all cues before currentIndex
-      
+
       if (cueStack.currentIndex === -1) {
         // Before show starts - Cue 0 is next, nothing active
         if (index === 0) {
@@ -2752,16 +3205,16 @@ function initCueStack() {
           cueItem.classList.add('completed'); // Already executed
         }
       }
-      
+
       // Keyboard shortcuts removed for production - no visual badges
       // const hotkeyNum = index < 9 ? (index + 1) : (index === 9 ? 0 : null);
       // const hotkeyBadge = hotkeyNum !== null 
       //   ? `<div style="min-width: 24px; height: 24px; border-radius: 6px; background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.4); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; color: rgb(251, 191, 36); flex-shrink: 0;">${hotkeyNum}</div>` 
       //   : '<div style="min-width: 24px;"></div>'; // Spacer for alignment
-      
+
       // Cue number is 0-based (0, 1, 2, 3...)
       const cueNumber = index;
-      
+
       if (isCustom) {
         cueItem.innerHTML = `
           <div class="cue-number">${cueNumber}</div>
@@ -2802,15 +3255,15 @@ function initCueStack() {
           </div>
         `;
       }
-      
+
       cueStackList.appendChild(cueItem);
     });
-    
+
     // Update UI state
     cueStackNameEl.textContent = cueStack.name || 'My Show';
     executeNextCueBtn.disabled = cueStack.currentIndex >= cueStack.cues.length;
     resetCueStackBtn.disabled = false;
-    
+
     // Update status
     if (cueStack.currentIndex >= cueStack.cues.length) {
       cueStackStatus.textContent = 'Complete';
@@ -2819,13 +3272,13 @@ function initCueStack() {
       cueStackStatus.textContent = 'Ready';
       cueStackStatus.className = 'cuestack-status active';
     }
-    
+
     // Update progress
-    const progress = cueStack.cues.length > 0 
-      ? ((cueStack.currentIndex + 1) / cueStack.cues.length) * 100 
+    const progress = cueStack.cues.length > 0
+      ? ((cueStack.currentIndex + 1) / cueStack.cues.length) * 100
       : 0;
     cueProgressFill.style.width = `${progress}%`;
-    
+
     // Show which cue is NEXT to execute (0-based numbering)
     if (cueStack.currentIndex >= cueStack.cues.length) {
       cueProgressText.textContent = `Complete - ${cueStack.cues.length} of ${cueStack.cues.length} cues executed`;
@@ -2835,11 +3288,11 @@ function initCueStack() {
       const nextCueNum = cueStack.currentIndex + 1;
       cueProgressText.textContent = `Ready: Cue ${nextCueNum} of ${cueStack.cues.length - 1}`;
     }
-    
+
     // Auto-scroll to keep current cue centered vertically
     scrollToCurrentCue();
   }
-  
+
   // Smooth scroll to center the current cue in the viewport
   function scrollToCurrentCue() {
     // Wait for DOM to update
@@ -2849,10 +3302,10 @@ function initCueStack() {
         const listHeight = cueStackList.clientHeight;
         const itemTop = activeItem.offsetTop;
         const itemHeight = activeItem.clientHeight;
-        
+
         // Calculate scroll position to center the item
         const scrollTo = itemTop - (listHeight / 2) + (itemHeight / 2);
-        
+
         cueStackList.scrollTo({
           top: scrollTo,
           behavior: 'smooth'
@@ -2866,39 +3319,40 @@ function initCueStack() {
       }
     }, 50);
   }
-  
+
   // Execute next cue
   async function executeNextCue() {
     // Increment to next cue first
     cueStack.currentIndex++;
-    
+
     if (cueStack.currentIndex >= cueStack.cues.length) {
       cueStack.currentIndex = cueStack.cues.length; // Cap at length
       showNotification('No more cues in the stack', 'info');
+      saveCueStackState();
       renderCueStack();
       return;
     }
-    
+
     const cue = cueStack.cues[cueStack.currentIndex];
     const cueNumber = cueStack.currentIndex; // 0-based cue number
-    
+
     console.log(`🎬 GO button pressed - executing cue at index: ${cueStack.currentIndex}`);
     console.log(`📦 Cue data:`, JSON.stringify(cue, null, 2));
-    
+
     try {
       // Handle custom cues
       if (cue.custom) {
         console.log(`🎬 GO: Executing cue #${cueNumber} - ${cue.custom.label}`);
         showNotification(`GO: Cue #${cueNumber} - ${cue.custom.label}`, 'info');
         await executeCustomCue(cue.custom);
-      } 
+      }
       // Handle preset-based cues
       else if (cue.presetId) {
         const preset = CFG.presets?.find(p => p.id === cue.presetId);
         console.log(`🔍 Looking for preset with ID: ${cue.presetId}`);
         console.log(`📚 Available presets:`, CFG.presets?.map(p => ({ id: p.id, label: p.label })));
         console.log(`✅ Found preset:`, preset ? { id: preset.id, label: preset.label, macroLength: preset.macro?.length } : 'NOT FOUND');
-        
+
         if (!preset) {
           showNotification(`Preset not found: ${cue.presetId}`, 'error');
           return;
@@ -2907,11 +3361,16 @@ function initCueStack() {
         showNotification(`GO: Cue #${cueNumber} - ${preset.label}`, 'info');
         await firePreset(preset);
       }
-      
+
       // After execution, save and render
       saveCueStackState();
       renderCueStack();
-      
+      renderTimecodePreview();
+
+      if (timecodeState.recording) {
+        recordTimecodeForCue(cueStack.currentIndex);
+      }
+
       if (cueStack.currentIndex >= cueStack.cues.length - 1) {
         showNotification('🎉 Cue stack complete!', 'success');
       }
@@ -2920,14 +3379,14 @@ function initCueStack() {
       showNotification(`Failed to execute cue: ${error.message}`, 'error');
     }
   }
-  
+
   // Execute custom cue actions
   async function executeCustomCue(custom) {
     if (!custom.actions || custom.actions.length === 0) {
       showNotification('Custom cue has no actions', 'warning');
       return;
     }
-    
+
     // Execute each action like a macro step
     for (const action of custom.actions) {
       try {
@@ -2939,7 +3398,7 @@ function initCueStack() {
               body: JSON.stringify({ layer: action.layer, column: action.column })
             });
             break;
-          
+
           case 'triggerColumn':
             await fetch('/api/triggerColumn', {
               method: 'POST',
@@ -2947,15 +3406,15 @@ function initCueStack() {
               body: JSON.stringify({ column: action.column })
             });
             break;
-          
+
           case 'cut':
             await fetch('/api/cut', { method: 'POST' });
             break;
-          
+
           case 'clear':
             await fetch('/api/clear', { method: 'POST' });
             break;
-          
+
           case 'sleep':
             await new Promise(resolve => setTimeout(resolve, action.ms));
             break;
@@ -2966,11 +3425,11 @@ function initCueStack() {
       }
     }
   }
-  
+
   // Reset cue stack
   function resetCueStack() {
     if (cueStack.currentIndex === -1) return;
-    
+
     if (confirm('Reset cue stack to the beginning?')) {
       cueStack.currentIndex = -1;
       saveCueStackState();
@@ -2978,9 +3437,9 @@ function initCueStack() {
       showNotification('Cue stack reset to standby', 'info');
     }
   }
-  
+
   // Jump to specific cue
-  window.jumpToCue = function(index) {
+  window.jumpToCue = function (index) {
     if (confirm(`Jump to cue ${index}?`)) {
       cueStack.currentIndex = index;
       saveCueStackState();
@@ -2988,16 +3447,16 @@ function initCueStack() {
       showNotification(`Jumped to cue ${index}`, 'info');
     }
   };
-  
+
   // Execute specific cue
-  window.executeSpecificCue = async function(index) {
+  window.executeSpecificCue = async function (index) {
     const cue = cueStack.cues[index];
-    
+
     if (!cue) {
       showNotification('Cue not found', 'error');
       return;
     }
-    
+
     try {
       if (cue.custom) {
         console.log(`🎬 Executing custom cue ${index} directly: ${cue.custom.label}`);
@@ -3017,16 +3476,26 @@ function initCueStack() {
       showNotification(`Failed: ${error.message}`, 'error');
     }
   };
-  
+
   // Save cue stack state to localStorage
   function saveCueStackState() {
     try {
       localStorage.setItem('showcall_cuestack', JSON.stringify(cueStack));
+
+      // Sync to server so deck popup can execute cues
+      fetch('/api/cuestack/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cueStack)
+      }).then(r => r.json())
+        .then(d => console.log('🎭 Cue stack synced:', d))
+        .catch(e => console.warn('Cue stack sync failed:', e));
+
     } catch (e) {
       console.error('Failed to save cue stack:', e);
     }
   }
-  
+
   // Open management modal
   function openManagementModal() {
     cueStackNameInput.value = cueStack.name || 'My Show';
@@ -3034,21 +3503,21 @@ function initCueStack() {
     renderCueStackBuilder();
     modal.style.display = 'flex';
   }
-  
+
   // Close modal
   function closeManagementModal() {
     modal.style.display = 'none';
   }
-  
+
   // Render available presets
   function renderAvailablePresets() {
     availablePresetsList.innerHTML = '';
-    
+
     if (!CFG.presets || CFG.presets.length === 0) {
       availablePresetsList.innerHTML = '<div style="padding: 12px; opacity: 0.6;">No presets available. Create presets first!</div>';
       return;
     }
-    
+
     CFG.presets.forEach(preset => {
       const presetItem = document.createElement('div');
       presetItem.className = 'preset-selector-item';
@@ -3064,7 +3533,7 @@ function initCueStack() {
         gap: 10px;
         transition: all 0.2s ease;
       `;
-      
+
       presetItem.innerHTML = `
         <div style="width: 12px; height: 12px; border-radius: 50%; background-color: ${preset.color}"></div>
         <div style="flex: 1;">
@@ -3075,26 +3544,26 @@ function initCueStack() {
           + Add
         </button>
       `;
-      
+
       presetItem.querySelector('button').onclick = (e) => {
         e.stopPropagation();
         addPresetToCueStack(preset.id);
       };
-      
+
       presetItem.onmouseenter = () => {
         presetItem.style.background = 'rgba(255,255,255,0.08)';
         presetItem.style.borderColor = 'rgba(125,211,252,0.3)';
       };
-      
+
       presetItem.onmouseleave = () => {
         presetItem.style.background = 'rgba(255,255,255,0.05)';
         presetItem.style.borderColor = 'rgba(255,255,255,0.1)';
       };
-      
+
       availablePresetsList.appendChild(presetItem);
     });
   }
-  
+
   // Add preset to cue stack
   function addPresetToCueStack(presetId) {
     const preset = CFG.presets?.find(p => p.id === presetId);
@@ -3103,16 +3572,16 @@ function initCueStack() {
     renderCueStackBuilder();
     showNotification(`Cue added: ${preset?.label || presetId}`, 'success');
   }
-  
+
   // Render cue stack builder
   function renderCueStackBuilder() {
     cueStackBuilderList.innerHTML = '';
-    
+
     if (cueStack.cues.length === 0) {
       cueStackBuilderList.innerHTML = '<div style="padding: 24px; text-align: center; opacity: 0.5;">No cues yet. Add presets from above.</div>';
       return;
     }
-    
+
     cueStack.cues.forEach((cue, index) => {
       const cueItem = document.createElement('div');
       cueItem.style.cssText = `
@@ -3128,14 +3597,14 @@ function initCueStack() {
       `;
       cueItem.draggable = true;
       cueItem.dataset.index = index;
-      
+
       let label, color, isMissing = false;
-      
+
       // Handle custom cues
       if (cue.custom) {
         label = cue.custom.label || 'Custom Cue';
         color = cue.custom.color || '#8b5cf6';
-      } 
+      }
       // Handle preset-based cues
       else if (cue.presetId) {
         const preset = CFG.presets?.find(p => p.id === cue.presetId);
@@ -3152,7 +3621,7 @@ function initCueStack() {
         color = '#ef4444';
         isMissing = true;
       }
-      
+
       cueItem.innerHTML = `
         <div style="opacity: 0.5; cursor: move;">☰</div>
         <div style="min-width: 24px; height: 24px; border-radius: 50%; background: rgba(125,211,252,0.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--accent-light);">
@@ -3167,16 +3636,16 @@ function initCueStack() {
           Remove
         </button>
       `;
-      
+
       // Drag and drop handlers
       cueItem.addEventListener('dragstart', handleDragStart);
       cueItem.addEventListener('dragover', handleDragOver);
       cueItem.addEventListener('drop', handleDrop);
       cueItem.addEventListener('dragend', handleDragEnd);
-      
+
       cueStackBuilderList.appendChild(cueItem);
     });
-    
+
     // Attach remove handlers
     document.querySelectorAll('.remove-cue-btn').forEach(btn => {
       btn.onclick = () => {
@@ -3186,7 +3655,7 @@ function initCueStack() {
         showNotification('Cue removed', 'info');
       };
     });
-    
+
     // Attach edit handlers for custom cues
     document.querySelectorAll('.edit-cue-btn').forEach(btn => {
       btn.onclick = () => {
@@ -3195,16 +3664,16 @@ function initCueStack() {
       };
     });
   }
-  
+
   // Drag and drop functionality
   let draggedElement = null;
-  
+
   function handleDragStart(e) {
     draggedElement = this;
     this.style.opacity = '0.4';
     e.dataTransfer.effectAllowed = 'move';
   }
-  
+
   function handleDragOver(e) {
     if (e.preventDefault) {
       e.preventDefault();
@@ -3212,31 +3681,31 @@ function initCueStack() {
     e.dataTransfer.dropEffect = 'move';
     return false;
   }
-  
+
   function handleDrop(e) {
     if (e.stopPropagation) {
       e.stopPropagation();
     }
-    
+
     if (draggedElement !== this) {
       const fromIndex = parseInt(draggedElement.dataset.index);
       const toIndex = parseInt(this.dataset.index);
-      
+
       // Reorder the cues array
       const [movedCue] = cueStack.cues.splice(fromIndex, 1);
       cueStack.cues.splice(toIndex, 0, movedCue);
-      
+
       renderCueStackBuilder();
     }
-    
+
     return false;
   }
-  
+
   function handleDragEnd(e) {
     this.style.opacity = '1';
     draggedElement = null;
   }
-  
+
   // Save cue stack
   function saveCueStackFromModal() {
     cueStack.name = cueStackNameInput.value.trim() || 'My Show';
@@ -3245,7 +3714,7 @@ function initCueStack() {
     closeManagementModal();
     showNotification('Cue stack saved', 'success');
   }
-  
+
   // Clear cue stack
   function clearCueStackFromModal() {
     if (confirm('Clear the entire cue stack?')) {
@@ -3264,7 +3733,7 @@ function initCueStack() {
       showNotification('Cue stack cleared - Cue 0 (Standby) created', 'info');
     }
   }
-  
+
   // Event listeners
   executeNextCueBtn.onclick = executeNextCue;
   resetCueStackBtn.onclick = resetCueStack;
@@ -3273,11 +3742,11 @@ function initCueStack() {
   cancelCueStackBtn.onclick = closeManagementModal;
   saveCueStackBtn.onclick = saveCueStackFromModal;
   clearCueStackBtn.onclick = clearCueStackFromModal;
-  
+
   modal.onclick = (e) => {
     if (e.target === modal) closeManagementModal();
   };
-  
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // Don't interfere with inputs or other modals
@@ -3286,7 +3755,7 @@ function initCueStack() {
     if (document.getElementById('presetsModal').style.display === 'flex') return;
     if (document.getElementById('updateModal').style.display === 'flex') return;
     if (modal.style.display === 'flex') return;
-    
+
     // Space = Execute next cue
     if (e.code === 'Space' && !e.repeat) {
       e.preventDefault();
@@ -3294,20 +3763,78 @@ function initCueStack() {
         executeNextCue();
       }
     }
-    
+
     // R = Reset cue stack
     if (e.code === 'KeyR' && !e.repeat && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       resetCueStack();
     }
-    
+
     // Number keys 1-0 removed for production - use Space and R only
   });
-  
+
+  // Keep cue stack in sync with server updates (e.g., popout deck GO)
+  let lastServerSync = 0;
+  async function syncCueStackFromServer() {
+    // Avoid overlapping requests if a sync is already in flight
+    if (Date.now() - lastServerSync < 150) return;
+    lastServerSync = Date.now();
+
+    try {
+      const response = await fetch('/api/cuestack');
+      const data = await response.json();
+      const payload = data?.cueStack ?? data;
+
+      if (!payload || !Array.isArray(payload.cues)) return;
+
+      const needsUpdate =
+        cueStack.currentIndex !== payload.currentIndex ||
+        cueStack.cues?.length !== payload.cues?.length ||
+        cueStack.name !== payload.name;
+
+      if (needsUpdate) {
+        cueStack = payload;
+        localStorage.setItem('showcall_cuestack', JSON.stringify(cueStack));
+        renderCueStack();
+        renderTimecodePreview();
+      }
+    } catch (e) {
+      console.warn('Cue stack server sync failed:', e);
+    }
+  }
+
+  syncCueStackFromServer();
+  setInterval(syncCueStackFromServer, 2000);
+
+  // Prefer SSE for instant updates
+  try {
+    const cueStackStream = new EventSource('/api/cuestack/stream');
+    cueStackStream.onmessage = (evt) => {
+      try {
+        const data = JSON.parse(evt.data);
+        const payload = data?.cueStack ?? data;
+        if (payload && Array.isArray(payload.cues)) {
+          cueStack = payload;
+          localStorage.setItem('showcall_cuestack', JSON.stringify(cueStack));
+          renderCueStack();
+        }
+      } catch (e) {
+        console.warn('Cue stack SSE parse failed:', e);
+      }
+    };
+
+    cueStackStream.onerror = () => {
+      console.warn('Cue stack SSE disconnected; falling back to polling.');
+      cueStackStream.close();
+    };
+  } catch (e) {
+    console.warn('Cue stack SSE not available:', e);
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // CUSTOM CUE BUILDER
   // ═══════════════════════════════════════════════════════════════════════════
-  
+
   const customCueModal = document.getElementById('customCueModal');
   const closeCustomCueModal = document.getElementById('closeCustomCueModal');
   const addCustomCueBtn = document.getElementById('addCustomCueBtn');
@@ -3317,9 +3844,9 @@ function initCueStack() {
   const customCueColor = document.getElementById('customCueColor');
   const customCueActionsList = document.getElementById('customCueActionsList');
   const addActionBtn = document.getElementById('addActionBtn');
-  
+
   let customCueActions = [];
-  
+
   // Open custom cue modal
   addCustomCueBtn.onclick = () => {
     customCueLabel.value = '';
@@ -3328,14 +3855,14 @@ function initCueStack() {
     renderCustomCueActions();
     customCueModal.style.display = 'flex';
   };
-  
+
   // Edit existing custom cue
   let editingCueIndex = null;
-  
+
   function editExistingCue(index) {
     const cue = cueStack.cues[index];
     if (!cue.custom) return;
-    
+
     editingCueIndex = index;
     customCueLabel.value = cue.custom.label || '';
     customCueColor.value = cue.custom.color || '#7dd3fc';
@@ -3344,19 +3871,19 @@ function initCueStack() {
     customCueModal.style.display = 'flex';
     showNotification('Editing custom cue', 'info');
   }
-  
+
   // Close custom cue modal
   const closeCustomModal = () => {
     customCueModal.style.display = 'none';
     editingCueIndex = null; // Reset editing mode
   };
-  
+
   closeCustomCueModal.onclick = closeCustomModal;
   cancelCustomCueBtn.onclick = closeCustomModal;
   customCueModal.onclick = (e) => {
     if (e.target === customCueModal) closeCustomModal();
   };
-  
+
   // Show action type selector dropdown
   addActionBtn.onclick = () => {
     // Create a temporary dropdown to select action type
@@ -3371,7 +3898,7 @@ function initCueStack() {
       font-size: 13px;
       margin-top: 8px;
     `;
-    
+
     dropdown.innerHTML = `
       <option value="">Select Action Type...</option>
       <option value="trigger">🎬 Trigger Clip (Layer + Column)</option>
@@ -3380,22 +3907,22 @@ function initCueStack() {
       <option value="clear">🧹 Clear All Layers</option>
       <option value="sleep">⏱️ Wait / Delay</option>
     `;
-    
+
     dropdown.onchange = () => {
       if (dropdown.value) {
         addCustomAction(dropdown.value);
         dropdown.remove();
       }
     };
-    
+
     addActionBtn.after(dropdown);
     dropdown.focus();
   };
-  
+
   // Add custom action based on type
   function addCustomAction(type) {
     let newAction = { type };
-    
+
     switch (type) {
       case 'trigger':
         newAction.layer = 1;
@@ -3408,25 +3935,25 @@ function initCueStack() {
         newAction.ms = 200;
         break;
     }
-    
+
     customCueActions.push(newAction);
     renderCustomCueActions();
   }
-  
+
   // Render custom cue actions (visual builder like presets)
   function renderCustomCueActions() {
     if (customCueActions.length === 0) {
       customCueActionsList.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.5;">No actions yet. Click "+ Add Action" below.</div>';
       return;
     }
-    
+
     customCueActionsList.innerHTML = '';
     customCueActions.forEach((action, index) => {
       const actionEl = createCustomActionElement(action, index);
       customCueActionsList.appendChild(actionEl);
     });
   }
-  
+
   // Create custom action element (similar to macro step)
   function createCustomActionElement(action, index) {
     const actionEl = document.createElement('div');
@@ -3442,9 +3969,9 @@ function initCueStack() {
       align-items: center;
       gap: 12px;
     `;
-    
+
     const { icon, typeLabel, params } = formatCustomActionDisplay(action);
-    
+
     actionEl.innerHTML = `
       <div style="opacity: 0.5; cursor: move;">☰</div>
       <div style="font-size: 20px;">${icon}</div>
@@ -3457,23 +3984,23 @@ function initCueStack() {
         <button class="action-delete-btn" data-index="${index}" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--red); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600;">×</button>
       </div>
     `;
-    
+
     // Edit action
     actionEl.querySelector('.action-edit-btn').onclick = (e) => {
       e.stopPropagation();
       editCustomAction(index);
     };
-    
+
     // Delete action
     actionEl.querySelector('.action-delete-btn').onclick = (e) => {
       e.stopPropagation();
       customCueActions.splice(index, 1);
       renderCustomCueActions();
     };
-    
+
     return actionEl;
   }
-  
+
   // Format custom action display
   function formatCustomActionDisplay(action) {
     const icons = {
@@ -3483,10 +4010,10 @@ function initCueStack() {
       clear: '🧹',
       sleep: '⏱️'
     };
-    
+
     let params = '';
     let typeLabel = action.type.charAt(0).toUpperCase() + action.type.slice(1).replace(/([A-Z])/g, ' $1');
-    
+
     switch (action.type) {
       case 'trigger':
         params = `Layer ${action.layer}, Column ${action.column}`;
@@ -3504,19 +4031,19 @@ function initCueStack() {
         params = 'Clear all layers';
         break;
     }
-    
+
     return {
       icon: icons[action.type] || '📝',
       typeLabel,
       params
     };
   }
-  
+
   // Edit custom action inline
   function editCustomAction(index) {
     const action = customCueActions[index];
     const actionEl = customCueActionsList.querySelector(`[data-index="${index}"]`);
-    
+
     // Create inline edit form
     const formEl = document.createElement('div');
     formEl.style.cssText = `
@@ -3526,7 +4053,7 @@ function initCueStack() {
       border: 1px solid rgba(125, 211, 252, 0.3);
       border-radius: 6px;
     `;
-    
+
     switch (action.type) {
       case 'trigger':
         formEl.innerHTML = `
@@ -3573,9 +4100,9 @@ function initCueStack() {
       default:
         return; // No params to edit
     }
-    
+
     actionEl.appendChild(formEl);
-    
+
     formEl.querySelector('#saveActionEdit').onclick = () => {
       if (action.type === 'trigger') {
         action.layer = parseInt(formEl.querySelector('#editActionLayer').value);
@@ -3587,32 +4114,32 @@ function initCueStack() {
       }
       renderCustomCueActions();
     };
-    
+
     formEl.querySelector('#cancelActionEdit').onclick = () => {
       renderCustomCueActions();
     };
   }
-  
+
   // Save custom cue
   saveCustomCueBtn.onclick = () => {
     const label = customCueLabel.value.trim();
-    
+
     if (!label) {
       showNotification('Please enter a cue label', 'warning');
       return;
     }
-    
+
     if (customCueActions.length === 0) {
       showNotification('Please add at least one action', 'warning');
       return;
     }
-    
+
     // Convert actions to macro format for execution
     const macroActions = customCueActions.map(action => {
       // Already in the right format (type, layer, column, ms, etc.)
       return { ...action };
     });
-    
+
     // Check if we're editing or creating new
     if (editingCueIndex !== null) {
       // Update existing cue
@@ -3636,27 +4163,42 @@ function initCueStack() {
       });
       showNotification(`Custom cue "${label}" added`, 'success');
     }
-    
+
     renderCueStackBuilder();
     closeCustomModal();
   };
-  
+
+  // Sync to server so deck popup works immediately on load
+  fetch('/api/cuestack/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cueStack)
+  }).then(r => r.json()).then(d => console.log('🎭 Initial cue stack sync:', d))
+    .catch(e => console.warn('Initial cue stack sync failed:', e));
+
   // Initial render
   renderCueStack();
+  renderTimecodePreview();
 }
 
 console.log('🔥 MAIN DEBUG: Script loaded, checking DOM ready state:', document.readyState);
 if (document.readyState === "loading") {
   console.log('🔥 MAIN DEBUG: DOM still loading, adding event listener');
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener("DOMContentLoaded", function () {
     console.log('🔥 MAIN DEBUG: DOMContentLoaded event fired, calling init()');
     init();
     // Initialize cue stack after main app
-    setTimeout(() => initCueStack(), 100);
+    setTimeout(() => {
+      initCueStack();
+      initTimecode();
+    }, 100);
   });
 } else {
   console.log('🔥 MAIN DEBUG: DOM already loaded, calling init() immediately');
   init();
   // Initialize cue stack after main app
-  setTimeout(() => initCueStack(), 100);
+  setTimeout(() => {
+    initCueStack();
+    initTimecode();
+  }, 100);
 }

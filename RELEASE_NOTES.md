@@ -1,41 +1,32 @@
-# ShowCall v2.5.0 Release Notes
+# ShowCall v2.6.0 Release Notes
 
-## � What’s New in v2.5.0 — Preset Banks
+## ⏱ What's New in v2.6.0 — Timecode Cue Playback
 
-Meet Preset Banks — a simple, powerful way to organize and recall groups of presets.
+ShowCall now supports SMPTE Linear Timecode (LTC) as a way to drive your cue stack automatically, alongside the manual GO button.
 
-Why you’ll love it:
+Why you'll love it:
 
-- Save groups of presets into named banks (for example: "Worship Morning", "Concert A", "Lobby Loops").
-- Switch entire banks instantly — everything in the bank becomes available on your Preset Deck.
-- Import and export banks to share setups with other machines or team members.
-- Banks work with your existing presets and cue stacks — nothing is lost when you switch.
-
-How to use Preset Banks:
-
-1. Open the Presets modal and click "Banks".
-2. Create a new bank and give it a name.
-3. Add presets to the bank (drag-and-drop or use the Add button).
-4. Activate the bank to load its presets onto your Preset Deck.
-
-Tip: Create a bank for each show or venue to recall complex setups instantly.
+- Listen to any audio input for LTC and see live timecode on screen.
+- Arm the cue stack so cues fire automatically when the incoming timecode reaches their recorded mark.
+- Record timecode onto cues live as you run the show, or use Auto Record to capture it every time you GO.
+- Preview the next 3 upcoming timecode cues at a glance.
 
 Other improvements in this release:
 
-- Small UX polish in the Cue Stack for large lists (smoother scrolling and better spacing).
-- Packaging and auto-update metadata tweaks so installers show the correct version information.
-- Documentation refreshed to make it easier to find guides and quick start steps.
+- The pop-out Preset Deck's GO button now works reliably from a real server-side cue stack sync, with instant updates via SSE.
+- Stream Deck / Companion integration fixes: correct active bank sync on connect, instant bank-switch/clear notifications, and independent status polling so feedback never goes stale while the window is minimized.
+- Fixed a long-standing bug where the "preview" clip was never reported to the UI.
 
 ## 📦 Download & Install
 
 ### macOS
-Download `ShowCall-2.5.0-arm64.dmg` (Apple Silicon) or `ShowCall-2.5.0.dmg` (Intel).
+Download `ShowCall-2.6.0.dmg` (Universal / Apple Silicon + Intel).
 
 ### Windows
-Download `ShowCall-Setup-2.5.0.exe`.
+Download `ShowCall-Setup-2.6.0.exe`.
 
 ### Linux
-Download `ShowCall-2.5.0.AppImage`.
+Download `ShowCall-2.6.0.AppImage`.
 
 ### Auto-Update
 If you're on a recent release (v2.3.4+), ShowCall's updater will offer this update automatically.
