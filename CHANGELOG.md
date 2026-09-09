@@ -4,6 +4,13 @@ All notable changes to ShowCall will be documented in this file.
 
 ## [Unreleased]
 
+## [2.6.2] - 2026-09-08
+
+### 🔧 CI / Build
+
+- **Fixed macOS release build failure**: the `xcrun notarytool store-credentials` step in `.github/workflows/build.yml` used an unsupported `--force` flag, which failed and left the keychain in a bad state, causing the subsequent signing step to fail with `SecKeychainUnlock`. Removed the step entirely — it stored an unused `showcall-creds` keychain profile that neither electron-builder's built-in `mac.notarize` config nor `scripts/notarize.cjs` ever reads; notarization already runs directly off the `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/`APPLE_TEAM_ID` secrets.
+- No application code changes in this release.
+
 ## [2.6.1] - 2026-09-08
 
 ### 🐛 Fixed

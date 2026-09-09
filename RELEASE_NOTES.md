@@ -1,22 +1,22 @@
-# ShowCall v2.6.1 Release Notes
+# ShowCall v2.6.2 Release Notes
 
-## 🐛 What's Fixed in v2.6.1 — Timecode & Cue Stack Bug Fixes
+## 🔧 What's Fixed in v2.6.2 — macOS Release Build Fix
 
-This is a bug-fix release addressing two issues found while field-testing LTC timecode cue playback:
+This is a CI-only release with no application changes; it fixes the macOS build pipeline so signed/notarized installers can be published again.
 
-- **Timecode cues only fire on an exact hit.** If LTC starts running mid-timecode or skips past a cue's recorded mark (e.g. it starts at hour 1 minute 2 but a cue is set for hour 1), the cue stack no longer "catches up" by firing every cue up to the current time. A cue now only fires when the timecode reads within tolerance of its exact mark — if it's missed, it stays unfired.
-- **Cue Stack builder no longer overwrites your work.** Adding multiple presets/cues in the "Manage Cues" builder could get silently reverted back to a single cue by a background sync that kept the popout deck in step with the main app. That background sync now pauses while the builder is open, so you can add as many cues as you want before saving.
+- Removed an unsupported `--force` flag on `xcrun notarytool store-credentials` in the GitHub Actions workflow that was causing the macOS build job to fail, along with a downstream keychain unlock error.
+- The credential-storage step itself was removed since notarization already runs directly off the `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` secrets via electron-builder's built-in notarization support.
 
 ## 📦 Download & Install
 
 ### macOS
-Download `ShowCall-2.6.1.dmg` (Universal / Apple Silicon + Intel).
+Download `ShowCall-2.6.2.dmg` (Universal / Apple Silicon + Intel).
 
 ### Windows
-Download `ShowCall-Setup-2.6.1.exe`.
+Download `ShowCall-Setup-2.6.2.exe`.
 
 ### Linux
-Download `ShowCall-2.6.1.AppImage`.
+Download `ShowCall-2.6.2.AppImage`.
 
 ### Auto-Update
 If you're on a recent release (v2.3.4+), ShowCall's updater will offer this update automatically.
