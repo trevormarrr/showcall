@@ -1,32 +1,22 @@
-# ShowCall v2.6.0 Release Notes
+# ShowCall v2.6.1 Release Notes
 
-## ⏱ What's New in v2.6.0 — Timecode Cue Playback
+## 🐛 What's Fixed in v2.6.1 — Timecode & Cue Stack Bug Fixes
 
-ShowCall now supports SMPTE Linear Timecode (LTC) as a way to drive your cue stack automatically, alongside the manual GO button.
+This is a bug-fix release addressing two issues found while field-testing LTC timecode cue playback:
 
-Why you'll love it:
-
-- Listen to any audio input for LTC and see live timecode on screen.
-- Arm the cue stack so cues fire automatically when the incoming timecode reaches their recorded mark.
-- Record timecode onto cues live as you run the show, or use Auto Record to capture it every time you GO.
-- Preview the next 3 upcoming timecode cues at a glance.
-
-Other improvements in this release:
-
-- The pop-out Preset Deck's GO button now works reliably from a real server-side cue stack sync, with instant updates via SSE.
-- Stream Deck / Companion integration fixes: correct active bank sync on connect, instant bank-switch/clear notifications, and independent status polling so feedback never goes stale while the window is minimized.
-- Fixed a long-standing bug where the "preview" clip was never reported to the UI.
+- **Timecode cues only fire on an exact hit.** If LTC starts running mid-timecode or skips past a cue's recorded mark (e.g. it starts at hour 1 minute 2 but a cue is set for hour 1), the cue stack no longer "catches up" by firing every cue up to the current time. A cue now only fires when the timecode reads within tolerance of its exact mark — if it's missed, it stays unfired.
+- **Cue Stack builder no longer overwrites your work.** Adding multiple presets/cues in the "Manage Cues" builder could get silently reverted back to a single cue by a background sync that kept the popout deck in step with the main app. That background sync now pauses while the builder is open, so you can add as many cues as you want before saving.
 
 ## 📦 Download & Install
 
 ### macOS
-Download `ShowCall-2.6.0.dmg` (Universal / Apple Silicon + Intel).
+Download `ShowCall-2.6.1.dmg` (Universal / Apple Silicon + Intel).
 
 ### Windows
-Download `ShowCall-Setup-2.6.0.exe`.
+Download `ShowCall-Setup-2.6.1.exe`.
 
 ### Linux
-Download `ShowCall-2.6.0.AppImage`.
+Download `ShowCall-2.6.1.AppImage`.
 
 ### Auto-Update
 If you're on a recent release (v2.3.4+), ShowCall's updater will offer this update automatically.

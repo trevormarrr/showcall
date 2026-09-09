@@ -4,6 +4,13 @@ All notable changes to ShowCall will be documented in this file.
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-09-08
+
+### 🐛 Fixed
+
+- **Timecode cues no longer "catch up"**: if LTC playback starts mid-timecode or jumps past a cue's recorded mark, the cue stack now only fires a cue when the incoming timecode is an exact (within-tolerance) match. Previously, any timecode past a cue's mark would immediately fire it, causing every skipped cue to fire in rapid succession.
+- **Cue Stack builder no longer overwrites unsaved cues**: the background cue-stack sync (2s poll + SSE stream) that keeps the popout deck in sync could overwrite the in-memory cue stack while the "Manage Cues" builder was open, reverting newly-added cues back to the last-saved state before you could add more than one. Background syncs are now paused while the builder modal is open.
+
 ## [2.6.0] - 2026-07-26
 
 ### ✨ Features

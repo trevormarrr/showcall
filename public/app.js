@@ -2844,8 +2844,9 @@ function handleTimecodeUpdate(timecode) {
   const target = timecodeState.cues.find((c) => c.cueIndex === nextCueIndex);
   if (!target || target.enabled === false) return;
 
+  // Only fire on an exact (within-tolerance) hit; a missed/skipped-over cue does not catch up.
   const tolerance = Math.max(timecodeState.toleranceFrames, 0);
-  if (Math.abs(timecodeState.currentFrame - target.frames) <= tolerance || timecodeState.currentFrame > target.frames) {
+  if (Math.abs(timecodeState.currentFrame - target.frames) <= tolerance) {
     triggerCueFromTimecode(nextCueIndex);
   }
 }
@@ -3124,6 +3125,9 @@ function initCueStack() {
     ];
     saveCueStackState();
   }
+
+  // True while the builder modal is open, so background server syncs don't overwrite unsaved edits
+  let isManagingCues = false;
 
   // Elements
   const cueStackList = document.getElementById('cueStackList');
@@ -3498,6 +3502,7 @@ function initCueStack() {
 
   // Open management modal
   function openManagementModal() {
+    isManagingCues = true; // Block background server syncs from clobbering in-progress edits
     cueStackNameInput.value = cueStack.name || 'My Show';
     renderAvailablePresets();
     renderCueStackBuilder();
@@ -3506,6 +3511,7 @@ function initCueStack() {
 
   // Close modal
   function closeManagementModal() {
+    isManagingCues = false;
     modal.style.display = 'none';
   }
 
@@ -3787,6 +3793,8 @@ function initCueStack() {
 
       if (!payload || !Array.isArray(payload.cues)) return;
 
+      if (isManagingCues) return; // Don't clobber unsaved edits in the builder modal
+
       const needsUpdate =
         cueStack.currentIndex !== payload.currentIndex ||
         cueStack.cues?.length !== payload.cues?.length ||
@@ -3811,6 +3819,7 @@ function initCueStack() {
     const cueStackStream = new EventSource('/api/cuestack/stream');
     cueStackStream.onmessage = (evt) => {
       try {
+        if (isManagingCues) return; // Don't clobber unsaved edits in the builder modal
         const data = JSON.parse(evt.data);
         const payload = data?.cueStack ?? data;
         if (payload && Array.isArray(payload.cues)) {
