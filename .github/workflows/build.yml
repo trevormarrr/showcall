@@ -43,6 +43,23 @@ jobs:
             fi
           done
 
+      - name: Validate macOS signing secrets
+        if: matrix.os == 'macos-latest'
+        run: |
+          test -n "$CSC_LINK" || { echo "::error::CSC_LINK secret is missing"; exit 1; }
+          test -n "$CSC_KEY_PASSWORD" || { echo "::error::CSC_KEY_PASSWORD secret is missing"; exit 1; }
+          test -n "$APPLE_ID" || { echo "::error::APPLE_ID secret is missing"; exit 1; }
+          test -n "$APPLE_APP_SPECIFIC_PASSWORD" || { echo "::error::APPLE_APP_SPECIFIC_PASSWORD secret is missing"; exit 1; }
+          test -n "$APPLE_TEAM_ID" || { echo "::error::APPLE_TEAM_ID secret is missing"; exit 1; }
+          echo "All macOS signing secrets are present"
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash
+
       - name: Build app (macOS)
         if: matrix.os == 'macos-latest'
         run: npm run dist
