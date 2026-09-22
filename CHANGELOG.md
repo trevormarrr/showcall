@@ -2,7 +2,25 @@
 
 All notable changes to ShowCall will be documented in this file.
 
-## [Unreleased]
+## [2.6.3] - 2026-09-22
+### ✨ Features
+Arrange presets in the order you need them. Use the drag handle in the preset list to move a preset within its bank—your new order saves automatically when you drop it.
+
+Addresses [#4 — Reorder presets in a bank](https://github.com/trevormarrr/showcall/issues/4).
+
+#### Add and remove banks
+
+You're no longer limited to five preset banks.
+
+- Select **+ Add Bank** to create a bank.
+- Choose **Delete Bank** from a bank's menu to remove it.
+- The last remaining bank is protected from deletion, so you always have one available.
+
+Existing installations migrate automatically to the updated bank storage format.
+
+### 🔧 Fixes
+- **Pop-out deck follows the active bank**: The pop-out deck now displays the selected bank instead of staying stuck on Bank 1. Its header shows the bank name, and the deck stays synchronized when you switch banks, save presets, rename or clear a bank, or delete a bank.
+- **Bank renaming prompts only once**: Removed a duplicate rename prompt that made the **Rename Bank** button appear unresponsive. Renaming now asks for the new name once.
 
 ## [2.6.2] - 2026-09-08
 

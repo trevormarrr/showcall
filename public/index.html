@@ -11,11 +11,11 @@
 <body>
   <div class="page">
     <header class="top">
-      <h1>ShowCall <span style="opacity: 0.5; font-weight: 400; font-size: 14px;">via OSC</span></h1>
+      <h1>ShowCall</h1>
       <div class="meta">
         <span id="comp" style="font-weight: 600;">—</span>
         <span id="bpm">BPM: —</span>
-  <span id="version" class="version-display" title="ShowCall Version">v2.6.2</span>
+  <span id="version" class="version-display" title="ShowCall Version">v2.6.3</span>
         <div id="updateIndicator" class="update-indicator" style="display: none;" title="Update available">
           <span class="update-icon">📦</span>
           <span class="update-text">Update Available</span>
@@ -252,6 +252,7 @@
           </div>
           <div id="bankList" class="bank-list"></div>
           <div class="bank-selector-footer">
+            <button id="addBankBtn" class="btn-primary">+ Add Bank</button>
             <button id="importBankBtn" class="btn-secondary">📥 Import</button>
             <button id="exportAllBanksBtn" class="btn-secondary">📤 Export All</button>
           </div>
@@ -524,6 +525,24 @@
       <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px;">
         <button id="cancelCustomCueBtn" class="btn-secondary">Cancel</button>
         <button id="saveCustomCueBtn" class="btn-primary">Save Custom Cue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic text input modal (Electron does not support window.prompt()) -->
+  <div id="inputModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h2 id="inputModalTitle">Rename</h2>
+        <span class="close" id="inputModalClose">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p id="inputModalMessage" style="margin: 0 0 12px; color: var(--muted); font-size: 13px;"></p>
+        <input type="text" id="inputModalField" class="input-modal-field" maxlength="50">
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 0 24px 20px;">
+        <button id="inputModalCancel" class="btn-secondary">Cancel</button>
+        <button id="inputModalConfirm" class="btn-primary">OK</button>
       </div>
     </div>
   </div>

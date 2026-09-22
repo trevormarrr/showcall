@@ -31,10 +31,12 @@ try { fs.mkdirSync(USER_DATA_DIR, { recursive: true }); } catch { }
 const USER_ENV_PATH = path.join(USER_DATA_DIR, '.env');
 const USER_PRESETS_PATH = path.join(USER_DATA_DIR, 'presets.json');
 
-// Preset Banks: Support up to 5 banks (preset-bank-1.json through preset-bank-5.json)
-const MAX_PRESET_BANKS = 5;
+// Preset Banks: banks are stored one-per-file (preset-bank-<id>.json). The set of
+// active bank IDs is dynamic (banks can be added/removed) and tracked in
+// presets-metadata.json's `bankIds` array. 5 banks are created by default for new installs.
+const DEFAULT_BANK_COUNT = 5;
 function getBankPath(bankId = 1) {
-  const id = Math.max(1, Math.min(MAX_PRESET_BANKS, parseInt(bankId) || 1));
+  const id = Math.max(1, parseInt(bankId) || 1);
   return path.join(USER_DATA_DIR, `preset-bank-${id}.json`);
 }
 
@@ -131,6 +133,39 @@ const CONNECTION_CHECK_INTERVAL = 3000;
 
 // Cue stack SSE clients
 const cueStackClients = new Set();
+
+// Pop-out Deck: SSE clients that track the ACTIVE bank's presets. Without this,
+// the pop-out Deck only loaded presets once at open time and stayed on that
+// bank forever, even after switching banks in the main window (#3).
+const deckClients = new Set();
+
+async function getActiveBankPayload() {
+  const metadata = await loadBankMetadata();
+  const bank = await loadBank(metadata.currentBank);
+  return {
+    ok: true,
+    bank: metadata.currentBank,
+    bankName: metadata.bankNames[metadata.currentBank] || `Bank ${metadata.currentBank}`,
+    presets: bank.presets || [],
+    quickCues: bank.quickCues || []
+  };
+}
+
+async function broadcastActiveBankToDeck() {
+  if (deckClients.size === 0) return;
+  try {
+    const payload = JSON.stringify(await getActiveBankPayload());
+    deckClients.forEach(res => {
+      try {
+        res.write(`data: ${payload}\n\n`);
+      } catch (e) {
+        deckClients.delete(res);
+      }
+    });
+  } catch (e) {
+    console.error('Failed to broadcast active bank to deck:', e.message);
+  }
+}
 
 function broadcastCueStack() {
   if (!serverCueStack) return;
@@ -639,25 +674,28 @@ app.post('/api/settings', async (req, res) => {
   }
 });
 
-// Helper: Load bank metadata (current bank, bank names)
+// Helper: Load bank metadata (current bank, bank names, bank ids)
 async function loadBankMetadata() {
   try {
     if (fs.existsSync(getMetadataPath())) {
       const json = await fs.promises.readFile(getMetadataPath(), 'utf-8');
-      return JSON.parse(json);
+      const metadata = JSON.parse(json);
+      if (!Array.isArray(metadata.bankIds)) {
+        // Migrate metadata files saved before add/remove-bank support existed.
+        metadata.bankIds = Object.keys(metadata.bankNames || {}).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
+        if (metadata.bankIds.length === 0) metadata.bankIds = [1];
+      }
+      return metadata;
     }
   } catch { }
   // Return default metadata
-  return {
-    currentBank: 1,
-    bankNames: {
-      '1': 'Bank 1',
-      '2': 'Bank 2',
-      '3': 'Bank 3',
-      '4': 'Bank 4',
-      '5': 'Bank 5'
-    }
-  };
+  const bankNames = {};
+  const bankIds = [];
+  for (let i = 1; i <= DEFAULT_BANK_COUNT; i++) {
+    bankNames[i] = `Bank ${i}`;
+    bankIds.push(i);
+  }
+  return { currentBank: 1, bankNames, bankIds };
 }
 
 // Helper: Save bank metadata
@@ -714,30 +752,24 @@ async function ensureBanksExist() {
       }
     }
 
-    // Create all 5 banks if they don't exist (with empty structure)
-    for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
-      const bankPath = getBankPath(i);
-      if (!fs.existsSync(bankPath)) {
-        console.log(`📝 Creating Bank ${i}...`);
-        await saveBank(i, { presets: [], quickCues: [] });
-      }
-    }
-
-    // Ensure metadata file exists
+    // Ensure metadata file exists (defines which bank IDs currently exist)
     const metadataPath = getMetadataPath();
+    let metadata;
     if (!fs.existsSync(metadataPath)) {
       console.log("📝 Creating bank metadata...");
-      const defaultMetadata = {
-        currentBank: 1,
-        bankNames: {
-          '1': 'Bank 1',
-          '2': 'Bank 2',
-          '3': 'Bank 3',
-          '4': 'Bank 4',
-          '5': 'Bank 5'
-        }
-      };
-      await saveBankMetadata(defaultMetadata);
+      metadata = await loadBankMetadata(); // returns defaults when no file exists
+      await saveBankMetadata(metadata);
+    } else {
+      metadata = await loadBankMetadata();
+    }
+
+    // Create a file for every bank id currently registered in metadata
+    for (const id of metadata.bankIds) {
+      const bankPath = getBankPath(id);
+      if (!fs.existsSync(bankPath)) {
+        console.log(`📝 Creating Bank ${id}...`);
+        await saveBank(id, { presets: [], quickCues: [] });
+      }
     }
 
     console.log("✅ All preset banks ready");
@@ -804,8 +836,10 @@ app.post('/api/presets', async (req, res) => {
     await saveBankMetadata(metadata);
 
     // Saving via this endpoint always makes the saved bank the active one,
-    // so always push the fresh preset list to connected Companion clients.
+    // so always push the fresh preset list to connected Companion clients
+    // and to any open pop-out Deck windows.
     broadcastPresetsToCompanion(data.presets || [], parseInt(bankId));
+    await broadcastActiveBankToDeck();
 
     res.json({ ok: true, bank: parseInt(bankId) });
   } catch (e) {
@@ -831,7 +865,7 @@ app.get('/api/banks/export/:id', async (req, res) => {
     if (bankId === -1) {
       // Export all banks
       const allBanks = {};
-      for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+      for (const i of metadata.bankIds) {
         const bank = await loadBank(i);
         allBanks[`bank_${i}`] = {
           name: metadata.bankNames[i] || `Bank ${i}`,
@@ -862,24 +896,26 @@ app.get('/api/banks/export/:id', async (req, res) => {
 
 app.post('/api/banks/switch', async (req, res) => {
   try {
-    const { bankId } = req.body;
-    if (!bankId || bankId < 1 || bankId > MAX_PRESET_BANKS) {
+    const metadata = await loadBankMetadata();
+    const bankId = parseInt(req.body.bankId);
+    if (!bankId || !metadata.bankIds.includes(bankId)) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
 
-    const metadata = await loadBankMetadata();
-    metadata.currentBank = parseInt(bankId);
+    metadata.currentBank = bankId;
     await saveBankMetadata(metadata);
 
     const bank = await loadBank(bankId);
 
     // Push the newly active bank's presets to Companion so Stream Deck
     // buttons update immediately, without waiting for a reconnect.
-    broadcastPresetsToCompanion(bank.presets || [], parseInt(bankId));
+    broadcastPresetsToCompanion(bank.presets || [], bankId);
+    // ...and to any open pop-out Deck windows, so they follow the active bank (#3).
+    await broadcastActiveBankToDeck();
 
     res.json({
       ok: true,
-      activeBank: parseInt(bankId),
+      activeBank: bankId,
       bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
       presets: bank.presets || [],
       quickCues: bank.quickCues || []
@@ -890,14 +926,104 @@ app.post('/api/banks/switch', async (req, res) => {
   }
 });
 
+// Pop-out Deck: current active bank + presets (initial load) and live updates (SSE).
+app.get('/api/banks/active', async (req, res) => {
+  try {
+    res.json(await getActiveBankPayload());
+  } catch (e) {
+    console.error('Failed to load active bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/banks/active/stream', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive'
+  });
+  res.write('retry: 500\n\n');
+
+  deckClients.add(res);
+
+  try {
+    const payload = JSON.stringify(await getActiveBankPayload());
+    res.write(`data: ${payload}\n\n`);
+  } catch { }
+
+  req.on('close', () => {
+    deckClients.delete(res);
+  });
+});
+
+// Create a new (empty) bank
+app.post('/api/banks', async (req, res) => {
+  try {
+    const { name } = req.body || {};
+    const metadata = await loadBankMetadata();
+
+    const newId = Math.max(0, ...metadata.bankIds) + 1;
+    metadata.bankIds.push(newId);
+    metadata.bankNames[newId] = (name && String(name).trim().slice(0, 50)) || `Bank ${newId}`;
+
+    await saveBank(newId, { presets: [], quickCues: [] });
+    await saveBankMetadata(metadata);
+
+    res.json({ ok: true, bank: newId, name: metadata.bankNames[newId] });
+  } catch (e) {
+    console.error('Failed to add bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Delete a bank (at least one bank must always remain)
+app.delete('/api/banks/:id', async (req, res) => {
+  try {
+    const bankId = parseInt(req.params.id);
+    const metadata = await loadBankMetadata();
+
+    if (!metadata.bankIds.includes(bankId)) {
+      return res.status(400).json({ ok: false, error: 'Bank not found' });
+    }
+    if (metadata.bankIds.length <= 1) {
+      return res.status(400).json({ ok: false, error: 'At least one bank must remain' });
+    }
+
+    metadata.bankIds = metadata.bankIds.filter(id => id !== bankId);
+    delete metadata.bankNames[bankId];
+
+    const wasActive = metadata.currentBank === bankId;
+    if (wasActive) {
+      metadata.currentBank = metadata.bankIds[0];
+    }
+    await saveBankMetadata(metadata);
+
+    try {
+      await fs.promises.unlink(getBankPath(bankId));
+    } catch { }
+
+    // If the deleted bank was active, the new active bank takes over immediately.
+    if (wasActive) {
+      const newActiveBank = await loadBank(metadata.currentBank);
+      broadcastPresetsToCompanion(newActiveBank.presets || [], metadata.currentBank);
+      await broadcastActiveBankToDeck();
+    }
+
+    res.json({ ok: true, bank: bankId, currentBank: metadata.currentBank });
+  } catch (e) {
+    console.error('Failed to delete bank:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Now the generic :id routes come AFTER the specific ones
 app.get('/api/banks', async (req, res) => {
   try {
     const metadata = await loadBankMetadata();
     const banks = [];
 
-    // Load all banks with info
-    for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
+    // Load all currently-registered banks with info
+    for (const i of metadata.bankIds) {
       const bank = await loadBank(i);
       banks.push({
         id: i,
@@ -912,7 +1038,7 @@ app.get('/api/banks', async (req, res) => {
       banks,
       currentBank: metadata.currentBank,
       bankNames: metadata.bankNames,
-      maxBanks: MAX_PRESET_BANKS
+      bankIds: metadata.bankIds
     });
   } catch (e) {
     console.error('Failed to load banks:', e.message);
@@ -924,11 +1050,11 @@ app.get('/api/banks', async (req, res) => {
 app.get('/api/banks/:id/presets', async (req, res) => {
   try {
     const bankId = parseInt(req.params.id);
-    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+    const metadata = await loadBankMetadata();
+    if (!metadata.bankIds.includes(bankId)) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
 
-    const metadata = await loadBankMetadata();
     const bank = await loadBank(bankId);
 
     res.json({
@@ -950,16 +1076,21 @@ app.post('/api/banks/:id/rename', async (req, res) => {
     const bankId = parseInt(req.params.id);
     const { name } = req.body;
 
-    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+    const metadata = await loadBankMetadata();
+    if (!metadata.bankIds.includes(bankId)) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
     if (!name || typeof name !== 'string' || name.length > 50) {
       return res.status(400).json({ ok: false, error: 'Invalid name' });
     }
 
-    const metadata = await loadBankMetadata();
     metadata.bankNames[bankId] = name;
     await saveBankMetadata(metadata);
+
+    // If the renamed bank is active, update any open pop-out Deck windows too.
+    if (metadata.currentBank === bankId) {
+      await broadcastActiveBankToDeck();
+    }
 
     res.json({ ok: true, bank: bankId, name });
   } catch (e) {
@@ -971,63 +1102,23 @@ app.post('/api/banks/:id/rename', async (req, res) => {
 app.post('/api/banks/:id/clear', async (req, res) => {
   try {
     const bankId = parseInt(req.params.id);
-    if (bankId < 1 || bankId > MAX_PRESET_BANKS) {
+    const metadata = await loadBankMetadata();
+    if (!metadata.bankIds.includes(bankId)) {
       return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
     }
 
     await saveBank(bankId, { presets: [], quickCues: [] });
 
-    // If the cleared bank is currently active, tell Companion right away
-    // so Stream Deck buttons don't keep showing stale, now-deleted presets.
-    const metadata = await loadBankMetadata();
+    // If the cleared bank is currently active, tell Companion and any open
+    // pop-out Deck windows right away so buttons don't keep showing stale, now-deleted presets.
     if (metadata.currentBank === bankId) {
       broadcastPresetsToCompanion([], bankId);
+      await broadcastActiveBankToDeck();
     }
 
     res.json({ ok: true, bank: bankId, message: 'Bank cleared' });
   } catch (e) {
     console.error('Failed to clear bank:', e.message);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
-app.get('/api/banks/export/:id', async (req, res) => {
-  try {
-    const bankId = parseInt(req.params.id);
-    if (bankId < 1 && bankId !== -1) { // -1 for export all
-      return res.status(400).json({ ok: false, error: 'Invalid bank ID' });
-    }
-
-    const metadata = await loadBankMetadata();
-
-    if (bankId === -1) {
-      // Export all banks
-      const allBanks = {};
-      for (let i = 1; i <= MAX_PRESET_BANKS; i++) {
-        const bank = await loadBank(i);
-        allBanks[`bank_${i}`] = {
-          name: metadata.bankNames[i] || `Bank ${i}`,
-          data: bank
-        };
-      }
-      res.json({
-        exportType: 'all_banks',
-        timestamp: new Date().toISOString(),
-        banks: allBanks
-      });
-    } else {
-      // Export single bank
-      const bank = await loadBank(bankId);
-      res.json({
-        exportType: 'single_bank',
-        bankId,
-        bankName: metadata.bankNames[bankId] || `Bank ${bankId}`,
-        timestamp: new Date().toISOString(),
-        data: bank
-      });
-    }
-  } catch (e) {
-    console.error('Failed to export bank:', e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -1041,7 +1132,8 @@ app.post('/api/banks/import', async (req, res) => {
     }
 
     const targetId = parseInt(targetBank);
-    if (targetId < 1 || targetId > MAX_PRESET_BANKS) {
+    const metadata = await loadBankMetadata();
+    if (!metadata.bankIds.includes(targetId)) {
       return res.status(400).json({ ok: false, error: 'Invalid target bank ID' });
     }
 

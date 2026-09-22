@@ -1037,6 +1037,46 @@ function showNotification(message, type = "info") {
   }, 3000);
 }
 
+// Generic text-input dialog (Electron's renderer does not implement window.prompt(),
+// so every rename/add-bank/etc. flow needs this instead). Resolves to the trimmed
+// string, or null if cancelled.
+function showInputModal({ title = 'Enter a value', message = '', defaultValue = '' } = {}) {
+  const overlay = document.getElementById('inputModal');
+  const titleEl = document.getElementById('inputModalTitle');
+  const messageEl = document.getElementById('inputModalMessage');
+  const field = document.getElementById('inputModalField');
+  const confirmBtn = document.getElementById('inputModalConfirm');
+  const cancelBtn = document.getElementById('inputModalCancel');
+  const closeBtn = document.getElementById('inputModalClose');
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  messageEl.style.display = message ? 'block' : 'none';
+  field.value = defaultValue;
+  overlay.style.display = 'flex';
+  field.focus();
+  field.select();
+
+  return new Promise((resolve) => {
+    const finish = (value) => {
+      overlay.style.display = 'none';
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+      closeBtn.onclick = null;
+      field.onkeydown = null;
+      resolve(value);
+    };
+
+    confirmBtn.onclick = () => finish(field.value.trim() || null);
+    cancelBtn.onclick = () => finish(null);
+    closeBtn.onclick = () => finish(null);
+    field.onkeydown = (e) => {
+      if (e.key === 'Enter') finish(field.value.trim() || null);
+      if (e.key === 'Escape') finish(null);
+    };
+  });
+}
+
 function onHotkey(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
@@ -1273,6 +1313,7 @@ function initPresets() {
 
   // Bank Selector Controls
   const backToBankSelectorBtn = document.getElementById('backToBankSelectorBtn');
+  const addBankBtn = document.getElementById('addBankBtn');
   const importBankBtn = document.getElementById('importBankBtn');
   const exportAllBanksBtn = document.getElementById('exportAllBanksBtn');
   const currentBankNameEl = document.getElementById('currentBankName');
@@ -1361,27 +1402,27 @@ function initPresets() {
         `;
       }
 
+      // Icon buttons are always visible (no hidden dropdown) so they can't get
+      // clipped/covered by neighboring cards in the grid.
       item.innerHTML = `
         <div class="bank-item-header">
           <div class="bank-item-info">
             <div class="bank-item-name">${bank.name}</div>
             ${isActive ? '<span class="bank-active-badge">Active</span>' : ''}
           </div>
-          <div class="bank-item-menu-btn" data-id="${bank.id}" title="More options">⋮</div>
         </div>
         <div class="bank-item-meta">${bank.presetCount} preset${bank.presetCount !== 1 ? 's' : ''}</div>
         <div class="bank-item-actions">
           ${actionButtons}
         </div>
-        <div class="bank-item-menu hidden" data-id="${bank.id}">
-          <button class="bank-item-menu-btn-rename" data-id="${bank.id}">✏ Rename</button>
-          <button class="bank-item-menu-btn-clear" data-id="${bank.id}">🗑 Clear</button>
+        <div class="bank-item-footer">
+          <button class="bank-icon-btn bank-icon-btn-rename" data-id="${bank.id}" title="Rename bank">✏ Rename</button>
+          <button class="bank-icon-btn bank-icon-btn-clear" data-id="${bank.id}" title="Clear all presets">🗑 Clear</button>
+          ${banks.length > 1 ? `<button class="bank-icon-btn bank-icon-btn-delete" data-id="${bank.id}" title="Delete bank">✕ Delete</button>` : ''}
         </div>
       `;
       bankList.appendChild(item);
     });
-
-    console.log('📋 Rendered', banks.length, 'banks');
 
     // Attach listeners for Open/View
     bankList.querySelectorAll('.bank-item-open').forEach(btn => {
@@ -1399,79 +1440,25 @@ function initPresets() {
       };
     });
 
-    // Attach listeners for menu button (⋮)
-    const menuBtns = bankList.querySelectorAll('.bank-item-menu-btn');
-    console.log('🎯 Found', menuBtns.length, 'menu buttons (⋮)');
-    menuBtns.forEach((btn, idx) => {
-      btn.addEventListener('click', (e) => {
-        console.log('✅ MENU BUTTON (⋮) CLICKED for bank');
+    bankList.querySelectorAll('.bank-icon-btn-rename').forEach(btn => {
+      btn.onclick = (e) => {
         e.stopPropagation();
-        const bankId = parseInt(btn.dataset.id);
-        console.log('📋 Menu button clicked for bank:', bankId);
-        const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
-        if (menu) {
-          const wasHidden = menu.classList.contains('hidden');
-          menu.classList.toggle('hidden');
-          console.log('✅ Menu toggled, was hidden:', wasHidden, 'now hidden:', menu.classList.contains('hidden'));
-          // Close other menus
-          bankList.querySelectorAll('.bank-item-menu').forEach(m => {
-            if (m !== menu) m.classList.add('hidden');
-          });
-        } else {
-          console.warn('⚠️ Menu element not found for bank:', bankId);
-        }
-      }, false);
+        renameBank(parseInt(btn.dataset.id));
+      };
     });
 
-    // Attach listeners for menu actions
-    const renameButtons = bankList.querySelectorAll('.bank-item-menu-btn-rename');
-    console.log('🔍 Found', renameButtons.length, 'rename buttons');
-    console.log('📝 Button elements:', renameButtons);
-
-    if (renameButtons.length > 0) {
-      renameButtons.forEach((btn, idx) => {
-        console.log(`📌 Attaching rename listener to button ${idx} with bankId:`, btn.dataset.id);
-        btn.addEventListener('click', (e) => {
-          console.log('✅ RENAME BUTTON CLICKED - listener fired!');
-          e.preventDefault();
-          e.stopPropagation();
-          const bankId = parseInt(btn.dataset.id);
-          console.log('🔄 Rename button clicked for bank:', bankId);
-
-          // Show the prompt
-          const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
-          console.log('📝 Current name:', currentName);
-          const newName = prompt(`Rename "${currentName}" to:`, currentName);
-          console.log('📝 New name entered:', newName);
-
-          if (!newName || newName === currentName) {
-            console.log('❌ No name change, returning');
-            return;
-          }
-
-          renameBank(bankId);
-
-          // Close menu
-          const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
-          if (menu) menu.classList.add('hidden');
-        }, false);
-      });
-    } else {
-      console.warn('⚠️ NO RENAME BUTTONS FOUND!');
-    }
-
-    const clearButtons = bankList.querySelectorAll('.bank-item-menu-btn-clear');
-    clearButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
+    bankList.querySelectorAll('.bank-icon-btn-clear').forEach(btn => {
+      btn.onclick = (e) => {
         e.stopPropagation();
-        const bankId = parseInt(btn.dataset.id);
-        console.log('🗑️ Clear button clicked for bank:', bankId);
-        clearBank(bankId);
-        // Close menu
-        const menu = bankList.querySelector(`.bank-item-menu[data-id="${bankId}"]`);
-        if (menu) menu.classList.add('hidden');
-      }, false);
+        clearBank(parseInt(btn.dataset.id));
+      };
+    });
+
+    bankList.querySelectorAll('.bank-icon-btn-delete').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        deleteBank(parseInt(btn.dataset.id));
+      };
     });
   };
 
@@ -1509,7 +1496,7 @@ function initPresets() {
   // Rename bank
   const renameBank = async (bankId) => {
     const currentName = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
-    const newName = prompt(`Rename to:`, currentName);
+    const newName = await showInputModal({ title: 'Rename Bank', defaultValue: currentName });
     if (!newName || newName === currentName) return;
 
     try {
@@ -1544,6 +1531,63 @@ function initPresets() {
       showNotification('Bank cleared', 'success');
     } catch (e) {
       showNotification('Failed to clear bank', 'error');
+    }
+  };
+
+  // Add a new bank
+  const addBank = async () => {
+    const defaultName = `Bank ${(bankMetadata?.bankNames ? Object.keys(bankMetadata.bankNames).length : 0) + 1}`;
+    const name = await showInputModal({ title: 'Add Bank', message: 'Name for the new bank:', defaultValue: defaultName });
+    if (!name) return; // cancelled
+
+    try {
+      const res = await fetch('/api/banks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Failed to add bank');
+
+      await loadAndRenderBanks();
+      showNotification(`"${data.name}" created`, 'success');
+    } catch (e) {
+      console.error('Failed to add bank:', e);
+      showNotification('Failed to add bank', 'error');
+    }
+  };
+
+  // Delete a bank permanently (at least one bank must always remain)
+  const deleteBank = async (bankId) => {
+    const name = bankMetadata?.bankNames?.[bankId] || `Bank ${bankId}`;
+    if (!confirm(`Permanently delete "${name}" and all its presets? This cannot be undone.`)) return;
+
+    try {
+      const res = await fetch(`/api/banks/${bankId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete bank');
+
+      // If the deleted bank was active, refresh the main deck with the new active bank
+      if (data.currentBank !== activeBank) {
+        const switched = await fetch(`/api/banks/${data.currentBank}/presets`).then(r => r.json());
+        activeBank = data.currentBank;
+        CFG = {
+          presets: switched.presets || [],
+          quickCues: switched.quickCues || []
+        };
+        buildQuickCues(CFG);
+        buildDeck(CFG);
+        deckByKey.clear();
+        (CFG.presets || []).forEach(p => {
+          if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+        });
+      }
+
+      await loadAndRenderBanks();
+      showNotification(`"${name}" deleted`, 'success');
+    } catch (e) {
+      console.error('Failed to delete bank:', e);
+      showNotification(e.message || 'Failed to delete bank', 'error');
     }
   };
 
@@ -1612,7 +1656,10 @@ function initPresets() {
     currentPresets.forEach((preset, index) => {
       const item = document.createElement('div');
       item.className = 'preset-item';
+      item.draggable = true;
+      item.dataset.index = index;
       item.innerHTML = `
+        <div class="preset-item-drag" title="Drag to reorder">☰</div>
         <div class="preset-item-info">
           <div class="preset-item-color" style="background-color: ${preset.color || '#0ea5e9'}"></div>
           <div class="preset-item-details">
@@ -1627,8 +1674,13 @@ function initPresets() {
         <div class="preset-item-actions">
           <button class="preset-item-edit" data-index="${index}">Edit</button>
           <button class="preset-item-duplicate" data-index="${index}">Duplicate</button>
+          <button class="preset-item-delete" data-index="${index}" title="Delete preset">🗑</button>
         </div>
       `;
+      item.addEventListener('dragstart', handlePresetDragStart);
+      item.addEventListener('dragover', handlePresetDragOver);
+      item.addEventListener('drop', handlePresetDrop);
+      item.addEventListener('dragend', handlePresetDragEnd);
       presetList.appendChild(item);
     });
 
@@ -1646,6 +1698,78 @@ function initPresets() {
         duplicatePreset(parseInt(btn.dataset.index));
       };
     });
+
+    presetList.querySelectorAll('.preset-item-delete').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const index = parseInt(btn.dataset.index);
+        const preset = currentPresets[index];
+        if (!confirm(`Delete preset "${preset.label || preset.id}"?`)) return;
+        await removePresetAtIndex(index);
+      };
+    });
+  };
+
+  // Drag-and-drop reordering of presets within the currently viewed bank
+  let draggedPresetItem = null;
+
+  const handlePresetDragStart = (e) => {
+    draggedPresetItem = e.currentTarget;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handlePresetDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handlePresetDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = e.currentTarget;
+    if (!draggedPresetItem || draggedPresetItem === target) return;
+
+    const fromIndex = parseInt(draggedPresetItem.dataset.index);
+    const toIndex = parseInt(target.dataset.index);
+
+    const [moved] = currentPresets.splice(fromIndex, 1);
+    currentPresets.splice(toIndex, 0, moved);
+
+    renderPresetList();
+    await savePresetOrder();
+  };
+
+  const handlePresetDragEnd = (e) => {
+    e.currentTarget.classList.remove('dragging');
+    draggedPresetItem = null;
+  };
+
+  // Persist the current preset order (and sync it live, e.g. to the pop-out Deck)
+  const savePresetOrder = async () => {
+    try {
+      const data = { presets: currentPresets };
+      const resp = await fetch(`/api/presets?bank=${viewingBank}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!resp.ok) throw new Error('Failed to save order');
+
+      // Only refresh the live deck/hotkeys if we're reordering the ACTIVE bank
+      if (viewingBank === activeBank) {
+        CFG = data;
+        buildQuickCues(CFG);
+        buildDeck(CFG);
+        deckByKey.clear();
+        (CFG.presets || []).forEach(p => {
+          if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+        });
+      }
+    } catch (e) {
+      console.error('Failed to save preset order:', e);
+      showNotification('Failed to save new preset order', 'error');
+    }
   };
 
   // Add new preset
@@ -1943,10 +2067,15 @@ function initPresets() {
   // Delete preset (bank-aware)
   const deletePreset = async () => {
     if (editingPresetIndex === -1) return;
-
     if (!confirm('Are you sure you want to delete this preset?')) return;
+    await removePresetAtIndex(editingPresetIndex);
+    showView('list');
+  };
 
-    currentPresets.splice(editingPresetIndex, 1);
+  // Shared delete logic used by both the edit-view Delete button and the
+  // list view's quick-delete icon.
+  const removePresetAtIndex = async (index) => {
+    currentPresets.splice(index, 1);
 
     // Save to server (with bank param)
     try {
@@ -1961,18 +2090,18 @@ function initPresets() {
 
       showNotification('Preset deleted', 'success');
 
-      // Refresh UI
-      CFG = data;
-      buildQuickCues(CFG);
-      buildDeck(CFG);
-
-      deckByKey.clear();
-      (CFG.presets || []).forEach(p => {
-        if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
-      });
+      // Only refresh the live deck/hotkeys if we're editing the ACTIVE bank
+      if (viewingBank === activeBank) {
+        CFG = data;
+        buildQuickCues(CFG);
+        buildDeck(CFG);
+        deckByKey.clear();
+        (CFG.presets || []).forEach(p => {
+          if (p.hotkey) deckByKey.set(String(p.hotkey).toLowerCase(), p);
+        });
+      }
 
       renderPresetList();
-      showView('list');
     } catch (e) {
       showNotification('Failed to delete preset', 'error');
     }
@@ -2092,6 +2221,7 @@ function initPresets() {
   }, true); // Use capture phase to catch it early
 
   backToBankSelectorBtn.onclick = () => showView('banks');
+  addBankBtn.onclick = addBank;
   addPresetBtn.onclick = addNewPreset;
   exportBankBtn.onclick = exportBank;
   importBankBtn.onclick = importBank;

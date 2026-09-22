@@ -1133,6 +1133,23 @@ h3 {
   box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.2);
 }
 
+.input-modal-field {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.input-modal-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.2);
+}
+
 .setting-group small {
   display: block;
   margin-top: 4px;
@@ -1399,27 +1416,6 @@ textarea {
   margin-left: auto;
 }
 
-.bank-item-menu-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 18px;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all var(--transition-fast);
-}
-
-.bank-item-menu-btn:hover {
-  background: var(--card-hover);
-  color: var(--text);
-}
-
 .bank-item-meta {
   font-size: 13px;
   color: var(--text-secondary);
@@ -1473,45 +1469,41 @@ textarea {
   color: white;
 }
 
-.bank-item-menu {
-  position: absolute;
-  top: 100%;
-  right: 20px;
-  z-index: 1000;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg);
+/* Always-visible icon action row (replaces the old hidden dropdown menu,
+   which could get clipped/overlapped by the grid and made Rename unclickable). */
+.bank-item-footer {
   display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-width: 140px;
-  margin-top: 8px;
+  gap: 4px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
 }
 
-.bank-item-menu.hidden {
-  display: none;
-}
-
-.bank-item-menu-btn-rename,
-.bank-item-menu-btn-clear {
-  padding: 10px 12px;
+.bank-icon-btn {
+  flex: 1;
+  padding: 6px 8px;
   border: none;
   background: none;
-  color: var(--text);
-  text-align: left;
-  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 12px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.bank-item-menu-btn-rename:hover {
-  background: var(--card-hover);
+.bank-icon-btn-rename:hover {
+  background: rgba(59, 130, 246, 0.15);
   color: var(--blue);
 }
 
-.bank-item-menu-btn-clear:hover {
-  background: var(--card-hover);
+.bank-icon-btn-clear:hover {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--orange, #f59e0b);
+}
+
+.bank-icon-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.15);
   color: var(--red);
 }
 
@@ -1639,6 +1631,22 @@ textarea {
   box-shadow: var(--shadow-md);
 }
 
+.preset-item.dragging {
+  opacity: 0.4;
+}
+
+.preset-item-drag {
+  cursor: grab;
+  opacity: 0.5;
+  font-size: 16px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.preset-item-drag:active {
+  cursor: grabbing;
+}
+
 .preset-item-info {
   display: flex;
   align-items: center;
@@ -1709,6 +1717,16 @@ textarea {
 
 .preset-item-duplicate:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.preset-item-delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red);
+}
+
+.preset-item-delete:hover {
+  background: var(--red);
+  color: white;
 }
 
 /* Preset Edit View */

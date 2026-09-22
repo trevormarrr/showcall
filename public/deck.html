@@ -47,6 +47,15 @@
             flex: 1;
         }
 
+        .deck-bank-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+            letter-spacing: 0.3px;
+            margin-top: 2px;
+            text-transform: none;
+        }
+
         .deck-menu-btn {
             background: transparent;
             border: 1px solid var(--border);
@@ -445,7 +454,8 @@
 <body>
     <div class="deck-container">
         <div class="deck-header">
-            <div class="deck-header-title">Preset Deck</div>
+            <div class="deck-header-title">Preset Deck<div id="deckBankName" class="deck-bank-name"></div>
+            </div>
             <button class="deck-menu-btn" id="deckMenuBtn" title="Customize deck">☰</button>
         </div>
 
@@ -587,21 +597,28 @@
             });
         }
 
-        // Load configuration from the API (same as main app)
+        // Load the active bank's presets (same active bank the main app is using)
         async function loadPresets() {
             try {
-                const response = await fetch('/api/presets');
+                const response = await fetch('/api/banks/active');
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                const config = await response.json();
-                presets = config.presets || [];
-                console.log('✅ Loaded presets:', presets);
-                buildDeck();
+                const data = await response.json();
+                applyActiveBank(data);
             } catch (error) {
                 console.error('❌ Failed to load presets:', error);
                 showError('Failed to load presets');
             }
+        }
+
+        // Apply an active-bank payload (from initial load or SSE update)
+        function applyActiveBank(data) {
+            presets = data.presets || [];
+            const bankNameEl = document.getElementById('deckBankName');
+            if (bankNameEl) bankNameEl.textContent = data.bankName || '';
+            console.log('✅ Loaded presets:', presets);
+            buildDeck();
         }
 
         // Load cue stack from main app
@@ -845,6 +862,29 @@
             };
         } catch (e) {
             console.warn('Cue stack SSE not available:', e);
+        }
+
+        // Follow the active bank live so this window updates the moment the
+        // main app switches banks, instead of staying on whatever bank was
+        // active when the deck was opened (#3).
+        try {
+            const activeBankStream = new EventSource('/api/banks/active/stream');
+            activeBankStream.onmessage = (evt) => {
+                try {
+                    const data = JSON.parse(evt.data);
+                    if (data && data.ok) {
+                        applyActiveBank(data);
+                    }
+                } catch (e) {
+                    console.error('Active bank SSE parse failed:', e);
+                }
+            };
+
+            activeBankStream.onerror = () => {
+                console.warn('Active bank SSE disconnected; presets will only refresh on reopen.');
+            };
+        } catch (e) {
+            console.warn('Active bank SSE not available:', e);
         }
     </script>
 </body>
